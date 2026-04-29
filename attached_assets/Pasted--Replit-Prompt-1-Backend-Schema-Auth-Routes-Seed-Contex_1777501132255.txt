@@ -1,0 +1,428 @@
+# Replit Prompt 1 — Backend: Schema, Auth, Routes, Seed
+
+## Context
+
+This is v2.1 of the IQmeetEQ Workshop Companion App. The existing v1.0 app is a working pnpm monorepo with this structure:
+
+```
+artifacts-monorepo/
+├── artifacts/
+│   ├── api-server/         # Express 5 API server
+│   └── workshop/           # React + Vite frontend
+├── lib/
+│   ├── api-spec/           # OpenAPI spec + Orval codegen config
+│   ├── api-client-react/   # Generated React Query hooks
+│   ├── api-zod/            # Generated Zod schemas from OpenAPI
+│   └── db/                 # Drizzle ORM schema + DB connection
+```
+
+Stack: Express 5, PostgreSQL + Drizzle ORM, Zod validation, cookie-session, Node 24, TypeScript 5.9, esbuild CJS bundle.
+
+v2.1 adds a **cohort system** — each workshop gets its own virtual instance of the app. This prompt covers the entire backend: new database schema, rewritten auth, all API routes (participant + admin), and the seed script. Do NOT touch any frontend code in this prompt.
+
+---
+
+## 1. Database Schema
+
+Replace the existing schema files in `lib/db/src/schema/` with the following. Keep the same patterns: `pgTable`, `createInsertSchema`, type exports.
+
+### Keep unchanged:
+- `participants` — but ADD a `cohort_id` column (integer, FK → cohorts, nullable for now during seed)
+- `notes` — unchanged structurally. The `field_key` column stays; the frontend will standardize to `"notes"` for single-field sections later.
+- `unlocked_sections` — unchanged
+- `workflow_maps` — unchanged
+
+### New tables:
+
+**cohorts** — Workshop instances
+```
+id (serial PK)
+name (text, not null) — e.g., "SWERT Fresno June 2026"
+audience_type (text, not null, default "general") — e.g., "child_welfare", "adult_services"
+cohort_code (text, not null, unique) — e.g., "FRESNO26", entered at login
+facilitator_message (text, not null, default "Welcome to the workshop. Enter the codes your facilitator shares to unlock each section. Your notes save automatically.")
+tier_access (jsonb, not null, default '{"1": true, "2": false, "3": false}')
+settings (jsonb, not null, default '{}')
+created_at (timestamp, default now)
+updated_at (timestamp, default now)
+```
+
+**cohort_sections** — Per-cohort section ordering, codes, display names. Replaces `section_codes` table.
+```
+id (serial PK)
+cohort_id (integer, FK → cohorts, not null)
+section_id (text, not null) — hardcoded ID like "verification-test" or generic like "generic_42"
+level (integer, not null, default 1) — 1, 2, or 3
+sort_order (integer, not null)
+display_name (text, nullable) — overrides default title if set
+visible (boolean, not null, default true)
+code (text, nullable) — section unlock code for this cohort
+code_active (boolean, not null, default true)
+
+unique constraint on (cohort_id, section_id)
+```
+
+**content_variants** — Per-cohort content overrides for swappable text within sections
+```
+id (serial PK)
+cohort_id (integer, FK → cohorts, not null)
+section_id (text, not null)
+block_key (text, not null) — e.g., "verify_prompt", "verify_answer_key"
+content (text, not null)
+created_at (timestamp, default now)
+updated_at (timestamp, default now)
+
+unique constraint on (cohort_id, section_id, block_key)
+```
+
+**generic_sections** — Admin-created lightweight sections
+```
+id (serial PK)
+title (text, not null)
+content (text, not null, default "") — rich text / markdown
+prompt_block (text, nullable) — if present, renders as copyable prompt
+goal_text (text, nullable) — if present, renders as goal box
+section_type (text, not null, default "exercise") — "exercise" or "reference"
+created_at (timestamp, default now)
+updated_at (timestamp, default now)
+```
+
+**llm_tools** — Admin-managed LLM links (global, not per-cohort)
+```
+id (serial PK)
+name (text, not null) — e.g., "Gemini"
+display_label (text, not null) — e.g., "✦ Gemini"
+url (text, not null)
+active (boolean, not null, default true)
+sort_order (integer, not null, default 0)
+```
+
+**safari_library** — Shared Safari tool library (replaces `safari_worksheets`)
+```
+id (serial PK)
+name (text, not null) — e.g., "ChatGPT"
+sort_order (integer, not null, default 0)
+active (boolean, not null, default true)
+```
+
+**cohort_safari_tabs** — Which Safari tools appear per cohort, and in what order
+```
+id (serial PK)
+cohort_id (integer, FK → cohorts, not null)
+safari_library_id (integer, FK → safari_library, not null)
+sort_order (integer, not null)
+
+unique constraint on (cohort_id, safari_library_id)
+```
+
+**feedback_categories** — Admin-managed category options for feedback
+```
+id (serial PK)
+name (text, not null)
+sort_order (integer, not null, default 0)
+active (boolean, not null, default true)
+```
+
+**app_settings** — Global key-value settings
+```
+id (serial PK)
+key (text, not null, unique) — e.g., "talk_with_anthony_url"
+value (text, not null)
+updated_at (timestamp, default now)
+```
+
+### Modified tables:
+
+**participants** — Add column:
+```
+cohort_id (integer, nullable, FK → cohorts)
+```
+
+**feedback** — Add columns:
+```
+cohort_id (integer, nullable, FK → cohorts)
+category (text, nullable)
+```
+
+**section_files** — Modify:
+- Replace `tool_tab` (text) with `safari_library_id` (integer, nullable, FK → safari_library)
+- Keep all other columns
+
+### Remove tables:
+- `section_codes` — replaced by `cohort_sections`
+- `safari_worksheets` — replaced by `safari_library` + `cohort_safari_tabs`
+- `home_content` — replaced by `cohorts.facilitator_message`
+
+### Schema index file:
+Update `lib/db/src/schema/index.ts` to export all new tables and remove deleted ones.
+
+---
+
+## 2. Auth Routes
+
+Rewrite `artifacts/api-server/src/routes/auth.ts`:
+
+### POST /auth/login
+
+Request body: `{ email: string, cohortCode?: string }`
+
+Flow:
+1. Validate email format (same as v1.0)
+2. Normalize email to lowercase/trimmed
+3. Check if this email already exists in `participants`:
+   - **If exists AND has a cohort_id:** This is a returning participant. Update `lastLoginAt`. Set session. Return participant with `isNew: false`. Ignore any `cohortCode` in the request — they're already bound.
+   - **If exists AND cohort_id is null:** This is a participant from before cohorts existed (shouldn't happen in fresh deploy, but handle it). If `cohortCode` is provided, look up the cohort, bind them. If no `cohortCode`, return error "Cohort code required."
+   - **If NOT exists:** This is a new participant. `cohortCode` is required. Look up cohort by `cohort_code` (case-insensitive). If not found, return 400 `"Cohort code not recognized."` If found, create participant with `cohort_id`, set session, return with `isNew: true`.
+4. Session stores: `participantId` and `cohortId`
+
+### GET /auth/me
+
+Same as v1.0 but also return the participant's cohort info (name, facilitator_message, tier_access). Join participants with cohorts.
+
+### POST /auth/logout
+
+Same as v1.0.
+
+---
+
+## 3. Sections Routes
+
+Rewrite `artifacts/api-server/src/routes/sections.ts`:
+
+Keep the `ALL_SECTIONS` array as-is — it's the master list of hardcoded sections. But the API responses are now scoped to the participant's cohort.
+
+### GET /sections
+
+1. Get participant's `cohort_id` from session
+2. Query `cohort_sections` for that cohort, joined with the `ALL_SECTIONS` data and any `generic_sections`
+3. For generic sections (section_id starts with "generic_"), fetch title/type from `generic_sections` table
+4. Return sections ordered by `level` then `sort_order`, filtered to `visible = true`
+5. Each section includes: id, title (use `display_name` if set, else default), description, level, sort_order, type, unlocked status, hasCode
+6. Unlocked status: check `unlocked_sections` for this participant. Sections in levels where `tier_access` is true are automatically unlocked.
+
+### POST /sections/unlock
+
+1. Get participant's `cohort_id` from session
+2. Look up the code in `cohort_sections` WHERE `cohort_id` = participant's cohort AND `code` (case-insensitive) AND `code_active = true`
+3. May match multiple rows (one code unlocking multiple sections)
+4. Insert into `unlocked_sections` for each matched section (skip if already unlocked)
+5. Return the first matched section's info
+
+---
+
+## 4. Notes Routes
+
+`artifacts/api-server/src/routes/notes.ts` — **No changes needed.** Notes are already scoped to participantId, and participant is already scoped to a cohort. The routes work as-is.
+
+---
+
+## 5. Workflow Maps Routes
+
+`artifacts/api-server/src/routes/workflow-maps.ts` — **No changes needed.** Same reason as notes.
+
+---
+
+## 6. Feedback Routes
+
+Rewrite `artifacts/api-server/src/routes/feedback.ts`:
+
+### GET /feedback
+- Same as v1.0 but return category field too
+
+### PUT /feedback
+- Accept `{ content: string, category?: string }`
+- Save with participant's `cohort_id` from session
+
+### GET /feedback/categories
+- Public endpoint (no auth required)
+- Return all active feedback categories ordered by sort_order
+
+---
+
+## 7. Content Variants Routes
+
+New file: `artifacts/api-server/src/routes/content-variants.ts`
+
+### GET /content-variants/:sectionId
+- Get participant's cohort_id from session
+- Return all content variants for that section + cohort
+- Returns array of `{ block_key, content }`
+- If no variants exist, return empty array (frontend falls back to coded defaults)
+
+---
+
+## 8. LLM Tools Routes
+
+New file: `artifacts/api-server/src/routes/llm-tools.ts`
+
+### GET /llm-tools
+- Public endpoint (no auth required)
+- Return all active LLM tools ordered by sort_order
+- Returns array of `{ id, name, display_label, url }`
+
+---
+
+## 9. App Settings Routes
+
+New file: `artifacts/api-server/src/routes/app-settings.ts`
+
+### GET /app-settings
+- Public endpoint
+- Return all settings as key-value pairs
+- Returns object: `{ talk_with_anthony_url: "...", ... }`
+
+---
+
+## 10. Admin Routes
+
+Rewrite `artifacts/api-server/src/routes/admin.ts`. Keep `requireAdmin` middleware and the admin login/logout. Replace everything else:
+
+### Cohort Management
+
+**GET /admin/cohorts** — List all cohorts, ordered by created_at DESC
+
+**POST /admin/cohorts** — Create cohort. Body: `{ name, audience_type, cohort_code, facilitator_message?, tier_access? }`. On creation, auto-populate `cohort_sections` with ALL_SECTIONS in default order (all Level 1 sections with their default codes from `SECTION_CODE_CONFIG`, Level 2/3 sections visible but no codes).
+
+**PUT /admin/cohorts/:id** — Update cohort settings (name, audience_type, cohort_code, facilitator_message, tier_access, settings)
+
+**GET /admin/cohorts/:id** — Get single cohort with full details
+
+### Per-Cohort Section Management
+
+**GET /admin/cohorts/:cohortId/sections** — Get all cohort_sections for this cohort, joined with section details (from ALL_SECTIONS or generic_sections). Ordered by level, sort_order.
+
+**PUT /admin/cohorts/:cohortId/sections** — Bulk update section ordering. Body: array of `{ section_id, level, sort_order, display_name?, visible, code?, code_active }`. Replaces all cohort_sections for this cohort.
+
+**POST /admin/cohorts/:cohortId/unlock-all** — Unlock all sections for all participants in this cohort. Inserts into `unlocked_sections` for every participant × every visible section in this cohort. Skips already-unlocked.
+
+### Content Variants (Admin)
+
+**GET /admin/cohorts/:cohortId/variants** — Get all content variants for this cohort
+
+**PUT /admin/cohorts/:cohortId/variants** — Upsert a content variant. Body: `{ section_id, block_key, content }`. If content is empty string, delete the variant (revert to default).
+
+### Generic Sections
+
+**GET /admin/generic-sections** — List all generic sections
+
+**POST /admin/generic-sections** — Create. Body: `{ title, content, prompt_block?, goal_text?, section_type }`. Returns the created section with its ID.
+
+**PUT /admin/generic-sections/:id** — Update
+
+**DELETE /admin/generic-sections/:id** — Delete (also removes from any cohort_sections referencing it)
+
+### Safari Library
+
+**GET /admin/safari-library** — List all Safari tools with their files
+
+**POST /admin/safari-library** — Create tool. Body: `{ name }`
+
+**PUT /admin/safari-library/:id** — Update (name, sort_order, active)
+
+**DELETE /admin/safari-library/:id** — Delete tool (also removes from cohort_safari_tabs and related files)
+
+### Cohort Safari Tabs
+
+**GET /admin/cohorts/:cohortId/safari-tabs** — Get Safari lineup for this cohort, joined with safari_library details
+
+**PUT /admin/cohorts/:cohortId/safari-tabs** — Set Safari lineup. Body: array of `{ safari_library_id, sort_order }`. Replaces all cohort_safari_tabs for this cohort.
+
+### LLM Tools (Admin)
+
+**GET /admin/llm-tools** — List all (same as public but includes inactive)
+
+**POST /admin/llm-tools** — Create. Body: `{ name, display_label, url }`
+
+**PUT /admin/llm-tools/:id** — Update (name, display_label, url, active, sort_order)
+
+**DELETE /admin/llm-tools/:id** — Delete
+
+### Feedback Categories (Admin)
+
+**GET /admin/feedback-categories** — List all
+
+**POST /admin/feedback-categories** — Create. Body: `{ name }`
+
+**PUT /admin/feedback-categories/:id** — Update (name, sort_order, active)
+
+**DELETE /admin/feedback-categories/:id** — Delete
+
+### App Settings (Admin)
+
+**GET /admin/settings** — Get all settings
+
+**PUT /admin/settings** — Upsert. Body: `{ key, value }`. Updates if key exists, inserts if not.
+
+### Participant Management
+
+**GET /admin/cohorts/:cohortId/participants** — Same engagement data as v1.0 but filtered by cohort
+
+**PATCH /admin/participants/:id/active** — Same as v1.0
+
+**DELETE /admin/participants/:id** — Delete participant and all their data (notes, unlocked sections, workflow maps, feedback). Confirmation happens on frontend.
+
+### Feedback Review (Admin)
+
+**GET /admin/feedback** — All feedback across all cohorts. Supports query params: `?cohort_id=X&category=Y&sort=date`. Returns feedback with participant email and cohort name joined.
+
+### File Management
+
+Keep existing file upload/download/delete routes but update to use `safari_library_id` instead of `tool_tab` for Safari file assignments.
+
+---
+
+## 11. Route Index
+
+Update `artifacts/api-server/src/routes/index.ts` to register all new route files:
+
+```typescript
+import contentVariantsRouter from "./content-variants";
+import llmToolsRouter from "./llm-tools";
+import appSettingsRouter from "./app-settings";
+
+// Add to router.use() calls
+router.use(contentVariantsRouter);
+router.use(llmToolsRouter);
+router.use(appSettingsRouter);
+```
+
+---
+
+## 12. Seed Script
+
+Rewrite `artifacts/api-server/src/seed.ts`:
+
+1. Create a default cohort if none exists: name "Default Workshop", cohort_code "WORKSHOP", audience_type "general"
+2. Populate `cohort_sections` for the default cohort using ALL_SECTIONS in their default order with default codes from SECTION_CODE_CONFIG
+3. Seed `llm_tools` with defaults: Gemini (https://gemini.google.com), ChatGPT (https://chatgpt.com), Claude (https://claude.ai), Copilot (https://copilot.microsoft.com)
+4. Seed `safari_library` with defaults: ChatGPT, Claude, Gemini, NotebookLM, Perplexity
+5. Seed `feedback_categories` with defaults: "Topic I want to learn", "App feedback", "Other"
+6. Seed `app_settings` with: talk_with_anthony_url = "https://talkwithanthony.com"
+7. All seeds are idempotent (check before insert, never delete existing data)
+
+---
+
+## 13. OpenAPI Spec
+
+Update `lib/api-spec/openapi.yaml` to reflect all new endpoints, request/response schemas, and modified schemas. Then run `pnpm orval` to regenerate the API client and Zod schemas.
+
+---
+
+## 14. Important Patterns to Preserve
+
+- Use Zod validation on all request bodies (create schemas in api-zod or inline)
+- Use `req.session?.participantId` for participant auth, `req.session?.isAdmin` for admin auth
+- Use `res.set("Cache-Control", "no-store")` on GET endpoints that return user-specific data
+- All timestamps use `timestamp("column_name").defaultNow()`
+- Use `returning()` on all INSERT/UPDATE operations
+- Keep the logger (`pino`) usage pattern
+- Express 5 async error handling (no need for try/catch wrappers in Express 5)
+
+---
+
+## DO NOT in this prompt:
+- Touch any frontend code (React components, CSS, Vite config)
+- Change the monorepo structure
+- Modify the build system
+- Add new npm dependencies unless absolutely necessary
+- Change the session middleware configuration (cookie-session stays)
