@@ -13,7 +13,8 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
+import type { WorkflowMap } from "./workflowMap";
 
-export interface HealthStatus {
-  status: string;
+export interface WorkflowMapResponse {
+  workflowMap: WorkflowMap | null;
 }

@@ -3,34 +3,637 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: |
+    IQmeetEQ Workshop Companion API.
+
+    Cohort-based workshop app: each workshop runs as its own virtual app
+    instance keyed by cohort code. Participants sign in with name + email +
+    cohort code; admins sign in with a single admin password.
+
+    All participant endpoints require an authenticated session cookie
+    (`iqmeq_session`). Admin endpoints additionally require an admin session.
 servers:
   - url: /api
     description: Base API path
+
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Participant + admin authentication
+  - name: sections
+    description: Workshop sections (visibility, unlock codes, content)
+  - name: notes
+    description: Per-participant per-section notes
+  - name: workflow-map
+    description: Per-participant workflow map data
+  - name: feedback
+    description: Participant feedback to facilitator
+  - name: content-variants
+    description: Per-cohort content overrides for hardcoded sections
+  - name: llm-tools
+    description: Public catalog of LLM tools surfaced in the UI
+  - name: safari-tabs
+    description: Per-cohort safari (resource) tabs
+  - name: app-settings
+    description: Public app-wide key/value settings
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/HealthStatus"
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+
+  /auth/login:
+    post:
+      operationId: participantLogin
+      tags: [auth]
+      summary: Log in (or sign up) a participant by name + email + cohort code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LoginResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /auth/logout:
+    post:
+      operationId: participantLogout
+      tags: [auth]
+      summary: Clear the current session
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessResponse" }
+
+  /auth/me:
+    get:
+      operationId: getCurrentParticipant
+      tags: [auth]
+      summary: Return the currently authenticated participant + cohort
+      responses:
+        "200":
+          description: Current session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MeResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [auth]
+      summary: Authenticate as admin via shared password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminLoginRequest" }
+      responses:
+        "200":
+          description: Authenticated as admin
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/logout:
+    post:
+      operationId: adminLogout
+      tags: [auth]
+      summary: Clear the admin session
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessResponse" }
+
+  /sections:
+    get:
+      operationId: listSections
+      tags: [sections]
+      summary: List visible sections for the current participant's cohort
+      responses:
+        "200":
+          description: Sections
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SectionsResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /sections/unlock:
+    post:
+      operationId: unlockSection
+      tags: [sections]
+      summary: Submit an unlock code; unlocks all matching sections in the cohort
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UnlockRequest" }
+      responses:
+        "200":
+          description: Unlocked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UnlockResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /notes/{sectionId}:
+    parameters:
+      - $ref: "#/components/parameters/SectionId"
+    get:
+      operationId: getNotes
+      tags: [notes]
+      summary: List the participant's notes for a section
+      responses:
+        "200":
+          description: Notes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotesResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      operationId: upsertNote
+      tags: [notes]
+      summary: Create or update a note for a section + field key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NoteUpsertRequest" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NoteResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /workflow-map:
+    get:
+      operationId: getWorkflowMap
+      tags: [workflow-map]
+      summary: Get the current participant's workflow map document
+      responses:
+        "200":
+          description: Workflow map (or null if not yet created)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkflowMapResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      operationId: upsertWorkflowMap
+      tags: [workflow-map]
+      summary: Create or update the participant's workflow map document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkflowMapUpsertRequest" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkflowMapResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /feedback:
+    get:
+      operationId: listMyFeedback
+      tags: [feedback]
+      summary: List the participant's feedback entries
+      responses:
+        "200":
+          description: Feedback list
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeedbackListResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      operationId: upsertFeedback
+      tags: [feedback]
+      summary: Submit feedback (one entry per category, or many uncategorized)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FeedbackUpsertRequest" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeedbackResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /feedback/categories:
+    get:
+      operationId: listFeedbackCategories
+      tags: [feedback]
+      summary: List active feedback categories
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeedbackCategoriesResponse" }
+
+  /content-variants/{sectionId}:
+    parameters:
+      - $ref: "#/components/parameters/SectionId"
+    get:
+      operationId: getContentVariants
+      tags: [content-variants]
+      summary: Per-cohort content overrides for blocks within a hardcoded section
+      responses:
+        "200":
+          description: Variants
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContentVariantsResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /llm-tools:
+    get:
+      operationId: listLlmTools
+      tags: [llm-tools]
+      summary: List active LLM tools shown in the UI
+      responses:
+        "200":
+          description: Tools
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LlmToolsResponse" }
+
+  /safari-tabs:
+    get:
+      operationId: listSafariTabs
+      tags: [safari-tabs]
+      summary: List safari tabs assigned to the current participant's cohort
+      responses:
+        "200":
+          description: Tabs
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SafariTabsResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /app-settings:
+    get:
+      operationId: getAppSettings
+      tags: [app-settings]
+      summary: Public app-wide key/value settings
+      responses:
+        "200":
+          description: Settings map
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppSettingsResponse" }
+
 components:
+  parameters:
+    SectionId:
+      name: sectionId
+      in: path
+      required: true
+      description: Section id (e.g. `welcome`, `iq-meets-eq`, `generic_42`)
+      schema: { type: string, minLength: 1 }
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
-        status:
-          type: string
-      required:
-        - status
+        status: { type: string }
 
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+
+    LoginRequest:
+      type: object
+      required: [name, email, cohortCode]
+      properties:
+        name: { type: string, minLength: 1 }
+        email: { type: string, format: email }
+        cohortCode: { type: string, minLength: 1 }
+
+    Participant:
+      type: object
+      required: [id, name, email, cohortId, isActive, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string, format: email }
+        cohortId: { type: integer }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Cohort:
+      type: object
+      required: [id, name, facilitatorMessage, tierAccess, audienceType]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        facilitatorMessage: { type: string }
+        tierAccess:
+          type: object
+          additionalProperties: { type: boolean }
+          description: 'Map of tier level to default-unlocked boolean, e.g. {"1": true, "2": false}'
+        audienceType: { type: string }
+
+    LoginResponse:
+      type: object
+      required: [participant, isNew]
+      properties:
+        participant: { $ref: "#/components/schemas/Participant" }
+        isNew: { type: boolean }
+
+    MeResponse:
+      type: object
+      required: [participant, cohort]
+      properties:
+        participant: { $ref: "#/components/schemas/Participant" }
+        cohort: { $ref: "#/components/schemas/Cohort" }
+
+    AdminLoginRequest:
+      type: object
+      required: [password]
+      properties:
+        password: { type: string, minLength: 1 }
+
+    Section:
+      type: object
+      required: [id, title, description, level, sortOrder, type, unlocked, hasCode]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        level: { type: integer }
+        sortOrder: { type: integer }
+        type:
+          type: string
+          enum: [exercise, reference]
+        unlocked: { type: boolean }
+        hasCode: { type: boolean }
+
+    SectionsResponse:
+      type: object
+      required: [sections]
+      properties:
+        sections:
+          type: array
+          items: { $ref: "#/components/schemas/Section" }
+
+    UnlockRequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, minLength: 1 }
+
+    UnlockedSectionSummary:
+      type: object
+      required: [id, title, level, type]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        level: { type: integer }
+        type: { type: string }
+
+    UnlockResponse:
+      type: object
+      required: [section, unlockedCount]
+      properties:
+        section: { $ref: "#/components/schemas/UnlockedSectionSummary" }
+        unlockedCount: { type: integer }
+
+    Note:
+      type: object
+      required: [sectionId, fieldKey, content, updatedAt]
+      properties:
+        sectionId: { type: string }
+        fieldKey: { type: string }
+        content: { type: string }
+        updatedAt: { type: string, format: date-time }
+
+    NotesResponse:
+      type: object
+      required: [notes]
+      properties:
+        notes:
+          type: array
+          items: { $ref: "#/components/schemas/Note" }
+
+    NoteUpsertRequest:
+      type: object
+      required: [content]
+      properties:
+        fieldKey:
+          type: string
+          minLength: 1
+          default: notes
+        content: { type: string }
+
+    NoteRecord:
+      type: object
+      required: [id, participantId, sectionId, fieldKey, content, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        participantId: { type: integer }
+        sectionId: { type: string }
+        fieldKey: { type: string }
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    NoteResponse:
+      type: object
+      required: [note]
+      properties:
+        note: { $ref: "#/components/schemas/NoteRecord" }
+
+    WorkflowMap:
+      type: object
+      required: [id, participantId, data, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        participantId: { type: integer }
+        data: {}
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    WorkflowMapResponse:
+      type: object
+      required: [workflowMap]
+      properties:
+        workflowMap:
+          oneOf:
+            - $ref: "#/components/schemas/WorkflowMap"
+            - type: "null"
+
+    WorkflowMapUpsertRequest:
+      type: object
+      required: [data]
+      properties:
+        data: {}
+
+    Feedback:
+      type: object
+      required: [id, participantId, cohortId, content, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        participantId: { type: integer }
+        cohortId: { type: integer }
+        category:
+          type: string
+          nullable: true
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    FeedbackListResponse:
+      type: object
+      required: [feedback]
+      properties:
+        feedback:
+          type: array
+          items: { $ref: "#/components/schemas/Feedback" }
+
+    FeedbackUpsertRequest:
+      type: object
+      required: [content]
+      properties:
+        content: { type: string }
+        category:
+          type: string
+          nullable: true
+
+    FeedbackResponse:
+      type: object
+      required: [feedback]
+      properties:
+        feedback: { $ref: "#/components/schemas/Feedback" }
+
+    FeedbackCategory:
+      type: object
+      required: [id, name, sortOrder, active]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        sortOrder: { type: integer }
+        active: { type: boolean }
+
+    FeedbackCategoriesResponse:
+      type: object
+      required: [categories]
+      properties:
+        categories:
+          type: array
+          items: { $ref: "#/components/schemas/FeedbackCategory" }
+
+    ContentVariant:
+      type: object
+      required: [blockKey, content]
+      properties:
+        blockKey: { type: string }
+        content: { type: string }
+
+    ContentVariantsResponse:
+      type: object
+      required: [variants]
+      properties:
+        variants:
+          type: array
+          items: { $ref: "#/components/schemas/ContentVariant" }
+
+    LlmTool:
+      type: object
+      required: [id, name, displayLabel, url]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        displayLabel: { type: string }
+        url: { type: string }
+
+    LlmToolsResponse:
+      type: object
+      required: [tools]
+      properties:
+        tools:
+          type: array
+          items: { $ref: "#/components/schemas/LlmTool" }
+
+    SafariTab:
+      type: object
+      required: [id, safariLibraryId, sortOrder, name, active]
+      properties:
+        id: { type: integer }
+        safariLibraryId: { type: integer }
+        sortOrder: { type: integer }
+        name: { type: string }
+        active: { type: boolean }
+
+    SafariTabsResponse:
+      type: object
+      required: [tabs]
+      properties:
+        tabs:
+          type: array
+          items: { $ref: "#/components/schemas/SafariTab" }
+
+    AppSettingsResponse:
+      type: object
+      additionalProperties: { type: string }

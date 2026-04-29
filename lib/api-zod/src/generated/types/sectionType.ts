@@ -14,6 +14,9 @@ All participant endpoints require an authenticated session cookie
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
-}
+export type SectionType = (typeof SectionType)[keyof typeof SectionType];
+
+export const SectionType = {
+  exercise: "exercise",
+  reference: "reference",
+} as const;

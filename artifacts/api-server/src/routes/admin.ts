@@ -1,0 +1,967 @@
+import { Router, type IRouter } from "express";
+import { z } from "zod/v4";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import {
+  db,
+  cohortsTable,
+  cohortSectionsTable,
+  contentVariantsTable,
+  genericSectionsTable,
+  llmToolsTable,
+  safariLibraryTable,
+  cohortSafariTabsTable,
+  feedbackCategoriesTable,
+  feedbackTable,
+  appSettingsTable,
+  participantsTable,
+  notesTable,
+  unlockedSectionsTable,
+  workflowMapsTable,
+  DEFAULT_FACILITATOR_MESSAGE,
+  DEFAULT_TIER_ACCESS,
+} from "@workspace/db";
+import { requireAdmin } from "../middlewares/auth";
+import { seedCohortSections } from "../lib/cohort-sections";
+
+const router: IRouter = Router();
+
+// ----- Admin auth ---------------------------------------------------------
+
+const loginSchema = z.object({ password: z.string() });
+
+router.post("/admin/login", async (req, res) => {
+  const parsed = loginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Password required." });
+    return;
+  }
+  const expected = process.env["ADMIN_PASSWORD"];
+  if (!expected) {
+    req.log?.error("ADMIN_PASSWORD not configured");
+    res.status(500).json({ error: "Admin auth not configured." });
+    return;
+  }
+  if (parsed.data.password !== expected) {
+    res.status(401).json({ error: "Invalid password." });
+    return;
+  }
+  req.session = req.session ?? {};
+  req.session.isAdmin = true;
+  res.set("Cache-Control", "no-store");
+  res.json({ success: true });
+});
+
+router.post("/admin/logout", (req, res) => {
+  if (req.session) {
+    req.session.isAdmin = false;
+  }
+  res.json({ success: true });
+});
+
+router.get("/admin/me", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.json({ isAdmin: Boolean(req.session?.isAdmin) });
+});
+
+// ----- Cohort management --------------------------------------------------
+
+const tierAccessSchema = z.record(z.string(), z.boolean());
+
+const createCohortSchema = z.object({
+  name: z.string().trim().min(1),
+  audienceType: z.string().trim().default("general"),
+  cohortCode: z.string().trim().min(1),
+  facilitatorMessage: z.string().optional(),
+  tierAccess: tierAccessSchema.optional(),
+});
+
+router.get("/admin/cohorts", requireAdmin, async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(cohortsTable)
+    .orderBy(desc(cohortsTable.createdAt));
+  res.set("Cache-Control", "no-store");
+  res.json({ cohorts: rows });
+});
+
+router.post("/admin/cohorts", requireAdmin, async (req, res) => {
+  const parsed = createCohortSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res
+      .status(400)
+      .json({ error: parsed.error.issues[0]?.message ?? "Invalid input." });
+    return;
+  }
+  const data = parsed.data;
+  try {
+    const [created] = await db
+      .insert(cohortsTable)
+      .values({
+        name: data.name,
+        audienceType: data.audienceType,
+        cohortCode: data.cohortCode,
+        facilitatorMessage:
+          data.facilitatorMessage ?? DEFAULT_FACILITATOR_MESSAGE,
+        tierAccess: data.tierAccess ?? DEFAULT_TIER_ACCESS,
+      })
+      .returning();
+    if (!created) throw new Error("Failed to create cohort.");
+    await seedCohortSections(created.id);
+    res.set("Cache-Control", "no-store");
+    res.status(201).json({ cohort: created });
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("duplicate")) {
+      res.status(409).json({ error: "Cohort code already in use." });
+      return;
+    }
+    throw err;
+  }
+});
+
+router.get("/admin/cohorts/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid cohort id." });
+    return;
+  }
+  const [cohort] = await db
+    .select()
+    .from(cohortsTable)
+    .where(eq(cohortsTable.id, id))
+    .limit(1);
+  if (!cohort) {
+    res.status(404).json({ error: "Cohort not found." });
+    return;
+  }
+  res.set("Cache-Control", "no-store");
+  res.json({ cohort });
+});
+
+const updateCohortSchema = z.object({
+  name: z.string().trim().min(1).optional(),
+  audienceType: z.string().trim().optional(),
+  cohortCode: z.string().trim().min(1).optional(),
+  facilitatorMessage: z.string().optional(),
+  tierAccess: tierAccessSchema.optional(),
+  settings: z.record(z.string(), z.unknown()).optional(),
+});
+
+router.put("/admin/cohorts/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid cohort id." });
+    return;
+  }
+  const parsed = updateCohortSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input." });
+    return;
+  }
+  const [updated] = await db
+    .update(cohortsTable)
+    .set({ ...parsed.data, updatedAt: new Date() })
+    .where(eq(cohortsTable.id, id))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Cohort not found." });
+    return;
+  }
+  res.set("Cache-Control", "no-store");
+  res.json({ cohort: updated });
+});
+
+// ----- Per-cohort sections ------------------------------------------------
+
+router.get(
+  "/admin/cohorts/:cohortId/sections",
+  requireAdmin,
+  async (req, res) => {
+    const cohortId = Number(req.params.cohortId);
+    if (!Number.isInteger(cohortId)) {
+      res.status(400).json({ error: "Invalid cohort id." });
+      return;
+    }
+    const rows = await db
+      .select()
+      .from(cohortSectionsTable)
+      .where(eq(cohortSectionsTable.cohortId, cohortId))
+      .orderBy(
+        asc(cohortSectionsTable.level),
+        asc(cohortSectionsTable.sortOrder),
+      );
+
+    const genericIds = rows
+      .map((r) => {
+        const m = /^generic_(\d+)$/.exec(r.sectionId);
+        return m && m[1] ? Number(m[1]) : null;
+      })
+      .filter((n): n is number => n !== null);
+    const genericRows = genericIds.length
+      ? await db
+          .select()
+          .from(genericSectionsTable)
+          .where(inArray(genericSectionsTable.id, genericIds))
+      : [];
+    const byId = new Map(genericRows.map((g) => [g.id, g] as const));
+
+    const sections = rows.map((r) => {
+      let title = r.displayName ?? "";
+      let type = "exercise";
+      if (r.sectionId.startsWith("generic_")) {
+        const numericId = Number(r.sectionId.slice("generic_".length));
+        const g = byId.get(numericId);
+        if (g) {
+          if (!title) title = g.title;
+          type = g.sectionType;
+        }
+      } else {
+        // hardcoded — title/type filled in client-side from ALL_SECTIONS,
+        // but we still include the cohort row here.
+      }
+      return { ...r, title, type };
+    });
+
+    res.set("Cache-Control", "no-store");
+    res.json({ sections });
+  },
+);
+
+const sectionRowSchema = z.object({
+  sectionId: z.string().trim().min(1),
+  level: z.number().int().min(1).max(3),
+  sortOrder: z.number().int().min(0),
+  displayName: z.string().nullish(),
+  visible: z.boolean(),
+  code: z.string().trim().nullish(),
+  codeActive: z.boolean(),
+});
+const bulkSectionsSchema = z.array(sectionRowSchema);
+
+router.put(
+  "/admin/cohorts/:cohortId/sections",
+  requireAdmin,
+  async (req, res) => {
+    const cohortId = Number(req.params.cohortId);
+    if (!Number.isInteger(cohortId)) {
+      res.status(400).json({ error: "Invalid cohort id." });
+      return;
+    }
+    const parsed = bulkSectionsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid sections payload." });
+      return;
+    }
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(cohortSectionsTable)
+        .where(eq(cohortSectionsTable.cohortId, cohortId));
+      if (parsed.data.length > 0) {
+        await tx.insert(cohortSectionsTable).values(
+          parsed.data.map((row) => ({
+            cohortId,
+            sectionId: row.sectionId,
+            level: row.level,
+            sortOrder: row.sortOrder,
+            displayName: row.displayName ?? null,
+            visible: row.visible,
+            code: row.code ?? null,
+            codeActive: row.codeActive,
+          })),
+        );
+      }
+    });
+    res.set("Cache-Control", "no-store");
+    res.json({ success: true, count: parsed.data.length });
+  },
+);
+
+router.post(
+  "/admin/cohorts/:cohortId/unlock-all",
+  requireAdmin,
+  async (req, res) => {
+    const cohortId = Number(req.params.cohortId);
+    if (!Number.isInteger(cohortId)) {
+      res.status(400).json({ error: "Invalid cohort id." });
+      return;
+    }
+    const participants = await db
+      .select({ id: participantsTable.id })
+      .from(participantsTable)
+      .where(eq(participantsTable.cohortId, cohortId));
+    const sections = await db
+      .select({ sectionId: cohortSectionsTable.sectionId })
+      .from(cohortSectionsTable)
+      .where(
+        and(
+          eq(cohortSectionsTable.cohortId, cohortId),
+          eq(cohortSectionsTable.visible, true),
+        ),
+      );
+    if (participants.length === 0 || sections.length === 0) {
+      res.json({ success: true, inserted: 0 });
+      return;
+    }
+    const rows = participants.flatMap((p) =>
+      sections.map((s) => ({
+        participantId: p.id,
+        sectionId: s.sectionId,
+      })),
+    );
+    const inserted = await db
+      .insert(unlockedSectionsTable)
+      .values(rows)
+      .onConflictDoNothing()
+      .returning({ id: unlockedSectionsTable.id });
+    res.json({ success: true, inserted: inserted.length });
+  },
+);
+
+// ----- Content variants ---------------------------------------------------
+
+router.get(
+  "/admin/cohorts/:cohortId/variants",
+  requireAdmin,
+  async (req, res) => {
+    const cohortId = Number(req.params.cohortId);
+    if (!Number.isInteger(cohortId)) {
+      res.status(400).json({ error: "Invalid cohort id." });
+      return;
+    }
+    const rows = await db
+      .select()
+      .from(contentVariantsTable)
+      .where(eq(contentVariantsTable.cohortId, cohortId));
+    res.set("Cache-Control", "no-store");
+    res.json({ variants: rows });
+  },
+);
+
+const variantUpsertSchema = z.object({
+  sectionId: z.string().trim().min(1),
+  blockKey: z.string().trim().min(1),
+  content: z.string(),
+});
+
+router.put(
+  "/admin/cohorts/:cohortId/variants",
+  requireAdmin,
+  async (req, res) => {
+    const cohortId = Number(req.params.cohortId);
+    if (!Number.isInteger(cohortId)) {
+      res.status(400).json({ error: "Invalid cohort id." });
+      return;
+    }
+    const parsed = variantUpsertSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid variant payload." });
+      return;
+    }
+    const { sectionId, blockKey, content } = parsed.data;
+
+    if (content === "") {
+      await db
+        .delete(contentVariantsTable)
+        .where(
+          and(
+            eq(contentVariantsTable.cohortId, cohortId),
+            eq(contentVariantsTable.sectionId, sectionId),
+            eq(contentVariantsTable.blockKey, blockKey),
+          ),
+        );
+      res.json({ success: true, deleted: true });
+      return;
+    }
+
+    const [existing] = await db
+      .select()
+      .from(contentVariantsTable)
+      .where(
+        and(
+          eq(contentVariantsTable.cohortId, cohortId),
+          eq(contentVariantsTable.sectionId, sectionId),
+          eq(contentVariantsTable.blockKey, blockKey),
+        ),
+      )
+      .limit(1);
+    let saved;
+    if (existing) {
+      const [updated] = await db
+        .update(contentVariantsTable)
+        .set({ content, updatedAt: new Date() })
+        .where(eq(contentVariantsTable.id, existing.id))
+        .returning();
+      saved = updated!;
+    } else {
+      const [created] = await db
+        .insert(contentVariantsTable)
+        .values({ cohortId, sectionId, blockKey, content })
+        .returning();
+      saved = created!;
+    }
+    res.json({ variant: saved });
+  },
+);
+
+// ----- Generic sections ---------------------------------------------------
+
+const genericCreateSchema = z.object({
+  title: z.string().trim().min(1),
+  content: z.string().default(""),
+  promptBlock: z.string().nullish(),
+  goalText: z.string().nullish(),
+  sectionType: z.enum(["exercise", "reference"]).default("exercise"),
+});
+
+router.get("/admin/generic-sections", requireAdmin, async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(genericSectionsTable)
+    .orderBy(desc(genericSectionsTable.createdAt));
+  res.set("Cache-Control", "no-store");
+  res.json({ sections: rows });
+});
+
+router.post("/admin/generic-sections", requireAdmin, async (req, res) => {
+  const parsed = genericCreateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid section payload." });
+    return;
+  }
+  const [created] = await db
+    .insert(genericSectionsTable)
+    .values({
+      title: parsed.data.title,
+      content: parsed.data.content,
+      promptBlock: parsed.data.promptBlock ?? null,
+      goalText: parsed.data.goalText ?? null,
+      sectionType: parsed.data.sectionType,
+    })
+    .returning();
+  res.status(201).json({ section: created });
+});
+
+const genericUpdateSchema = genericCreateSchema.partial();
+
+router.put("/admin/generic-sections/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid id." });
+    return;
+  }
+  const parsed = genericUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid section payload." });
+    return;
+  }
+  const [updated] = await db
+    .update(genericSectionsTable)
+    .set({ ...parsed.data, updatedAt: new Date() })
+    .where(eq(genericSectionsTable.id, id))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Not found." });
+    return;
+  }
+  res.json({ section: updated });
+});
+
+router.delete("/admin/generic-sections/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid id." });
+    return;
+  }
+  const sectionId = `generic_${id}`;
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(cohortSectionsTable)
+      .where(eq(cohortSectionsTable.sectionId, sectionId));
+    await tx
+      .delete(genericSectionsTable)
+      .where(eq(genericSectionsTable.id, id));
+  });
+  res.json({ success: true });
+});
+
+// ----- Safari library -----------------------------------------------------
+
+router.get("/admin/safari-library", requireAdmin, async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(safariLibraryTable)
+    .orderBy(asc(safariLibraryTable.sortOrder), asc(safariLibraryTable.id));
+  res.set("Cache-Control", "no-store");
+  res.json({ tools: rows });
+});
+
+const safariCreateSchema = z.object({ name: z.string().trim().min(1) });
+
+router.post("/admin/safari-library", requireAdmin, async (req, res) => {
+  const parsed = safariCreateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Name required." });
+    return;
+  }
+  const [created] = await db
+    .insert(safariLibraryTable)
+    .values({ name: parsed.data.name })
+    .returning();
+  res.status(201).json({ tool: created });
+});
+
+const safariUpdateSchema = z.object({
+  name: z.string().trim().min(1).optional(),
+  sortOrder: z.number().int().optional(),
+  active: z.boolean().optional(),
+});
+
+router.put("/admin/safari-library/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid id." });
+    return;
+  }
+  const parsed = safariUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid payload." });
+    return;
+  }
+  const [updated] = await db
+    .update(safariLibraryTable)
+    .set(parsed.data)
+    .where(eq(safariLibraryTable.id, id))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Not found." });
+    return;
+  }
+  res.json({ tool: updated });
+});
+
+router.delete("/admin/safari-library/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid id." });
+    return;
+  }
+  await db.delete(safariLibraryTable).where(eq(safariLibraryTable.id, id));
+  res.json({ success: true });
+});
+
+// ----- Cohort safari tabs -------------------------------------------------
+
+router.get(
+  "/admin/cohorts/:cohortId/safari-tabs",
+  requireAdmin,
+  async (req, res) => {
+    const cohortId = Number(req.params.cohortId);
+    if (!Number.isInteger(cohortId)) {
+      res.status(400).json({ error: "Invalid cohort id." });
+      return;
+    }
+    const rows = await db
+      .select({
+        id: cohortSafariTabsTable.id,
+        cohortId: cohortSafariTabsTable.cohortId,
+        safariLibraryId: cohortSafariTabsTable.safariLibraryId,
+        sortOrder: cohortSafariTabsTable.sortOrder,
+        name: safariLibraryTable.name,
+        active: safariLibraryTable.active,
+      })
+      .from(cohortSafariTabsTable)
+      .leftJoin(
+        safariLibraryTable,
+        eq(cohortSafariTabsTable.safariLibraryId, safariLibraryTable.id),
+      )
+      .where(eq(cohortSafariTabsTable.cohortId, cohortId))
+      .orderBy(asc(cohortSafariTabsTable.sortOrder));
+    res.set("Cache-Control", "no-store");
+    res.json({ tabs: rows });
+  },
+);
+
+const safariTabsBulkSchema = z.array(
+  z.object({
+    safariLibraryId: z.number().int().positive(),
+    sortOrder: z.number().int().min(0),
+  }),
+);
+
+router.put(
+  "/admin/cohorts/:cohortId/safari-tabs",
+  requireAdmin,
+  async (req, res) => {
+    const cohortId = Number(req.params.cohortId);
+    if (!Number.isInteger(cohortId)) {
+      res.status(400).json({ error: "Invalid cohort id." });
+      return;
+    }
+    const parsed = safariTabsBulkSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid payload." });
+      return;
+    }
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(cohortSafariTabsTable)
+        .where(eq(cohortSafariTabsTable.cohortId, cohortId));
+      if (parsed.data.length > 0) {
+        await tx.insert(cohortSafariTabsTable).values(
+          parsed.data.map((row) => ({
+            cohortId,
+            safariLibraryId: row.safariLibraryId,
+            sortOrder: row.sortOrder,
+          })),
+        );
+      }
+    });
+    res.json({ success: true, count: parsed.data.length });
+  },
+);
+
+// ----- LLM tools (admin) --------------------------------------------------
+
+router.get("/admin/llm-tools", requireAdmin, async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(llmToolsTable)
+    .orderBy(asc(llmToolsTable.sortOrder), asc(llmToolsTable.id));
+  res.set("Cache-Control", "no-store");
+  res.json({ tools: rows });
+});
+
+const llmToolCreateSchema = z.object({
+  name: z.string().trim().min(1),
+  displayLabel: z.string().trim().min(1),
+  url: z.string().trim().url(),
+});
+
+router.post("/admin/llm-tools", requireAdmin, async (req, res) => {
+  const parsed = llmToolCreateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid payload." });
+    return;
+  }
+  const [created] = await db
+    .insert(llmToolsTable)
+    .values(parsed.data)
+    .returning();
+  res.status(201).json({ tool: created });
+});
+
+const llmToolUpdateSchema = z.object({
+  name: z.string().trim().min(1).optional(),
+  displayLabel: z.string().trim().min(1).optional(),
+  url: z.string().trim().url().optional(),
+  active: z.boolean().optional(),
+  sortOrder: z.number().int().optional(),
+});
+
+router.put("/admin/llm-tools/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid id." });
+    return;
+  }
+  const parsed = llmToolUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid payload." });
+    return;
+  }
+  const [updated] = await db
+    .update(llmToolsTable)
+    .set(parsed.data)
+    .where(eq(llmToolsTable.id, id))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Not found." });
+    return;
+  }
+  res.json({ tool: updated });
+});
+
+router.delete("/admin/llm-tools/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid id." });
+    return;
+  }
+  await db.delete(llmToolsTable).where(eq(llmToolsTable.id, id));
+  res.json({ success: true });
+});
+
+// ----- Feedback categories (admin) ----------------------------------------
+
+router.get("/admin/feedback-categories", requireAdmin, async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(feedbackCategoriesTable)
+    .orderBy(
+      asc(feedbackCategoriesTable.sortOrder),
+      asc(feedbackCategoriesTable.id),
+    );
+  res.set("Cache-Control", "no-store");
+  res.json({ categories: rows });
+});
+
+const feedbackCategoryCreateSchema = z.object({
+  name: z.string().trim().min(1),
+});
+
+router.post("/admin/feedback-categories", requireAdmin, async (req, res) => {
+  const parsed = feedbackCategoryCreateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Name required." });
+    return;
+  }
+  const [created] = await db
+    .insert(feedbackCategoriesTable)
+    .values({ name: parsed.data.name })
+    .returning();
+  res.status(201).json({ category: created });
+});
+
+const feedbackCategoryUpdateSchema = z.object({
+  name: z.string().trim().min(1).optional(),
+  sortOrder: z.number().int().optional(),
+  active: z.boolean().optional(),
+});
+
+router.put(
+  "/admin/feedback-categories/:id",
+  requireAdmin,
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      res.status(400).json({ error: "Invalid id." });
+      return;
+    }
+    const parsed = feedbackCategoryUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid payload." });
+      return;
+    }
+    const [updated] = await db
+      .update(feedbackCategoriesTable)
+      .set(parsed.data)
+      .where(eq(feedbackCategoriesTable.id, id))
+      .returning();
+    if (!updated) {
+      res.status(404).json({ error: "Not found." });
+      return;
+    }
+    res.json({ category: updated });
+  },
+);
+
+router.delete(
+  "/admin/feedback-categories/:id",
+  requireAdmin,
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      res.status(400).json({ error: "Invalid id." });
+      return;
+    }
+    await db
+      .delete(feedbackCategoriesTable)
+      .where(eq(feedbackCategoriesTable.id, id));
+    res.json({ success: true });
+  },
+);
+
+// ----- App settings (admin) -----------------------------------------------
+
+router.get("/admin/settings", requireAdmin, async (_req, res) => {
+  const rows = await db.select().from(appSettingsTable);
+  res.set("Cache-Control", "no-store");
+  res.json({ settings: rows });
+});
+
+const settingUpsertSchema = z.object({
+  key: z.string().trim().min(1),
+  value: z.string(),
+});
+
+router.put("/admin/settings", requireAdmin, async (req, res) => {
+  const parsed = settingUpsertSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid payload." });
+    return;
+  }
+  const { key, value } = parsed.data;
+  const [existing] = await db
+    .select()
+    .from(appSettingsTable)
+    .where(eq(appSettingsTable.key, key))
+    .limit(1);
+  let saved;
+  if (existing) {
+    const [updated] = await db
+      .update(appSettingsTable)
+      .set({ value, updatedAt: new Date() })
+      .where(eq(appSettingsTable.id, existing.id))
+      .returning();
+    saved = updated!;
+  } else {
+    const [created] = await db
+      .insert(appSettingsTable)
+      .values({ key, value })
+      .returning();
+    saved = created!;
+  }
+  res.json({ setting: saved });
+});
+
+// ----- Participants (admin) -----------------------------------------------
+
+router.get(
+  "/admin/cohorts/:cohortId/participants",
+  requireAdmin,
+  async (req, res) => {
+    const cohortId = Number(req.params.cohortId);
+    if (!Number.isInteger(cohortId)) {
+      res.status(400).json({ error: "Invalid cohort id." });
+      return;
+    }
+    const participants = await db
+      .select()
+      .from(participantsTable)
+      .where(eq(participantsTable.cohortId, cohortId));
+
+    if (participants.length === 0) {
+      res.json({ participants: [] });
+      return;
+    }
+    const ids = participants.map((p) => p.id);
+
+    const noteCounts = await db
+      .select({
+        participantId: notesTable.participantId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(notesTable)
+      .where(inArray(notesTable.participantId, ids))
+      .groupBy(notesTable.participantId);
+    const noteCountMap = new Map(
+      noteCounts.map((c) => [c.participantId, c.count] as const),
+    );
+
+    const unlockedCounts = await db
+      .select({
+        participantId: unlockedSectionsTable.participantId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(unlockedSectionsTable)
+      .where(inArray(unlockedSectionsTable.participantId, ids))
+      .groupBy(unlockedSectionsTable.participantId);
+    const unlockedCountMap = new Map(
+      unlockedCounts.map((c) => [c.participantId, c.count] as const),
+    );
+
+    res.set("Cache-Control", "no-store");
+    res.json({
+      participants: participants.map((p) => ({
+        ...p,
+        noteCount: noteCountMap.get(p.id) ?? 0,
+        unlockedCount: unlockedCountMap.get(p.id) ?? 0,
+      })),
+    });
+  },
+);
+
+const setActiveSchema = z.object({ isActive: z.boolean() });
+
+router.patch(
+  "/admin/participants/:id/active",
+  requireAdmin,
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      res.status(400).json({ error: "Invalid id." });
+      return;
+    }
+    const parsed = setActiveSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "isActive required." });
+      return;
+    }
+    const [updated] = await db
+      .update(participantsTable)
+      .set({ isActive: parsed.data.isActive })
+      .where(eq(participantsTable.id, id))
+      .returning();
+    if (!updated) {
+      res.status(404).json({ error: "Not found." });
+      return;
+    }
+    res.json({ participant: updated });
+  },
+);
+
+router.delete("/admin/participants/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid id." });
+    return;
+  }
+  // Cascades handle notes / unlocked / workflow_maps / feedback via FK.
+  await db.transaction(async (tx) => {
+    await tx.delete(notesTable).where(eq(notesTable.participantId, id));
+    await tx
+      .delete(unlockedSectionsTable)
+      .where(eq(unlockedSectionsTable.participantId, id));
+    await tx
+      .delete(workflowMapsTable)
+      .where(eq(workflowMapsTable.participantId, id));
+    await tx.delete(feedbackTable).where(eq(feedbackTable.participantId, id));
+    await tx.delete(participantsTable).where(eq(participantsTable.id, id));
+  });
+  res.json({ success: true });
+});
+
+// ----- Feedback review (admin) --------------------------------------------
+
+router.get("/admin/feedback", requireAdmin, async (req, res) => {
+  const cohortIdRaw = req.query["cohort_id"];
+  const categoryRaw = req.query["category"];
+  const sortRaw = req.query["sort"];
+
+  const filters = [];
+  if (typeof cohortIdRaw === "string" && cohortIdRaw) {
+    const n = Number(cohortIdRaw);
+    if (Number.isInteger(n)) filters.push(eq(feedbackTable.cohortId, n));
+  }
+  if (typeof categoryRaw === "string" && categoryRaw) {
+    filters.push(eq(feedbackTable.category, categoryRaw));
+  }
+  const where = filters.length ? and(...filters) : undefined;
+  const orderBy =
+    sortRaw === "date" ? desc(feedbackTable.createdAt) : desc(feedbackTable.id);
+
+  const rows = await db
+    .select({
+      id: feedbackTable.id,
+      participantId: feedbackTable.participantId,
+      cohortId: feedbackTable.cohortId,
+      category: feedbackTable.category,
+      content: feedbackTable.content,
+      createdAt: feedbackTable.createdAt,
+      updatedAt: feedbackTable.updatedAt,
+      participantEmail: participantsTable.email,
+      cohortName: cohortsTable.name,
+    })
+    .from(feedbackTable)
+    .leftJoin(
+      participantsTable,
+      eq(feedbackTable.participantId, participantsTable.id),
+    )
+    .leftJoin(cohortsTable, eq(feedbackTable.cohortId, cohortsTable.id))
+    .where(where)
+    .orderBy(orderBy);
+
+  res.set("Cache-Control", "no-store");
+  res.json({ feedback: rows });
+});
+
+export default router;

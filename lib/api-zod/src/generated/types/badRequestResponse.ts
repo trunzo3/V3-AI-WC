@@ -13,7 +13,9 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
+import type { ErrorResponse } from "./errorResponse";
 
-export interface HealthStatus {
-  status: string;
-}
+/**
+ * Invalid request
+ */
+export type BadRequestResponse = ErrorResponse;

@@ -2,7 +2,14 @@
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+pnpm workspace monorepo for the **IQmeetEQ Workshop Companion App** (v2.1 backend).
+
+The app uses a **cohort system**: each workshop runs as its own virtual app
+instance. Participants join a cohort via a short cohort code and unlock
+sections individually as the facilitator shares per-section codes.
+
+Currently this repo contains only the backend (Express API + PostgreSQL). A
+front-end will be added later and will consume the generated API client.
 
 ## Stack
 
@@ -13,15 +20,121 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **API framework**: Express 5
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
+- **Sessions**: `cookie-session` (signed cookie `iqmeq_session`)
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
+
+## Layout
+
+```
+artifacts/
+  api-server/          Express 5 API server (this is the v2.1 backend)
+  mockup-sandbox/      Vite component preview (used for canvas mockups)
+lib/
+  api-spec/            OpenAPI 3.1 source-of-truth (openapi.yaml + orval config)
+  api-client-react/    Generated React Query hooks (do not edit directly)
+  api-zod/             Generated Zod schemas (do not edit directly)
+  db/                  Drizzle schema, migrations, db client (composite lib)
+```
 
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
+- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and
+  Zod schemas from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+- `pnpm --filter @workspace/api-server run seed` — idempotent seed
+  (default cohort, LLM tools, safari library, feedback categories, settings)
+- Run via the configured workflow `artifacts/api-server: API Server`
+  (do **not** run `pnpm dev` at the workspace root)
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+## Environment
+
+Required env vars (managed via Replit Secrets):
+
+- `DATABASE_URL` — PostgreSQL connection string
+- `SESSION_SECRET` — secret for signing the `iqmeq_session` cookie
+- `ADMIN_PASSWORD` — shared admin password (used by `POST /api/admin/login`)
+
+## Backend architecture
+
+### Cohort model
+
+- A **cohort** owns its participants, section visibility/codes, content
+  variants, safari tab assignments, and facilitator message.
+- The default cohort is seeded with code `WORKSHOP`. Lookups are
+  case-insensitive (`lower(cohort_code) = lower(input)`).
+- Creating a new cohort auto-seeds `cohort_sections` from
+  `artifacts/api-server/src/lib/sections.ts` (`ALL_SECTIONS` +
+  `SECTION_CODE_CONFIG`).
+
+### Sections
+
+Sections come from two sources:
+
+1. **Hardcoded sections** — defined in `artifacts/api-server/src/lib/sections.ts`
+   (`ALL_SECTIONS`). Add a new entry here to ship a new section to all cohorts.
+2. **Generic sections** — created by admins, stored in `generic_sections`,
+   referenced by id `generic_<id>` from `cohort_sections`.
+
+A participant sees a section when:
+- The cohort's tier (level) is unlocked by default in `cohorts.tier_access`, **or**
+- The participant has unlocked it via a code (`unlocked_sections` row).
+
+`POST /api/sections/unlock` looks up the code across all cohort sections (case
+insensitive) and unlocks every matching section in one call.
+
+### Sessions / auth
+
+- **Participants**: `iqmeq_session` cookie carries `participantId` and
+  `cohortId`. `requireParticipant` middleware enforces this.
+- **Admins**: same cookie carries `isAdmin: true`. `requireAdmin` middleware
+  enforces this. Admin login validates the request password against
+  `ADMIN_PASSWORD`.
+- All authenticated GET responses set `Cache-Control: no-store`.
+
+### API surface (high level)
+
+Participant endpoints (require session):
+
+- `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
+- `GET /api/sections`, `POST /api/sections/unlock`
+- `GET|PUT /api/notes/:sectionId`
+- `GET|PUT /api/workflow-map`
+- `GET|PUT /api/feedback`, `GET /api/feedback/categories`
+- `GET /api/content-variants/:sectionId`
+- `GET /api/llm-tools`, `GET /api/safari-tabs`, `GET /api/app-settings`
+
+Admin endpoints (require admin session, prefix `/api/admin`):
+
+- `POST /admin/login`, `POST /admin/logout`
+- `GET|POST|PUT|DELETE /admin/cohorts[/:id]`
+- `GET|PUT /admin/cohorts/:cohortId/sections` (bulk upsert)
+- `GET|POST|PUT|DELETE /admin/cohorts/:cohortId/content-variants[/:id]`
+- `GET|POST|PUT|DELETE /admin/generic-sections[/:id]`
+- `GET|POST|PUT|DELETE /admin/safari-library[/:id]`
+- `GET|PUT /admin/cohorts/:cohortId/safari-tabs` (bulk upsert)
+- `GET|POST|PUT|DELETE /admin/llm-tools[/:id]`
+- `GET|POST|PUT|DELETE /admin/feedback-categories[/:id]`
+- `GET|PUT /admin/settings`
+- `GET /admin/cohorts/:cohortId/participants`
+- `GET /admin/feedback`
+
+The OpenAPI spec at `lib/api-spec/openapi.yaml` documents all participant
+endpoints in full and is used to generate React Query hooks + Zod schemas for
+the future frontend. Admin endpoints are not currently included in the
+generated client (they're typically called from custom admin UIs).
+
+## Conventions
+
+- **Never use `console.log`** in server code. Use `req.log` in route handlers
+  and the singleton `logger` for non-request code.
+- All routes use Zod (`zod/v4`) `.safeParse()` for input validation; failures
+  return `400` with `{ error: string }`.
+- Drizzle schemas live in `lib/db/src/schema/`; re-exported via
+  `lib/db/src/schema/index.ts`. After schema changes:
+  1. `pnpm --filter @workspace/db run push` to migrate dev DB
+  2. `pnpm run typecheck:libs` to rebuild the composite lib
+- See the `pnpm-workspace` skill for workspace structure, TypeScript project
+  references, and package management rules.

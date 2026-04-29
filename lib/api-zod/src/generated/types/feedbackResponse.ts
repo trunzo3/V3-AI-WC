@@ -13,7 +13,8 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
+import type { Feedback } from "./feedback";
 
-export interface HealthStatus {
-  status: string;
+export interface FeedbackResponse {
+  feedback: Feedback;
 }

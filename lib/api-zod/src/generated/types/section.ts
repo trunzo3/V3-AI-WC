@@ -13,7 +13,15 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
+import type { SectionType } from "./sectionType";
 
-export interface HealthStatus {
-  status: string;
+export interface Section {
+  id: string;
+  title: string;
+  description: string;
+  level: number;
+  sortOrder: number;
+  type: SectionType;
+  unlocked: boolean;
+  hasCode: boolean;
 }

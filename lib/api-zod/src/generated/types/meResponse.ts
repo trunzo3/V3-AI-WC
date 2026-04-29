@@ -13,7 +13,10 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
+import type { Cohort } from "./cohort";
+import type { Participant } from "./participant";
 
-export interface HealthStatus {
-  status: string;
+export interface MeResponse {
+  participant: Participant;
+  cohort: Cohort;
 }
