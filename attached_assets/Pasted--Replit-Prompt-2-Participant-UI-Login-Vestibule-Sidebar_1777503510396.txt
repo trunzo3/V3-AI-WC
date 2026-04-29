@@ -1,0 +1,357 @@
+# Replit Prompt 2 — Participant UI: Login, Vestibule, Sidebar, Sections
+
+## Context
+
+Prompt 1 built the entire backend: new database schema with cohorts, cohort_sections, content_variants, generic_sections, llm_tools, safari_library, feedback_categories, app_settings tables. Auth now accepts a cohort code. All routes are cohort-scoped.
+
+This prompt rewrites the participant-facing frontend. Do NOT touch admin pages in this prompt. Keep all existing design patterns (Tailwind, shadcn/ui, DM Sans / DM Serif Display fonts, navy/gold/cream brand system). Preserve the existing animation patterns (`animate-in fade-in slide-in-from-bottom-4 duration-500`).
+
+---
+
+## 1. Login Page — Add Cohort Code
+
+Modify `artifacts/workshop/src/pages/login.tsx`:
+
+### New field:
+Add a "Workshop Code" field ABOVE the email fields. This is the cohort code (e.g., "FRESNO26").
+
+Layout (top to bottom):
+1. Logo + "Workshop Companion" header + subtitle (keep existing)
+2. **New: Workshop Code field** — Label: "Workshop Code". Placeholder: "Enter the code from your facilitator". Single input, not double-entry.
+3. Email field (keep existing)
+4. Confirm Email field (keep existing)
+5. "Get Started" button (keep existing)
+
+### Logic change:
+- On first login: send `{ email, cohortCode }` to `POST /auth/login`. If cohort code is wrong, show inline error "Workshop code not recognized." If email mismatch, show existing error.
+- On return visit (session exists): the auto-login flow skips the cohort code — the backend ignores it for returning participants. But the form should still show the cohort code field in case they're a new user on a shared device.
+- Store `cohortId` in the local session alongside email and participantId.
+
+### Admin gear icon:
+Keep the existing gear icon at bottom-left and the admin login toggle. No changes.
+
+---
+
+## 2. Vestibule (Home Screen Redesign)
+
+Rewrite `artifacts/workshop/src/pages/home.tsx` to match the vestibule design.
+
+### Design reference:
+Use these CSS variables (matching the vestibule mockup):
+```css
+--navy: #1A2744;
+--gold: #C8963E;
+--gold-light: #C8963E22;
+--cream: #FDFBF7;
+--card-bg: #FFFFFF;
+--card-border: #E8E4DC;
+--text-muted: #6B7280;
+```
+
+### Layout:
+The vestibule is a standalone full-page layout — NO sidebar, NO TopNav. Centered container, max-width 680px.
+
+**Top to bottom:**
+
+1. **Header** — Centered. Workshop title from cohort name (fetched via `/auth/me` which returns cohort info). Font: DM Serif Display, 36px. Subtitle below: "Your AI workshop companion. Everything you build here is saved and waiting for you." Font: 15px, muted color.
+
+2. **"Go to Workshop →" button** — Navy background, white text, 16px font-weight-600, padding 16px 48px, border-radius 10px. Navigates to `/workshop`. Centered. Hover: slightly darker navy, subtle lift shadow.
+
+3. **Facilitator message card** — White card with 1px border, 12px border-radius, 28px padding. Gold 4px left border. "FROM YOUR FACILITATOR" label in gold, 11px, 700 weight, 1.5px letter-spacing, uppercase. Message content from cohort's `facilitator_message`. Render as HTML (it may contain bold, links, paragraphs).
+
+4. **Self-assessment: "Where Are You on the Path?"** — White card. Title: DM Serif Display 22px. Subtitle: "Self-assess your AI skill level" in muted 14px.
+
+   **Level track:** 6 dots in a horizontal row with a connecting line behind them. Each dot is 40px circle. Active dot: navy background, white text, gold glow ring. Inactive dots: white background, muted text, gray border. Dots are numbered 1–6, labeled below: Question Asker, Prompt Crafter, Power User, Workflow Weaver, Builder, Architect.
+
+   **Clicking a dot** shows that level's description panel below the track. Panel: #F9F7F3 background, 8px border-radius, 3px gold left border. Contains: level tag (uppercase, muted), level name (DM Serif Display 18px), tagline (14px gold italic), bullet list of descriptors.
+
+   Level data (hardcoded in component):
+   - Level 1 — Question Asker — "Using AI like a fancier search engine" — One-off questions, no thought about framing / Occasionally useful, not transformative / Unaware that how you ask changes results
+   - Level 2 — Prompt Crafter — "Realizing the prompt is the lever" — Adds context, constraints, and examples / Lets AI ask clarifying questions first / Saves prompts that worked
+   - Level 3 — Power User — "Context baked in — no more starting from scratch" — Uses Projects with persistent instructions / Files and tone carry across conversations / Chooses deliberately between models
+   - Level 4 — Workflow Weaver — "Right tool for each job, not one tool for all" — Pulls in NotebookLM, image gen, meeting tools / Prototypes interactive tools without code / Combines tools in ways previously impossible
+   - Level 5 — Builder — "Build something that does this for me" — Automations that run without touching them / Dashboards, apps, and portals for real use / Sees repetitive tasks as systems to build
+   - Level 6 — Architect — "Every slow process is a system waiting to be designed" — Builds production software from descriptions / Multi-agent workflows that orchestrate other agents / Doesn't see problems anymore — sees systems
+
+   Default selected: Level 1.
+
+5. **Workshop Progress card** — White card. Title: DM Serif Display 18px "Workshop Progress". Progress bar: 10px height, gray track, gold fill. Label below: "X of Y sections unlocked" in muted 14px. X = participant's unlocked count, Y = total visible sections in their cohort's Level 1.
+
+6. **"Go to Workshop →" button** — Same as #2, repeated here.
+
+7. **Fold separator** — Horizontal line with "More" label centered, 11px uppercase muted text.
+
+8. **Three bottom cards** — 3-column grid (stack to 1-column on narrow screens). Each card: white background, 1px border, 10px border-radius, 20px padding. Hover: gold border, subtle gold shadow.
+   - "What should we teach next?" / "Tell us what you need" — navigates to a feedback dialog or section
+   - "Talk with Anthony" / "Book a conversation" — opens URL from `app_settings` (`talk_with_anthony_url`) in new tab
+   - "Other Resources" / "Additional content to support your journey" — links to headandheartca.com/resources (or make configurable later)
+
+9. **"Download My Workbook" button** — Secondary style, below the cards. Placeholder for now — show button but display a toast "Coming soon" on click. PDF export is Prompt 4.
+
+10. **Log out link** — Centered, 14px muted text. Clears session, navigates to `/`.
+
+### Data fetching:
+- Call `GET /auth/me` to get participant + cohort info (name, facilitator_message)
+- Call `GET /sections` to get section list for progress calculation
+- Call `GET /app-settings` to get Talk with Anthony URL
+- If not authenticated, redirect to `/`
+
+---
+
+## 3. Sidebar Redesign
+
+Rewrite `artifacts/workshop/src/components/workshop/Sidebar.tsx`:
+
+### Level-based grouping:
+Replace "Day 1" / "Day 2" grouping with Level 1 / Level 2 / Level 3. Sections come from the API already sorted by level and sort_order.
+
+Group header format:
+- "Level 1" (or "Level 1 — [subtitle]" if we add subtitles later)
+- "Level 2 (Coming Soon)"
+- "Level 3 (Coming Soon)"
+
+### Collapsible behavior:
+- Each level group is collapsible with a click on the header
+- **Default state:** All levels collapsed when participant first enters
+- **Auto-expand:** When a participant navigates to a section (clicks it in sidebar or arrives via unlock), that section's level auto-expands
+- **Persistence:** Store collapsed/expanded state in `localStorage` keyed by participant ID. Once a level has been expanded (by user click or by navigating to a section within it), it stays expanded across page refreshes until the user manually collapses it.
+- Level 2 and 3 always collapsed by default (they're locked anyway)
+
+### Progress markers:
+- Next to each section title, show a small gold dot (●) if the participant has notes for that section
+- Fetch notes data: the `GET /notes` endpoint already returns all notes for the participant. If any note exists for a section's ID, show the dot.
+
+### Remove "Where Are You on the Path?":
+- Remove the MapPin / "Where Are You on the Path?" button from the sidebar
+- It now lives exclusively on the vestibule
+
+### Keep:
+- "Home" button at top (navigates to `/home`)
+- "Log out" button at bottom
+- Lock icons on locked sections
+- Active section highlighting (primary color background, right border)
+- Section titles truncated with ellipsis if too long
+
+### Locked sections display:
+- Level 1 sections that are locked (no code entered yet): show with lock icon, clickable (shows the "enter code" prompt)
+- Level 2/3 sections: show title with lock icon, not clickable, muted opacity
+
+---
+
+## 4. SectionRenderer Updates
+
+Modify `artifacts/workshop/src/components/workshop/SectionRenderer.tsx`:
+
+### Generic section support:
+Add a new component `GenericSectionView`:
+
+```tsx
+function GenericSectionView({ section }: { section: GenericSectionData }) {
+  return (
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <SectionHeader title={section.title} type={section.section_type} />
+      {section.goal_text && <GoalBox text={section.goal_text} />}
+      
+      {/* Render rich text content as HTML */}
+      <div className="prose max-w-none mb-8" dangerouslySetInnerHTML={{ __html: section.content }} />
+      
+      {/* Optional prompt block */}
+      {section.prompt_block && (
+        <div className="bg-primary rounded-lg p-6 text-white mb-8">
+          <span className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded mb-4">Prompt to Copy</span>
+          <p className="text-white/90 text-sm leading-relaxed whitespace-pre-line">{section.prompt_block}</p>
+          <CopyButton text={section.prompt_block} label="Copy Prompt" />
+        </div>
+      )}
+      
+      <NotesField sectionId={section.id} fieldKey="notes" label="Your Notes" />
+    </div>
+  );
+}
+```
+
+### Update the switch statement default case:
+```tsx
+default:
+  // Check if this is a generic section
+  if (section.isGeneric && section.genericData) {
+    return <GenericSectionView section={section.genericData} />;
+  }
+  return (
+    <div className="p-10 border-2 border-dashed rounded-lg text-center">
+      <h2 className="text-xl font-bold">{section.title}</h2>
+      <p className="text-muted-foreground mt-2">Content coming soon...</p>
+    </div>
+  );
+```
+
+### Section data shape:
+The `GET /sections` endpoint now returns generic section data inline for generic sections. The SectionRenderer needs to handle a section object that may include `isGeneric: true` and `genericData: { title, content, prompt_block, goal_text, section_type }`.
+
+### Display name support:
+The switch statement uses `section.id` to pick the component — that stays the same. But `SectionHeader` should use the section's `title` from the API response (which reflects the `display_name` override if one exists) rather than a hardcoded string. Update each section component to receive `title` as a prop instead of hardcoding it:
+
+```tsx
+// Before:
+<SectionHeader title="Verification Test" type="exercise" />
+
+// After:
+<SectionHeader title={title || "Verification Test"} type="exercise" />
+```
+
+Pass `title` from the section data to each component via SectionRenderer.
+
+---
+
+## 5. Content Variant Support (Verification Test)
+
+The Verification Test is the only section with content variants for June. Modify `artifacts/workshop/src/components/workshop/sections/Day1.tsx`:
+
+### In the VerificationTest component:
+
+1. Fetch content variants: call `GET /content-variants/verification-test`
+2. If a variant exists for `block_key = "verify_prompt"`, use that text instead of the hardcoded `VERIFY_PROMPT` constant
+3. If a variant exists for `block_key = "verify_answer_key"`, use that instead of the hardcoded answer key JSX
+
+For the answer key variant, since it's structured content (three stats with error/correct formatting), store it as JSON in the variant content field:
+```json
+[
+  { "label": "STAT 1 — CPS VICTIMS COUNT", "error": "556,000 victims", "correct": "558,899 victims..." },
+  { "label": "STAT 2 — SCREENING RATES", "error": "50% screened in", "correct": "49.5% were screened in..." },
+  { "label": "STAT 3 — OLDER ADULTS LIVING ALONE", "error": "25% of community-dwelling...", "correct": "approximately 28%..." }
+]
+```
+
+If no variant exists, fall back to the existing hardcoded content. The component should work identically to v1.0 when no variants are configured.
+
+---
+
+## 6. LLM Links from Database
+
+In the VerificationTest component, replace the hardcoded LLM links array:
+
+```tsx
+// Before:
+const tools = [
+  { name: "✦ Gemini", url: "https://gemini.google.com" },
+  { name: "◎ ChatGPT", url: "https://chatgpt.com" },
+  ...
+];
+
+// After:
+// Fetch from GET /llm-tools
+const { data: llmTools = [] } = useGetLlmTools();
+
+// Render:
+{llmTools.map((t) => (
+  <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer"
+     className="text-lg font-bold text-primary hover:text-accent transition-colors">
+    {t.display_label}
+  </a>
+))}
+```
+
+---
+
+## 7. Simplified Notes — Section Component Updates
+
+Update ALL section components in `Day1.tsx` and `Day2.tsx` to collapse multiple notes boxes into one "Your Notes" field.
+
+### Pattern — BEFORE (typical section):
+```tsx
+<NotesField sectionId={sectionId} fieldKey="observations" label="My Observations" />
+<NotesField sectionId={sectionId} fieldKey="caught-errors" label="Did my AI catch the errors?" />
+<NotesField sectionId={sectionId} fieldKey="trust" label="What does this tell me about trust?" />
+```
+
+### Pattern — AFTER:
+```tsx
+<NotesField sectionId={sectionId} fieldKey="notes" label="Your Notes" />
+```
+
+### Apply this collapse to these sections (replace all multiple notes fields with one):
+- **VerificationTest** — 3 fields → 1 "Your Notes"
+- **Distill** — 5 fields → 1 "Your Notes"
+- **Prepare** — 4 fields → 1 "Your Notes"
+- **Synthesize** — 4 fields → 1 "Your Notes"
+- **PowerFollowUps** — 2 fields → 1 "Your Notes"
+- **WhatAiIs** — already 1 field, just rename label to "Your Notes"
+- **PersistentContext** — 1 field, rename label to "Your Notes"
+- **OvernightAssignment** — 3 fields → 1 "Your Notes"
+- **OvernightHarvest** — 5 fields → 1 "Your Notes"
+- **StatusQuoBias** — 1 field, rename to "Your Notes"
+- **CountyChangeFramework** — collapse to 1 "Your Notes"
+- **Closing** — collapse to 1 "Your Notes"
+
+### Sections that KEEP multiple fields (exercise mechanics):
+
+**Capstone** — Keep ALL fields: the 6 Ways table with per-row NotesField (`6ways-draft`, `6ways-brainstorm`, etc.), the build workspace fields (`my-task`, `ways-checked`, `context-tool`, `verified`, `built`, `surprised`). Add one "Your Notes" at the very bottom if there isn't a general notes field already.
+
+**RedYellowGreen** — Keep the three category columns (`safe`, `depends`, `risky`) and the `condition` field. These ARE the exercise. Do NOT collapse.
+
+**RicecoFramework** — Keep the R/I/C/E/C/O practice builder fields. Add one "Your Notes" at bottom.
+
+**DraftWithRiceco** — Keep `task`, `which-way`, and the 6 RICECO drafting fields (`draft-riceco-0` through `draft-riceco-5`). Collapse `reaction` and `changes` into one "Your Notes" at bottom.
+
+**LlmPeerReview** — Keep `model-a`, `model-b` (functional fields for tracking which models were used). Collapse `key-feedback`, `changes-made`, `disagree` into one "Your Notes" at bottom.
+
+**ToolSafari** — Keep one notes field per tab (this is per-tool). The shared "My table's top insight" field below tabs stays as-is OR becomes a single "Your Notes" at bottom.
+
+**WorkflowConfigurator** — Don't touch. It's a structured interactive tool.
+
+**CountyChangeMessage** — If it has structured build fields, keep them. Add "Your Notes" at bottom.
+
+---
+
+## 8. Feedback Category Selector
+
+If there's a feedback submission form (the "What should we teach next?" flow), add a category dropdown:
+
+1. Fetch categories from `GET /feedback/categories`
+2. Show a dropdown/select above the text area: "What kind of feedback is this?"
+3. Options come from the API (default: "Topic I want to learn", "App feedback", "Other")
+4. Submit includes the selected category
+
+---
+
+## 9. Safari Tab Data Source
+
+Update the ToolSafari component to work with the new Safari library:
+
+- The `GET /sections` response should include Safari tab data for the participant's cohort (from `cohort_safari_tabs` joined with `safari_library`)
+- OR create a dedicated endpoint `GET /safari-tabs` that returns the cohort's Safari lineup
+- File downloads still use `GET /files/by-section/tool-safari` but now filter by `safari_library_id` instead of `tool_tab`
+- Tab names come from `safari_library.name`
+
+---
+
+## 10. Workshop Page Updates
+
+Modify `artifacts/workshop/src/pages/workshop.tsx`:
+
+### Remove "levels" virtual section:
+- Remove the `isLevels` check and the virtual section rendering for "Where Are You on the Path?"
+- It no longer exists in the workshop view — it's on the vestibule only
+
+### Section title passthrough:
+- Pass the section's `title` from the API response (which may be a display_name override) to SectionRenderer
+- SectionRenderer passes it to individual section components
+
+---
+
+## 11. Talk with Anthony Link
+
+Anywhere "Talk with Anthony" appears (vestibule, sidebar if present):
+- Fetch the URL from `GET /app-settings` (key: `talk_with_anthony_url`)
+- Use it as the href instead of hardcoding `talkwithanthony.com`
+- Cache this — it's a global setting, fetch once on app load
+
+---
+
+## DO NOT in this prompt:
+- Touch admin pages (admin/dashboard.tsx, admin/login.tsx)
+- Change the routing structure (keep same URL paths)
+- Add new npm dependencies unless absolutely necessary
+- Change the build system or monorepo structure
+- Build the PDF export (that's Prompt 4)
+- Modify any backend code (routes, schema, etc.)
