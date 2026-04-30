@@ -13,18 +13,9 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
-import type { SectionGeneric } from "./sectionGeneric";
-import type { SectionType } from "./sectionType";
 
-export interface Section {
-  id: string;
-  title: string;
-  description: string;
-  level: number;
-  sortOrder: number;
-  type: SectionType;
-  unlocked: boolean;
-  hasCode: boolean;
-  isGeneric: boolean;
-  generic?: SectionGeneric;
-}
+export type SectionGeneric = {
+  content: string;
+  promptBlock: string | null;
+  goalText: string | null;
+} | null;

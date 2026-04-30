@@ -417,7 +417,7 @@ components:
 
     Section:
       type: object
-      required: [id, title, description, level, sortOrder, type, unlocked, hasCode]
+      required: [id, title, description, level, sortOrder, type, unlocked, hasCode, isGeneric]
       properties:
         id: { type: string }
         title: { type: string }
@@ -429,6 +429,15 @@ components:
           enum: [exercise, reference]
         unlocked: { type: boolean }
         hasCode: { type: boolean }
+        isGeneric: { type: boolean }
+        generic:
+          nullable: true
+          type: object
+          required: [content, promptBlock, goalText]
+          properties:
+            content: { type: string }
+            promptBlock: { type: string, nullable: true }
+            goalText: { type: string, nullable: true }
 
     SectionsResponse:
       type: object

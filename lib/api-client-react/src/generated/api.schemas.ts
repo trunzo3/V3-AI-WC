@@ -79,6 +79,12 @@ export const SectionType = {
   reference: "reference",
 } as const;
 
+export type SectionGeneric = {
+  content: string;
+  promptBlock: string | null;
+  goalText: string | null;
+} | null;
+
 export interface Section {
   id: string;
   title: string;
@@ -88,6 +94,8 @@ export interface Section {
   type: SectionType;
   unlocked: boolean;
   hasCode: boolean;
+  isGeneric: boolean;
+  generic?: SectionGeneric;
 }
 
 export interface SectionsResponse {

@@ -111,6 +111,14 @@ export const ListSectionsResponse = zod.object({
       type: zod.enum(["exercise", "reference"]),
       unlocked: zod.boolean(),
       hasCode: zod.boolean(),
+      isGeneric: zod.boolean(),
+      generic: zod
+        .object({
+          content: zod.string(),
+          promptBlock: zod.string().nullable(),
+          goalText: zod.string().nullable(),
+        })
+        .nullish(),
     }),
   ),
 });

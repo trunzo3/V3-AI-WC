@@ -27,6 +27,12 @@ interface SectionResponse {
   type: string;
   unlocked: boolean;
   hasCode: boolean;
+  isGeneric: boolean;
+  generic: {
+    content: string;
+    promptBlock: string | null;
+    goalText: string | null;
+  } | null;
 }
 
 router.get("/sections", requireParticipant, async (req, res) => {
@@ -77,13 +83,21 @@ router.get("/sections", requireParticipant, async (req, res) => {
     let title = cs.displayName ?? "";
     let description = "";
     let type = "exercise";
+    let isGeneric = false;
+    let generic: SectionResponse["generic"] = null;
 
     if (isGenericSectionId(cs.sectionId)) {
       const numericId = parseGenericSectionId(cs.sectionId);
-      const generic = numericId !== null ? genericById.get(numericId) : null;
-      if (!generic) continue; // dangling reference — skip silently
-      if (!title) title = generic.title;
-      type = generic.sectionType;
+      const g = numericId !== null ? genericById.get(numericId) : null;
+      if (!g) continue; // dangling reference — skip silently
+      if (!title) title = g.title;
+      type = g.sectionType;
+      isGeneric = true;
+      generic = {
+        content: g.content ?? "",
+        promptBlock: g.promptBlock,
+        goalText: g.goalText,
+      };
     } else {
       const hard = getHardcodedSection(cs.sectionId);
       if (!hard) continue;
@@ -104,6 +118,8 @@ router.get("/sections", requireParticipant, async (req, res) => {
       type,
       unlocked,
       hasCode: Boolean(cs.code) && cs.codeActive,
+      isGeneric,
+      generic,
     });
   }
 

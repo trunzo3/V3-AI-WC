@@ -44,6 +44,7 @@ export * from "./participant";
 export * from "./safariTab";
 export * from "./safariTabsResponse";
 export * from "./section";
+export * from "./sectionGeneric";
 export * from "./sectionsResponse";
 export * from "./sectionType";
 export * from "./successResponse";
