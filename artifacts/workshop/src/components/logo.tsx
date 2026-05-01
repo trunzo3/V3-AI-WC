@@ -1,3 +1,5 @@
+import brandMarkUrl from "../assets/brand-mark.png";
+
 export function Logo({
   className = "",
   variant = "default",
@@ -7,16 +9,12 @@ export function Logo({
 }) {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <div
-        className={`h-9 w-9 rounded-sm flex-shrink-0 grid place-items-center font-serif font-bold text-sm ${
-          variant === "white"
-            ? "bg-white/10 text-white border border-white/30"
-            : "bg-primary/10 text-primary border border-primary/20"
-        }`}
+      <img
+        src={brandMarkUrl}
+        alt=""
         aria-hidden
-      >
-        IQ
-      </div>
+        className="h-9 w-9 rounded-sm flex-shrink-0 object-cover"
+      />
       <span
         className={`font-serif font-bold text-xl tracking-tight ${
           variant === "white" ? "text-white" : "text-primary"

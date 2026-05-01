@@ -40,7 +40,7 @@ export default function AdminLogin() {
     <div className="min-h-[100dvh] flex flex-col items-center justify-center p-4 bg-slate-950">
       <div className="w-full max-w-sm space-y-8">
         <div className="flex flex-col items-center text-center space-y-4">
-          <Logo className="scale-125 mb-4 brightness-0 invert" />
+          <Logo variant="white" className="scale-125 mb-4" />
           <h1 className="text-2xl font-serif font-bold text-slate-50">
             Admin Access
           </h1>
