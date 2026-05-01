@@ -88,7 +88,7 @@ export function Sidebar({
         {llmTools.length > 0 && (
           <div className="px-3 pb-3 border-b border-border">
             <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-2 px-1">
-              Verification tools
+              LLM Links
             </div>
             <div className="flex flex-wrap gap-1.5">
               {llmTools.map((tool) => (
