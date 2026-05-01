@@ -378,13 +378,13 @@ export function SectionsTab({ cohortId }: Props) {
                   Add generic section
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
+              <DialogContent className="max-w-2xl flex flex-col max-h-[85vh] p-0">
+                <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
                   <DialogTitle>
                     {editingGeneric ? "Edit generic section" : "New generic section"}
                   </DialogTitle>
                 </DialogHeader>
-                <div className="space-y-3">
+                <div className="space-y-3 overflow-y-auto px-6 py-2 flex-1 min-h-0">
                   <div>
                     <Label>Title</Label>
                     <Input
@@ -549,7 +549,7 @@ export function SectionsTab({ cohortId }: Props) {
                     </div>
                   </div>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="px-6 pb-6 pt-2 shrink-0 border-t bg-background">
                   <Button variant="ghost" onClick={() => setGenOpen(false)}>
                     Cancel
                   </Button>
