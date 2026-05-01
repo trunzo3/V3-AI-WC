@@ -93,8 +93,16 @@ Sections come from two sources:
 
 1. **Hardcoded sections** — defined in `artifacts/api-server/src/lib/sections.ts`
    (`ALL_SECTIONS`). Add a new entry here to ship a new section to all cohorts.
+   Default per-cohort unlock codes live in
+   `artifacts/api-server/src/section-codes-config.ts` as
+   `SECTION_CODE_CONFIG: SectionCodeEntry[]`, where one code can map to many
+   section ids (entering the code unlocks all listed sections at once).
 2. **Generic sections** — created by admins, stored in `generic_sections`,
    referenced by id `generic_<id>` from `cohort_sections`.
+
+Running the seed (`pnpm --filter @workspace/api-server run seed`) will reset
+the **default** cohort's `cohort_sections` to match `ALL_SECTIONS` exactly, so
+edits to the canonical list propagate. Other cohorts are left untouched.
 
 A participant sees a section when:
 - The cohort's tier (level) is unlocked by default in `cohorts.tier_access`, **or**

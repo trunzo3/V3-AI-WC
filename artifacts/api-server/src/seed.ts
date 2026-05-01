@@ -21,7 +21,10 @@ import {
 } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { logger } from "./lib/logger";
-import { seedCohortSections } from "./lib/cohort-sections";
+import {
+  resetCohortSectionsToDefaults,
+  seedCohortSections,
+} from "./lib/cohort-sections";
 
 const DEFAULT_COHORT_CODE = "WORKSHOP";
 
@@ -64,8 +67,13 @@ async function ensureDefaultCohort(): Promise<void> {
     .limit(1);
   if (existing) {
     logger.info({ cohortId: existing.id }, "Default cohort already exists.");
-    // Make sure cohort_sections are present (idempotent).
-    await seedCohortSections(existing.id);
+    // Re-sync cohort_sections to the canonical ALL_SECTIONS list so changes
+    // (added/removed sections, level shifts, default code edits) take effect.
+    await resetCohortSectionsToDefaults(existing.id);
+    logger.info(
+      { cohortId: existing.id },
+      "Reset default cohort sections to ALL_SECTIONS defaults.",
+    );
     return;
   }
   const [created] = await db

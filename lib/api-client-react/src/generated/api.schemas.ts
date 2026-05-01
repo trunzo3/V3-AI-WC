@@ -77,6 +77,7 @@ export type SectionType = (typeof SectionType)[keyof typeof SectionType];
 export const SectionType = {
   exercise: "exercise",
   reference: "reference",
+  locked: "locked",
 } as const;
 
 export type SectionGeneric = {

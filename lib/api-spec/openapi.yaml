@@ -1027,7 +1027,7 @@ components:
         sortOrder: { type: integer }
         type:
           type: string
-          enum: [exercise, reference]
+          enum: [exercise, reference, locked]
         unlocked: { type: boolean }
         hasCode: { type: boolean }
         isGeneric: { type: boolean }

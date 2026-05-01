@@ -108,7 +108,7 @@ export const ListSectionsResponse = zod.object({
       description: zod.string(),
       level: zod.number(),
       sortOrder: zod.number(),
-      type: zod.enum(["exercise", "reference"]),
+      type: zod.enum(["exercise", "reference", "locked"]),
       unlocked: zod.boolean(),
       hasCode: zod.boolean(),
       isGeneric: zod.boolean(),

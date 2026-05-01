@@ -2,20 +2,22 @@ import { Badge } from "@/components/ui/badge";
 
 interface SectionHeaderProps {
   title: string;
-  type: "exercise" | "reference";
+  type: "exercise" | "reference" | "locked";
 }
 
 export function SectionHeader({ title, type }: SectionHeaderProps) {
+  const badgeClass =
+    type === "exercise"
+      ? "bg-accent/10 text-accent border-accent"
+      : type === "locked"
+        ? "bg-muted text-muted-foreground border-muted-foreground"
+        : "bg-primary/10 text-primary border-primary";
   return (
     <div className="mb-8 border-b-2 border-primary pb-4">
       <div className="flex items-center gap-3 mb-2">
-        <Badge 
-          variant="outline" 
-          className={`uppercase tracking-wider font-semibold ${
-            type === "exercise" 
-              ? "bg-accent/10 text-accent border-accent" 
-              : "bg-primary/10 text-primary border-primary"
-          }`}
+        <Badge
+          variant="outline"
+          className={`uppercase tracking-wider font-semibold ${badgeClass}`}
         >
           {type}
         </Badge>
