@@ -19,6 +19,7 @@ export default function Home() {
   const { data: meResp } = useGetCurrentParticipant();
   const cohortName = meResp?.cohort?.name?.trim() || "";
   const homeMessage = (meResp?.cohort?.homeMessage ?? "").trim();
+  const facilitatorMessage = (meResp?.cohort?.facilitatorMessage ?? "").trim();
   const logoutMutation = useParticipantLogout();
 
   useEffect(() => {
@@ -91,6 +92,36 @@ export default function Home() {
           </div>
         </div>
 
+        {facilitatorMessage && (
+          <div
+            className="bg-white border border-border rounded-xl shadow-sm"
+            style={{
+              borderLeft: "4px solid #C8963E",
+              padding: "28px",
+              borderRadius: "12px",
+            }}
+            data-testid="facilitator-message-card"
+          >
+            <div
+              className="text-accent uppercase mb-3"
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                letterSpacing: "1.5px",
+              }}
+            >
+              From Your Facilitator
+            </div>
+            <div
+              className="prose prose-slate max-w-none text-foreground"
+              data-testid="facilitator-message-content"
+              // Server-side sanitized via sanitizeRichHtml on admin write
+              // (StarterKit + Link + Underline allowlist).
+              dangerouslySetInnerHTML={{ __html: facilitatorMessage }}
+            />
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button
             onClick={() => setLocation("/levels")}
@@ -125,10 +156,10 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="text-center pt-2">
+        <div className="flex justify-center pt-2">
           <button
             onClick={handleLogout}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center justify-center min-h-[44px] px-6 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md transition-colors"
             data-testid="button-logout"
           >
             Log out
