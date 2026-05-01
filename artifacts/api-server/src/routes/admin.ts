@@ -22,6 +22,7 @@ import {
 } from "@workspace/db";
 import { requireAdmin } from "../middlewares/auth";
 import { seedCohortSections } from "../lib/cohort-sections";
+import { sanitizeRichHtml, sanitizeRichHtmlNullable } from "../lib/sanitize";
 
 const router: IRouter = Router();
 
@@ -71,8 +72,14 @@ const createCohortSchema = z.object({
   name: z.string().trim().min(1),
   audienceType: z.string().trim().default("general"),
   cohortCode: z.string().trim().min(1),
-  facilitatorMessage: z.string().optional(),
-  homeMessage: z.string().nullish(),
+  facilitatorMessage: z
+    .string()
+    .optional()
+    .transform((v) => (v == null ? v : sanitizeRichHtml(v))),
+  homeMessage: z
+    .string()
+    .nullish()
+    .transform((v) => sanitizeRichHtmlNullable(v ?? null)),
   tierAccess: tierAccessSchema.optional(),
 });
 
@@ -143,8 +150,14 @@ const updateCohortSchema = z.object({
   name: z.string().trim().min(1).optional(),
   audienceType: z.string().trim().optional(),
   cohortCode: z.string().trim().min(1).optional(),
-  facilitatorMessage: z.string().optional(),
-  homeMessage: z.string().nullish(),
+  facilitatorMessage: z
+    .string()
+    .optional()
+    .transform((v) => (v == null ? v : sanitizeRichHtml(v))),
+  homeMessage: z
+    .string()
+    .nullish()
+    .transform((v) => sanitizeRichHtmlNullable(v ?? null)),
   tierAccess: tierAccessSchema.optional(),
   settings: z.record(z.string(), z.unknown()).optional(),
 });
@@ -443,10 +456,14 @@ router.put(
 
 // ----- Generic sections ---------------------------------------------------
 
-const contentBlockSchema = z.object({
-  type: z.enum(["text", "prompt"]),
-  content: z.string(),
-});
+const contentBlockSchema = z
+  .object({
+    type: z.enum(["text", "prompt"]),
+    content: z.string(),
+  })
+  .transform((b) =>
+    b.type === "text" ? { ...b, content: sanitizeRichHtml(b.content) } : b,
+  );
 
 const genericCreateSchema = z.object({
   title: z.string().trim().min(1),

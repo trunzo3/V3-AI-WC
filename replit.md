@@ -200,3 +200,15 @@ generated client (they're typically called from custom admin UIs).
   2. `pnpm run typecheck:libs` to rebuild the composite lib
 - See the `pnpm-workspace` skill for workspace structure, TypeScript project
   references, and package management rules.
+
+## Security
+
+- All admin-authored rich-text inputs (cohort `homeMessage`,
+  `facilitatorMessage`, generic-section text-block `content`) pass through
+  `artifacts/api-server/src/lib/sanitize.ts` (`sanitizeRichHtml`) on write.
+  Allowlist matches what Tiptap (StarterKit + Link + Underline) emits:
+  `<p>`, `<br>`, `<strong>`, `<em>`, `<u>`, `<s>`, `<code>`, `<pre>`,
+  `<blockquote>`, `<h1>`–`<h4>`, `<ul>`, `<ol>`, `<li>`, `<a>`. `<a>` is
+  forced to `target="_blank" rel="noopener noreferrer"` and only `http`,
+  `https`, `mailto` schemes are allowed. Prompt-block content is left raw
+  (rendered inside a `<pre>` mono block, not as HTML).
