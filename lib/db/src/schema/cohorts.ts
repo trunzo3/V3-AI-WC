@@ -15,7 +15,7 @@ import { z } from "zod/v4";
 export const DEFAULT_FACILITATOR_MESSAGE =
   "Welcome to the workshop. Enter the codes your facilitator shares to unlock each section. Your notes save automatically.";
 
-export const DEFAULT_TIER_ACCESS = { "1": true, "2": false, "3": false };
+export const DEFAULT_TIER_ACCESS = { "1": true, "2": false, "3": false, "4": false };
 
 export const cohortsTable = pgTable(
   "cohorts",

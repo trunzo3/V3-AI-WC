@@ -267,7 +267,7 @@ router.get(
 
 const sectionRowSchema = z.object({
   sectionId: z.string().trim().min(1),
-  level: z.number().int().min(1).max(3),
+  level: z.number().int().min(1).max(4),
   sortOrder: z.number().int().min(0),
   displayName: z.string().nullish(),
   visible: z.boolean(),

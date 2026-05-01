@@ -30,7 +30,7 @@ export const SECTION_CODE_CONFIG: SectionCodeEntry[] = [
   { code: "TONIGHT",    sectionIds: ["overnight-assignment", "six-ways-worksheet"] },
   { code: "HARVEST",    sectionIds: ["overnight-harvest"] },
   { code: "WORKFLOW",   sectionIds: ["workflow-configurator"] },
-  { code: "CHANGE",     sectionIds: ["status-quo-bias", "county-change-framework", "county-change-message", "closing"] },
+  { code: "CHANGE",     sectionIds: ["closing"] },
 ];
 
 /**

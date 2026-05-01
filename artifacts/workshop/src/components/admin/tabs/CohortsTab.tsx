@@ -37,6 +37,7 @@ interface FormState {
   tier1: boolean;
   tier2: boolean;
   tier3: boolean;
+  tier4: boolean;
 }
 
 const EMPTY_FORM: FormState = {
@@ -48,6 +49,7 @@ const EMPTY_FORM: FormState = {
   tier1: true,
   tier2: false,
   tier3: false,
+  tier4: false,
 };
 
 function fromCohort(c: AdminCohort): FormState {
@@ -60,6 +62,7 @@ function fromCohort(c: AdminCohort): FormState {
     tier1: !!c.tierAccess?.["1"],
     tier2: !!c.tierAccess?.["2"],
     tier3: !!c.tierAccess?.["3"],
+    tier4: !!c.tierAccess?.["4"],
   };
 }
 
@@ -140,7 +143,12 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
       audienceType: form.audienceType.trim() || "general",
       facilitatorMessage: form.facilitatorMessage,
       homeMessage: form.homeMessage,
-      tierAccess: { "1": form.tier1, "2": form.tier2, "3": form.tier3 },
+      tierAccess: {
+        "1": form.tier1,
+        "2": form.tier2,
+        "3": form.tier3,
+        "4": form.tier4,
+      },
     };
     if (!payload.name || !payload.cohortCode) {
       toast({ title: "Name and cohort code are required", variant: "destructive" });
@@ -181,7 +189,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
   };
 
   const tierLabel = (tier: Record<string, boolean>) => {
-    const on = (["1", "2", "3"] as const).filter((k) => tier?.[k]);
+    const on = (["1", "2", "3", "4"] as const).filter((k) => tier?.[k]);
     return on.length ? on.map((k) => `L${k}`).join(", ") : "None";
   };
 
@@ -256,7 +264,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
               <div>
                 <Label className="block mb-2">Open levels</Label>
                 <div className="flex gap-4">
-                  {([1, 2, 3] as const).map((n) => {
+                  {([1, 2, 3, 4] as const).map((n) => {
                     const k = `tier${n}` as const;
                     return (
                       <label key={n} className="flex items-center gap-2 text-sm">

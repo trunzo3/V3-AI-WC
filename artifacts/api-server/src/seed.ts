@@ -84,6 +84,34 @@ async function ensureDefaultCohort(): Promise<void> {
 }
 
 /**
+ * Backfill `tier_access` on existing cohorts so any tier keys that were
+ * introduced after the cohort was created (e.g. level 4) are present and
+ * default to false. Existing values are preserved.
+ */
+async function backfillTierAccess(): Promise<void> {
+  const cohorts = await db
+    .select({ id: cohortsTable.id, tierAccess: cohortsTable.tierAccess })
+    .from(cohortsTable);
+  let updated = 0;
+  for (const c of cohorts) {
+    const current = (c.tierAccess ?? {}) as Record<string, boolean>;
+    const merged = { ...DEFAULT_TIER_ACCESS, ...current };
+    const changed = Object.keys(merged).some(
+      (k) => current[k] === undefined,
+    );
+    if (!changed) continue;
+    await db
+      .update(cohortsTable)
+      .set({ tierAccess: merged })
+      .where(eq(cohortsTable.id, c.id));
+    updated++;
+  }
+  if (updated > 0) {
+    logger.info({ updated }, "Backfilled tier_access on existing cohorts.");
+  }
+}
+
+/**
  * Re-sync cohort_sections for every cohort to the canonical ALL_SECTIONS list.
  * Wipes existing rows and re-inserts so changes (added/removed sections, level
  * shifts, default code edits) take effect across the whole app.
@@ -163,6 +191,7 @@ async function ensureAppSettings(): Promise<void> {
 async function main(): Promise<void> {
   logger.info("Running seed...");
   await ensureDefaultCohort();
+  await backfillTierAccess();
   await resyncAllCohortSections();
   await ensureLlmTools();
   await ensureSafariLibrary();

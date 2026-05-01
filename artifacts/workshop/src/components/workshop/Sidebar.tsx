@@ -16,6 +16,7 @@ const LEVEL_LABELS: Record<number, string> = {
   1: "Level 1 — Core Workshop",
   2: "Level 2 — Deeper Practice",
   3: "Level 3 — Advanced Track",
+  4: "Level 4 — Change Leadership",
 };
 
 export function Sidebar({

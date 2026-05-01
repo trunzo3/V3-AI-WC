@@ -432,6 +432,7 @@ export function SectionsTab({ cohortId }: Props) {
                             <SelectItem value="1">Level 1</SelectItem>
                             <SelectItem value="2">Level 2</SelectItem>
                             <SelectItem value="3">Level 3</SelectItem>
+                            <SelectItem value="4">Level 4</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -601,7 +602,7 @@ export function SectionsTab({ cohortId }: Props) {
           {sectionsQ.isLoading ? (
             <div className="text-sm text-muted-foreground">Loading…</div>
           ) : (
-            ([1, 2, 3] as const).map((lvl) => (
+            ([1, 2, 3, 4] as const).map((lvl) => (
               <div key={lvl}>
                 <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
                   Level {lvl}
@@ -685,6 +686,7 @@ export function SectionsTab({ cohortId }: Props) {
                                 <SelectItem value="1">1</SelectItem>
                                 <SelectItem value="2">2</SelectItem>
                                 <SelectItem value="3">3</SelectItem>
+                                <SelectItem value="4">4</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>

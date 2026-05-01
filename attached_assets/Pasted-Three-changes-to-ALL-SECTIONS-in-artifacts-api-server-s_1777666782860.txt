@@ -1,0 +1,33 @@
+Three changes to ALL_SECTIONS in artifacts/api-server/src/lib/sections.ts:
+
+1. RENAME these two sections (change the title field, keep the same IDs):
+   - "county-change-framework" title changes from "County Change Framework" to "Change Message Framework"
+   - "county-change-message" title changes from "Build Your County Change Message" to "Build Your Change Message"
+
+2. MOVE these three sections from Level 1 (tier 1) to Level 4 (tier 4):
+   - "status-quo-bias" — change tier from 1 to 4
+   - "county-change-framework" — change tier from 1 to 4
+   - "county-change-message" — change tier from 1 to 4
+   Update their day/order values to fit at the end of the section list after the Level 3 entries.
+
+3. ADD a new Level 4 group with these 6 new placeholder sections (tier: 4, type: "locked"):
+   - { id: "advocating-adoption", title: "Advocating for AI Adoption", description: "Build the case for AI in your organization with evidence, empathy, and strategic framing.", tier: 4, type: "locked" }
+   - { id: "addressing-resistance", title: "Addressing Resistance Patterns", description: "Recognize and respond to the most common forms of organizational pushback on AI.", tier: 4, type: "locked" }
+   - { id: "navigating-risk", title: "Navigating Risk Scenarios", description: "Work through realistic risk scenarios and develop judgment for when AI is and isn't appropriate.", tier: 4, type: "locked" }
+   - { id: "cognitive-erosion", title: "Recognizing Cognitive Erosion", description: "Understand how over-reliance on AI can degrade critical thinking and professional judgment.", tier: 4, type: "locked" }
+   - { id: "team-prompt-libraries", title: "Managing Team Prompt Libraries", description: "Build and maintain a shared collection of tested prompts for your team's recurring tasks.", tier: 4, type: "locked" }
+   - { id: "reporting-ai-failures", title: "Reporting AI Failures", description: "Create clear processes for documenting and learning from AI mistakes in your organization.", tier: 4, type: "locked" }
+
+   Place these 6 BEFORE the three moved sections (status-quo-bias, county-change-framework, county-change-message) so the Level 4 order is: the 6 new ones first, then the 3 moved ones.
+
+4. UPDATE the cohort creation flow and sidebar to support Level 4:
+   - Add Level 4 to the "Open levels" toggles in the cohort create/edit dialog (off by default)
+   - Add Level 4 as a collapsible group in the sidebar (same behavior as Levels 1-3)
+   - The Sections tab in admin should show Level 4 as a group with the level dropdown offering 1-4
+   - Update the tier_access default on the cohorts table to include level 4: {"1": true, "2": false, "3": false, "4": false}
+
+5. RE-SEED: After updating ALL_SECTIONS, re-run the seed to reset cohort_sections for all existing cohorts so they pick up the new sections and the moved sections at their new levels.
+
+6. RENAME in SectionRenderer: If the switch statement references "county-change-framework" or "county-change-message" for component rendering, keep those case labels (the IDs don't change). The display title comes from the section data, not the switch statement. But update any hardcoded title strings inside the CountyChangeFramework and CountyChangeMessage components to use the title prop instead of hardcoded text, so they respect the renamed display names.
+
+7. UPDATE the SECTION_CODE_CONFIG: The code "CHANGE" currently maps to ["status-quo-bias", "county-change-framework", "county-change-message", "closing"]. Remove "status-quo-bias", "county-change-framework", and "county-change-message" from the CHANGE code entry (they're now Level 4 and will get their own codes or be unlocked by default). The CHANGE code should only map to ["closing"]. The three moved sections should have no default code (they'll be managed per-cohort from admin).

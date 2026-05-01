@@ -20,7 +20,7 @@ export interface HardcodedSection {
   /** Curriculum day (1 or 2). */
   day: 1 | 2;
   /** Curriculum tier; persisted as `level` on cohort_sections. */
-  level: 1 | 2 | 3;
+  level: 1 | 2 | 3 | 4;
   /** 1-based position within the (level) group, derived from (day, order). */
   sortOrder: number;
   type: SectionType;
@@ -32,7 +32,7 @@ interface RawSection {
   description: string;
   day: 1 | 2;
   order: number;
-  tier: 1 | 2 | 3;
+  tier: 1 | 2 | 3 | 4;
   type: SectionType;
 }
 
@@ -54,9 +54,6 @@ const RAW_SECTIONS: ReadonlyArray<RawSection> = [
   { id: "six-ways-worksheet", title: "6 Ways Worksheet", description: "For each use case, write one task you do regularly that AI could help with.", day: 1, order: 15, tier: 1, type: "reference" },
   { id: "overnight-harvest", title: "Overnight Harvest — Workflow Ideas", description: "Surface what you learned last night and find the workflow worth mapping today.", day: 2, order: 1, tier: 1, type: "exercise" },
   { id: "workflow-configurator", title: "Map Your Workflow", description: "Produce a one-page, deployable workflow document — AI insertion points, human verification, and stop conditions.", day: 2, order: 2, tier: 1, type: "exercise" },
-  { id: "status-quo-bias", title: "Status Quo Bias", description: "Your director isn't being irrational. They're experiencing the same cognitive patterns that drive most decisions.", day: 2, order: 3, tier: 1, type: "reference" },
-  { id: "county-change-framework", title: "County Change Framework", description: "A 5-step narrative structure for pitching AI adoption to risk-averse leadership.", day: 2, order: 4, tier: 1, type: "reference" },
-  { id: "county-change-message", title: "Build Your County Change Message", description: "Draft a change narrative tailored to your county's context.", day: 2, order: 5, tier: 1, type: "exercise" },
   { id: "closing", title: "Closing", description: "Reflect and carry forward.", day: 2, order: 6, tier: 1, type: "reference" },
   { id: "advanced-prompt-engineering", title: "Advanced Prompt Engineering", description: "Go beyond basics with multi-step chains, system prompts, and structured outputs.", day: 2, order: 7, tier: 2, type: "locked" },
   { id: "voice-management", title: "Voice Management — Human vs. AI", description: "Control AI tone, register, and voice to match your professional context.", day: 2, order: 8, tier: 2, type: "locked" },
@@ -74,13 +71,22 @@ const RAW_SECTIONS: ReadonlyArray<RawSection> = [
   { id: "knowledge-base", title: "Team Knowledge Base Builder", description: "Build a shared AI-powered knowledge base for your team's institutional knowledge.", day: 2, order: 20, tier: 3, type: "locked" },
   { id: "data-visualization", title: "Data Visualization with AI", description: "Turn raw data into clear, compelling visuals using AI tools.", day: 2, order: 21, tier: 3, type: "locked" },
   { id: "ai-governance", title: "Organizational AI Governance", description: "Create policies, guidelines, and guardrails for responsible AI use in your organization.", day: 2, order: 22, tier: 3, type: "locked" },
+  { id: "advocating-adoption", title: "Advocating for AI Adoption", description: "Build the case for AI in your organization with evidence, empathy, and strategic framing.", day: 2, order: 23, tier: 4, type: "locked" },
+  { id: "addressing-resistance", title: "Addressing Resistance Patterns", description: "Recognize and respond to the most common forms of organizational pushback on AI.", day: 2, order: 24, tier: 4, type: "locked" },
+  { id: "navigating-risk", title: "Navigating Risk Scenarios", description: "Work through realistic risk scenarios and develop judgment for when AI is and isn't appropriate.", day: 2, order: 25, tier: 4, type: "locked" },
+  { id: "cognitive-erosion", title: "Recognizing Cognitive Erosion", description: "Understand how over-reliance on AI can degrade critical thinking and professional judgment.", day: 2, order: 26, tier: 4, type: "locked" },
+  { id: "team-prompt-libraries", title: "Managing Team Prompt Libraries", description: "Build and maintain a shared collection of tested prompts for your team's recurring tasks.", day: 2, order: 27, tier: 4, type: "locked" },
+  { id: "reporting-ai-failures", title: "Reporting AI Failures", description: "Create clear processes for documenting and learning from AI mistakes in your organization.", day: 2, order: 28, tier: 4, type: "locked" },
+  { id: "status-quo-bias", title: "Status Quo Bias", description: "Your director isn't being irrational. They're experiencing the same cognitive patterns that drive most decisions.", day: 2, order: 29, tier: 4, type: "reference" },
+  { id: "county-change-framework", title: "Change Message Framework", description: "A 5-step narrative structure for pitching AI adoption to risk-averse leadership.", day: 2, order: 30, tier: 4, type: "reference" },
+  { id: "county-change-message", title: "Build Your Change Message", description: "Draft a change narrative tailored to your county's context.", day: 2, order: 31, tier: 4, type: "exercise" },
 ];
 
 function buildAllSections(): ReadonlyArray<HardcodedSection> {
   const sortedByCurriculum = [...RAW_SECTIONS].sort((a, b) =>
     a.day === b.day ? a.order - b.order : a.day - b.day,
   );
-  const perTierIndex: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
+  const perTierIndex: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
   return sortedByCurriculum.map((s) => {
     perTierIndex[s.tier] = (perTierIndex[s.tier] ?? 0) + 1;
     return {
