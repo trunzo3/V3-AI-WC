@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -421,14 +422,15 @@ export function SectionsTab({ cohortId }: Props) {
                     />
                   </div>
                   <div>
-                    <Label>Body content (markdown ok)</Label>
-                    <Textarea
-                      rows={6}
+                    <Label>Body content</Label>
+                    <RichTextEditor
                       value={genForm.content}
-                      onChange={(e) =>
-                        setGenForm({ ...genForm, content: e.target.value })
+                      onChange={(html) =>
+                        setGenForm({ ...genForm, content: html })
                       }
-                      data-testid="input-generic-body"
+                      placeholder="Write the body of this section…"
+                      minHeight={180}
+                      testId="input-generic-body"
                     />
                   </div>
                 </div>
@@ -586,7 +588,7 @@ export function SectionsTab({ cohortId }: Props) {
                                 onCheckedChange={(v) => update(idx, { codeActive: v })}
                                 data-testid={`switch-codeactive-${r.sectionId}`}
                               />
-                              Code on
+                              Requires code
                             </label>
                           </div>
                           <div className="col-span-1 flex justify-end gap-1">

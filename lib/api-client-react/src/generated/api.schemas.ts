@@ -29,8 +29,16 @@ export interface LoginRequest {
   /** @minLength 1 */
   name: string;
   email: string;
-  /** @minLength 1 */
-  cohortCode: string;
+  cohortCode?: string;
+}
+
+export interface CheckEmailRequest {
+  email: string;
+}
+
+export interface CheckEmailResponse {
+  exists: boolean;
+  name?: string | null;
 }
 
 export interface Participant {
@@ -565,6 +573,11 @@ export type UnauthorizedResponse = ErrorResponse;
  * Resource not found
  */
 export type NotFoundResponse = ErrorResponse;
+
+/**
+ * Conflict — request cannot complete in the current state
+ */
+export type ConflictResponse = ErrorResponse;
 
 export type AdminListFeedbackParams = {
   cohort_id?: string;

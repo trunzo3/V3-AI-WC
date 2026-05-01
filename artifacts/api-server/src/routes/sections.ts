@@ -107,7 +107,12 @@ router.get("/sections", requireParticipant, async (req, res) => {
     }
 
     const tierUnlocked = Boolean(tierAccess[String(cs.level)]);
-    const unlocked = tierUnlocked || unlockedIds.has(cs.sectionId);
+    // Section is unlocked when:
+    //  - the participant's tier already grants this level, OR
+    //  - the section doesn't require a code (codeActive=false), OR
+    //  - the participant has explicitly unlocked it via a code.
+    const unlocked =
+      tierUnlocked || !cs.codeActive || unlockedIds.has(cs.sectionId);
 
     sections.push({
       id: cs.sectionId,

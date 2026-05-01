@@ -20,8 +20,7 @@ import { StatsCards } from "@/components/admin/StatsCards";
 import { CohortsTab } from "@/components/admin/tabs/CohortsTab";
 import { SectionsTab } from "@/components/admin/tabs/SectionsTab";
 import { VariantsTab } from "@/components/admin/tabs/VariantsTab";
-import { SafariLineupTab } from "@/components/admin/tabs/SafariLineupTab";
-import { SafariLibraryTab } from "@/components/admin/tabs/SafariLibraryTab";
+import { ToolSafariTab } from "@/components/admin/tabs/ToolSafariTab";
 import { ParticipantsTab } from "@/components/admin/tabs/ParticipantsTab";
 import { FeedbackTab } from "@/components/admin/tabs/FeedbackTab";
 import { LlmToolsTab } from "@/components/admin/tabs/LlmToolsTab";
@@ -193,96 +192,131 @@ export default function AdminDashboard() {
 
       <main className="max-w-7xl mx-auto px-6 py-6">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="flex flex-wrap h-auto gap-1 mb-4">
-            <TabsTrigger value="cohorts" data-testid="tab-cohorts">
-              Cohorts
-            </TabsTrigger>
-            <TabsTrigger value="safari-library" data-testid="tab-safari-library">
-              Safari library
-            </TabsTrigger>
-            <TabsTrigger value="llm-tools" data-testid="tab-llm-tools">
-              LLM tools
-            </TabsTrigger>
-            <TabsTrigger value="feedback" data-testid="tab-feedback">
-              Feedback
-            </TabsTrigger>
-            <TabsTrigger value="settings" data-testid="tab-settings">
-              Settings
-            </TabsTrigger>
-            <span className="mx-2 self-center text-xs text-muted-foreground">
-              │
-            </span>
-            <TabsTrigger
-              value="sections"
-              disabled={perCohortDisabled}
-              data-testid="tab-sections"
-            >
-              Sections
-            </TabsTrigger>
-            <TabsTrigger
-              value="variants"
-              disabled={perCohortDisabled}
-              data-testid="tab-variants"
-            >
-              Content variants
-            </TabsTrigger>
-            <TabsTrigger
-              value="safari-lineup"
-              disabled={perCohortDisabled}
-              data-testid="tab-safari-lineup"
-            >
-              Safari lineup
-            </TabsTrigger>
-            <TabsTrigger
-              value="participants"
-              disabled={perCohortDisabled}
-              data-testid="tab-participants"
-            >
-              Participants
-            </TabsTrigger>
+          <TabsList className="flex flex-wrap h-auto gap-1 mb-4 items-end">
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground px-1">
+                Global
+              </span>
+              <div className="flex flex-wrap gap-1">
+                <TabsTrigger value="cohorts" data-testid="tab-cohorts">
+                  Cohorts
+                </TabsTrigger>
+                <TabsTrigger value="tool-safari" data-testid="tab-tool-safari">
+                  Tool Safari
+                </TabsTrigger>
+                <TabsTrigger value="llm-tools" data-testid="tab-llm-tools">
+                  Verification test links
+                </TabsTrigger>
+                <TabsTrigger value="feedback" data-testid="tab-feedback">
+                  Feedback
+                </TabsTrigger>
+                <TabsTrigger value="settings" data-testid="tab-settings">
+                  Settings
+                </TabsTrigger>
+              </div>
+            </div>
+            <span className="mx-3 self-center text-muted-foreground/50">│</span>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground px-1">
+                Cohort{activeCohort ? ` — ${activeCohort.name}` : ""}
+              </span>
+              <div className="flex flex-wrap gap-1">
+                <TabsTrigger
+                  value="sections"
+                  disabled={perCohortDisabled}
+                  data-testid="tab-sections"
+                >
+                  Sections
+                </TabsTrigger>
+                <TabsTrigger
+                  value="variants"
+                  disabled={perCohortDisabled}
+                  data-testid="tab-variants"
+                >
+                  Content variants
+                </TabsTrigger>
+                <TabsTrigger
+                  value="participants"
+                  disabled={perCohortDisabled}
+                  data-testid="tab-participants"
+                >
+                  Participants
+                </TabsTrigger>
+              </div>
+            </div>
           </TabsList>
 
           <TabsContent value="cohorts">
+            <GlobalBanner />
             <CohortsTab
               selectedCohortId={selectedCohortId}
               onSelectCohort={onSelectCohort}
             />
           </TabsContent>
-          <TabsContent value="safari-library">
-            <SafariLibraryTab />
+          <TabsContent value="tool-safari">
+            <GlobalBanner />
+            <ToolSafariTab
+              cohortId={selectedCohortId}
+              cohortLabel={activeCohort?.name ?? null}
+            />
           </TabsContent>
           <TabsContent value="llm-tools">
+            <GlobalBanner />
             <LlmToolsTab />
           </TabsContent>
           <TabsContent value="feedback">
+            <GlobalBanner />
             <FeedbackTab />
           </TabsContent>
           <TabsContent value="settings">
+            <GlobalBanner />
             <SettingsTab />
           </TabsContent>
 
           <TabsContent value="sections">
             {selectedCohortId != null ? (
-              <SectionsTab cohortId={selectedCohortId} />
+              <>
+                <CohortBanner name={activeCohort?.name ?? null} />
+                <SectionsTab cohortId={selectedCohortId} />
+              </>
             ) : null}
           </TabsContent>
           <TabsContent value="variants">
             {selectedCohortId != null ? (
-              <VariantsTab cohortId={selectedCohortId} />
-            ) : null}
-          </TabsContent>
-          <TabsContent value="safari-lineup">
-            {selectedCohortId != null ? (
-              <SafariLineupTab cohortId={selectedCohortId} />
+              <>
+                <CohortBanner name={activeCohort?.name ?? null} />
+                <VariantsTab cohortId={selectedCohortId} />
+              </>
             ) : null}
           </TabsContent>
           <TabsContent value="participants">
             {selectedCohortId != null ? (
-              <ParticipantsTab cohortId={selectedCohortId} />
+              <>
+                <CohortBanner name={activeCohort?.name ?? null} />
+                <ParticipantsTab cohortId={selectedCohortId} />
+              </>
             ) : null}
           </TabsContent>
         </Tabs>
       </main>
+    </div>
+  );
+}
+
+function GlobalBanner() {
+  return (
+    <div className="mb-3 inline-flex items-center gap-2 rounded-md bg-slate-100 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-slate-600">
+      <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+      Global — applies to every cohort
+    </div>
+  );
+}
+
+function CohortBanner({ name }: { name: string | null }) {
+  return (
+    <div className="mb-3 inline-flex items-center gap-2 rounded-md bg-amber-50 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-amber-800">
+      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+      Cohort{name ? ` — ${name}` : ""}
     </div>
   );
 }

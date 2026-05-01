@@ -43,12 +43,23 @@ lib/
 Two surface areas:
 
 - **Participant app** (`/`): login → cohort code entry → workshop sections.
+  - Email-first returning flow: typing a known email auto-fills name and hides
+    the workshop-code field, with a "Switch workshop" button to reveal it.
+  - Driven by `POST /api/auth/check-email` (unauthenticated, returns
+    `{ exists, name }`).
+  - The gear icon (bottom-left) is a wouter `<Link to="/admin/login">`, no
+    inline admin form on `/`.
 - **Admin panel** (`/admin/login`, `/admin`): two-tier layout.
-  - **Global tabs**: Cohorts, Safari Library, LLM Tools, Feedback, Settings.
-  - **Per-cohort tabs**: Sections, Content Variants, Safari Lineup, Participants.
+  - **Global tabs**: Cohorts, Tool Safari, Verification test links, Feedback,
+    Settings.
+  - **Per-cohort tabs**: Sections, Content variants, Participants.
+  - Tab headers are grouped under visible **GLOBAL** / **COHORT** labels.
   - The header has a cohort switcher (selection persisted in
     `localStorage["workshop-admin-cohort-id"]`) plus stats cards scoped to the
     selected cohort.
+  - Generic-section body and cohort facilitator messages use a Tiptap WYSIWYG
+    (`components/admin/RichTextEditor.tsx`). Bodies are stored as HTML;
+    `SectionRenderer` falls back to `whitespace-pre-wrap` for legacy plaintext.
 
 Admin UI consumes the generated client from `@workspace/api-client-react`. Only
 the bulk endpoints `PUT /admin/cohorts/:id/sections` and
@@ -100,12 +111,14 @@ Sections come from two sources:
 2. **Generic sections** — created by admins, stored in `generic_sections`,
    referenced by id `generic_<id>` from `cohort_sections`.
 
-Running the seed (`pnpm --filter @workspace/api-server run seed`) will reset
-the **default** cohort's `cohort_sections` to match `ALL_SECTIONS` exactly, so
-edits to the canonical list propagate. Other cohorts are left untouched.
+Running the seed (`pnpm --filter @workspace/api-server run seed`) resets
+**every** cohort's `cohort_sections` to match `ALL_SECTIONS` exactly, so edits
+to the canonical list propagate to all existing cohorts.
 
-A participant sees a section when:
-- The cohort's tier (level) is unlocked by default in `cohorts.tier_access`, **or**
+A participant sees a section when ANY of these are true:
+- The cohort's tier (level) is unlocked by default in `cohorts.tier_access`, or
+- The section has `code_active = false` (admin marked it as not requiring a
+  code), or
 - The participant has unlocked it via a code (`unlocked_sections` row).
 
 `POST /api/sections/unlock` looks up the code across all cohort sections (case
@@ -122,9 +135,14 @@ insensitive) and unlocks every matching section in one call.
 
 ### API surface (high level)
 
-Participant endpoints (require session):
+Participant endpoints (require session unless noted):
 
-- `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
+- `POST /api/auth/check-email` — unauthenticated; returns
+  `{ exists, name }` for the email-first returning flow.
+- `POST /api/auth/login` — `cohortCode` is **optional**. With a code, resolves
+  by `(email, cohortId)`. Without a code, resolves by email alone (most recent
+  cohort by `lastLoginAt DESC`); returns 404 if the email is unknown.
+- `POST /api/auth/logout`, `GET /api/auth/me`
 - `GET /api/sections`, `POST /api/sections/unlock`
 - `GET|PUT /api/notes/:sectionId`
 - `GET|PUT /api/workflow-map`

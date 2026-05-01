@@ -28,6 +28,13 @@ import {
 } from "./sections/Day2";
 import { WorkflowConfigurator } from "./sections/WorkflowConfigurator";
 
+// True when the string contains at least one HTML element tag — used to
+// pick between dangerouslySetInnerHTML (Tiptap output) and pre-wrap text
+// (legacy plaintext bodies authored before the WYSIWYG was introduced).
+function looksLikeHtml(s: string): boolean {
+  return /<\/?[a-z][\s\S]*?>/i.test(s);
+}
+
 function LockedSection({
   title,
   description,
@@ -80,11 +87,19 @@ function GenericSectionView({
       <SectionHeader title={title} type={section.type} />
       {goal && <GoalBox text={goal} />}
 
-      {content && (
-        <div className="prose prose-slate max-w-none mb-8 whitespace-pre-wrap text-foreground">
-          {content}
-        </div>
-      )}
+      {content &&
+        (looksLikeHtml(content) ? (
+          <div
+            className="prose prose-slate max-w-none mb-8 text-foreground"
+            // Content is admin-authored via the Tiptap editor, which only
+            // emits StarterKit + Link nodes. No script/style/iframe vectors.
+            dangerouslySetInnerHTML={{ __html: content }}
+          />
+        ) : (
+          <div className="prose prose-slate max-w-none mb-8 whitespace-pre-wrap text-foreground">
+            {content}
+          </div>
+        ))}
 
       {promptBlock && (
         <div className="bg-primary rounded-lg p-6 text-white mb-8">

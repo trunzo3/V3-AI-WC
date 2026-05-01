@@ -170,6 +170,42 @@ router.put("/admin/cohorts/:id", requireAdmin, async (req, res) => {
   res.json({ cohort: updated });
 });
 
+router.delete("/admin/cohorts/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid cohort id." });
+    return;
+  }
+  // Schema rule: participants.cohort_id is NOT NULL with ON DELETE CASCADE,
+  // so deleting a cohort that still has participants would cascade-delete
+  // participant rows (and their notes / workflow maps / feedback). Spec says
+  // participant data must survive, so block the delete in that case and ask
+  // the admin to clear participants first.
+  const [{ participantCount } = { participantCount: 0 }] = await db
+    .select({ participantCount: sql<number>`count(*)::int` })
+    .from(participantsTable)
+    .where(eq(participantsTable.cohortId, id));
+  if (participantCount > 0) {
+    res.status(409).json({
+      error:
+        "Cohort has participants. Remove or reassign participants before deleting.",
+      participantCount,
+    });
+    return;
+  }
+  // No participants — safe to drop. Per-cohort tables (cohort_sections,
+  // cohort_safari_tabs, content_variants) cascade automatically via FK.
+  const [deleted] = await db
+    .delete(cohortsTable)
+    .where(eq(cohortsTable.id, id))
+    .returning({ id: cohortsTable.id });
+  if (!deleted) {
+    res.status(404).json({ error: "Cohort not found." });
+    return;
+  }
+  res.json({ success: true });
+});
+
 // ----- Per-cohort sections ------------------------------------------------
 
 router.get(

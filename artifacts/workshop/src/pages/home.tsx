@@ -54,7 +54,6 @@ export default function Home() {
 
       <main className="max-w-3xl mx-auto px-4 py-12 space-y-10">
         <div className="text-center pb-2">
-          <div className="text-xs font-bold tracking-widest uppercase text-accent mb-2">The Vestibule</div>
           <h1 className="text-4xl font-serif font-bold text-primary mb-2">{greeting}</h1>
           <p className="text-muted-foreground text-base max-w-xl mx-auto">
             This is your home base between sessions. Begin by getting your bearings, then enter the workshop when you're ready.

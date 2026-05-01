@@ -29,7 +29,7 @@ export const HealthCheckResponse = zod.object({
 export const ParticipantLoginBody = zod.object({
   name: zod.string().min(1),
   email: zod.string().email(),
-  cohortCode: zod.string().min(1),
+  cohortCode: zod.string().optional(),
 });
 
 export const ParticipantLoginResponse = zod.object({
@@ -43,6 +43,19 @@ export const ParticipantLoginResponse = zod.object({
     lastLoginAt: zod.coerce.date().nullish(),
   }),
   isNew: zod.boolean(),
+});
+
+/**
+ * Lightweight existence check that does NOT create or modify any session. Used by the login form to switch into the "returning participant" flow.
+ * @summary Check whether an email is already registered as a participant
+ */
+export const ParticipantCheckEmailBody = zod.object({
+  email: zod.string().email(),
+});
+
+export const ParticipantCheckEmailResponse = zod.object({
+  exists: zod.boolean(),
+  name: zod.string().nullish(),
 });
 
 /**
@@ -417,6 +430,18 @@ export const AdminUpdateCohortResponse = zod.object({
     createdAt: zod.coerce.date().nullish(),
     updatedAt: zod.coerce.date().nullish(),
   }),
+});
+
+/**
+ * Cascades cohort_sections, cohort_safari_tabs, content_variants. Returns 409 if any participants are still attached.
+ * @summary Delete a cohort (only if it has no participants)
+ */
+export const AdminDeleteCohortParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminDeleteCohortResponse = zod.object({
+  success: zod.boolean(),
 });
 
 /**

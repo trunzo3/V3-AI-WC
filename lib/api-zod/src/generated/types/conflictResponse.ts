@@ -13,10 +13,9 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
+import type { ErrorResponse } from "./errorResponse";
 
-export interface LoginRequest {
-  /** @minLength 1 */
-  name: string;
-  email: string;
-  cohortCode?: string;
-}
+/**
+ * Conflict — request cannot complete in the current state
+ */
+export type ConflictResponse = ErrorResponse;

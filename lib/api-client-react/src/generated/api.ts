@@ -64,6 +64,9 @@ import type {
   AdminVariantUpsertResponse,
   AppSettingsResponse,
   BadRequestResponse,
+  CheckEmailRequest,
+  CheckEmailResponse,
+  ConflictResponse,
   ContentVariantsResponse,
   ErrorResponse,
   FeedbackCategoriesResponse,
@@ -259,6 +262,93 @@ export const useParticipantLogin = <
   TContext
 > => {
   return useMutation(getParticipantLoginMutationOptions(options));
+};
+
+/**
+ * Lightweight existence check that does NOT create or modify any session. Used by the login form to switch into the "returning participant" flow.
+ * @summary Check whether an email is already registered as a participant
+ */
+export const getParticipantCheckEmailUrl = () => {
+  return `/api/auth/check-email`;
+};
+
+export const participantCheckEmail = async (
+  checkEmailRequest: CheckEmailRequest,
+  options?: RequestInit,
+): Promise<CheckEmailResponse> => {
+  return customFetch<CheckEmailResponse>(getParticipantCheckEmailUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(checkEmailRequest),
+  });
+};
+
+export const getParticipantCheckEmailMutationOptions = <
+  TError = ErrorType<BadRequestResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof participantCheckEmail>>,
+    TError,
+    { data: BodyType<CheckEmailRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof participantCheckEmail>>,
+  TError,
+  { data: BodyType<CheckEmailRequest> },
+  TContext
+> => {
+  const mutationKey = ["participantCheckEmail"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof participantCheckEmail>>,
+    { data: BodyType<CheckEmailRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return participantCheckEmail(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ParticipantCheckEmailMutationResult = NonNullable<
+  Awaited<ReturnType<typeof participantCheckEmail>>
+>;
+export type ParticipantCheckEmailMutationBody = BodyType<CheckEmailRequest>;
+export type ParticipantCheckEmailMutationError = ErrorType<BadRequestResponse>;
+
+/**
+ * @summary Check whether an email is already registered as a participant
+ */
+export const useParticipantCheckEmail = <
+  TError = ErrorType<BadRequestResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof participantCheckEmail>>,
+    TError,
+    { data: BodyType<CheckEmailRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof participantCheckEmail>>,
+  TError,
+  { data: BodyType<CheckEmailRequest> },
+  TContext
+> => {
+  return useMutation(getParticipantCheckEmailMutationOptions(options));
 };
 
 /**
@@ -2065,6 +2155,97 @@ export const useAdminUpdateCohort = <
   TContext
 > => {
   return useMutation(getAdminUpdateCohortMutationOptions(options));
+};
+
+/**
+ * Cascades cohort_sections, cohort_safari_tabs, content_variants. Returns 409 if any participants are still attached.
+ * @summary Delete a cohort (only if it has no participants)
+ */
+export const getAdminDeleteCohortUrl = (id: number) => {
+  return `/api/admin/cohorts/${id}`;
+};
+
+export const adminDeleteCohort = async (
+  id: number,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getAdminDeleteCohortUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getAdminDeleteCohortMutationOptions = <
+  TError = ErrorType<
+    UnauthorizedResponse | NotFoundResponse | ConflictResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteCohort>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminDeleteCohort>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["adminDeleteCohort"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminDeleteCohort>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return adminDeleteCohort(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminDeleteCohortMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminDeleteCohort>>
+>;
+
+export type AdminDeleteCohortMutationError = ErrorType<
+  UnauthorizedResponse | NotFoundResponse | ConflictResponse
+>;
+
+/**
+ * @summary Delete a cohort (only if it has no participants)
+ */
+export const useAdminDeleteCohort = <
+  TError = ErrorType<
+    UnauthorizedResponse | NotFoundResponse | ConflictResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteCohort>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminDeleteCohort>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getAdminDeleteCohortMutationOptions(options));
 };
 
 /**

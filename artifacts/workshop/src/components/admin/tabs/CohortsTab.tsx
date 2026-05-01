@@ -3,6 +3,7 @@ import {
   useAdminListCohorts,
   useAdminCreateCohort,
   useAdminUpdateCohort,
+  useAdminDeleteCohort,
   getAdminListCohortsQueryKey,
   type AdminCohort,
 } from "@workspace/api-client-react";
@@ -11,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -23,7 +24,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
+
+const COHORT_KEY = "workshop-admin-cohort-id";
 
 interface FormState {
   name: string;
@@ -74,9 +77,47 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
 
   const createMut = useAdminCreateCohort();
   const updateMut = useAdminUpdateCohort();
+  const deleteMut = useAdminDeleteCohort();
+
+  // Delete-confirmation dialog state
+  const [deleteTarget, setDeleteTarget] = useState<AdminCohort | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
 
   const refresh = () =>
     qc.invalidateQueries({ queryKey: getAdminListCohortsQueryKey() });
+
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    deleteMut.mutate(
+      { id: deleteTarget.id },
+      {
+        onSuccess: () => {
+          toast({ title: `Deleted "${deleteTarget.name}"` });
+          // If we deleted the active cohort, clear localStorage so the
+          // dashboard auto-picks a new one.
+          if (selectedCohortId === deleteTarget.id) {
+            try {
+              localStorage.removeItem(COHORT_KEY);
+            } catch {
+              /* ignore */
+            }
+            const next = cohorts.find((c) => c.id !== deleteTarget.id);
+            if (next) onSelectCohort(next.id);
+          }
+          setDeleteTarget(null);
+          setDeleteConfirm("");
+          refresh();
+        },
+        onError: (err: any) => {
+          const msg =
+            err?.error ||
+            err?.message ||
+            "Failed to delete cohort";
+          toast({ title: msg, variant: "destructive" });
+        },
+      },
+    );
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -188,16 +229,17 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
               </div>
               <div>
                 <Label htmlFor="cohort-msg">Facilitator message</Label>
-                <Textarea
-                  id="cohort-msg"
-                  rows={3}
+                <RichTextEditor
                   value={form.facilitatorMessage}
-                  onChange={(e) => setForm({ ...form, facilitatorMessage: e.target.value })}
-                  data-testid="input-cohort-message"
+                  onChange={(html) =>
+                    setForm({ ...form, facilitatorMessage: html })
+                  }
+                  placeholder="Welcome message shown on the participant home page…"
+                  testId="input-cohort-message"
                 />
               </div>
               <div>
-                <Label className="block mb-2">Default-unlocked levels</Label>
+                <Label className="block mb-2">Open levels</Label>
                 <div className="flex gap-4">
                   {([1, 2, 3] as const).map((n) => {
                     const k = `tier${n}` as const;
@@ -261,7 +303,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    Levels open by default: {tierLabel(c.tierAccess ?? {})}
+                    Open levels: {tierLabel(c.tierAccess ?? {})}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -283,12 +325,88 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                   >
                     <Pencil className="w-4 h-4" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setDeleteTarget(c);
+                      setDeleteConfirm("");
+                    }}
+                    data-testid={`button-delete-cohort-${c.id}`}
+                    aria-label={`Delete ${c.name}`}
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </CardContent>
+
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setDeleteTarget(null);
+            setDeleteConfirm("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Delete cohort "{deleteTarget?.name}"?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p>
+              This permanently removes the cohort, its sections, content
+              variants, and safari lineup. The cohort code{" "}
+              <span className="font-mono font-semibold">
+                {deleteTarget?.cohortCode}
+              </span>{" "}
+              will no longer work.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Cohorts that still have participants cannot be deleted —
+              remove participants first.
+            </p>
+            <div>
+              <Label htmlFor="delete-confirm">
+                Type <span className="font-mono font-semibold">DELETE</span>{" "}
+                to confirm:
+              </Label>
+              <Input
+                id="delete-confirm"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                autoComplete="off"
+                data-testid="input-delete-confirm"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setDeleteTarget(null);
+                setDeleteConfirm("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteConfirm !== "DELETE" || deleteMut.isPending}
+              onClick={handleDelete}
+              data-testid="button-confirm-delete-cohort"
+            >
+              Delete cohort
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

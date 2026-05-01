@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Lock, Home, ChevronDown, ChevronRight, LogOut, CheckCircle2, Circle } from "lucide-react";
+import { Lock, ChevronDown, ChevronRight, LogOut, CheckCircle2, Circle, ExternalLink } from "lucide-react";
 import type { Section } from "@workspace/api-client-react";
-import { useParticipantLogout } from "@workspace/api-client-react";
+import { useParticipantLogout, useListLlmTools } from "@workspace/api-client-react";
 import { clearSession, getSession } from "@/lib/auth";
 
 interface SidebarProps {
@@ -26,6 +26,8 @@ export function Sidebar({
 }: SidebarProps) {
   const session = getSession();
   const logoutMutation = useParticipantLogout();
+  const llmToolsQuery = useListLlmTools();
+  const llmTools = llmToolsQuery.data?.tools ?? [];
   const expandKey = `workshop-sidebar-expanded-${session?.participantId ?? "anon"}`;
 
   const levels = Array.from(new Set(sections.map((s) => s.level))).sort();
@@ -72,21 +74,42 @@ export function Sidebar({
   return (
     <div className="w-72 border-r bg-card h-full overflow-y-auto hidden md:flex flex-col flex-shrink-0">
       <div className="flex-1">
-        <div className="mb-2 px-2 pt-3">
+        <div className="px-2 pt-3 pb-2">
           <button
             onClick={onNavigateHome}
-            className={cn(
-              "w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors",
-              "text-foreground hover:bg-secondary",
-            )}
+            className="w-full text-left px-3 py-2 rounded-md text-primary hover:bg-secondary transition-colors"
+            style={{ fontSize: "14px", fontWeight: 500 }}
             data-testid="sidebar-home"
           >
-            <Home className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            <span>Vestibule (Home)</span>
+            ← Home
           </button>
         </div>
 
-        <div className="border-t border-border pt-2">
+        {llmTools.length > 0 && (
+          <div className="px-3 pb-3 border-b border-border">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-2 px-1">
+              Verification tools
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {llmTools.map((tool) => (
+                <a
+                  key={tool.id}
+                  href={tool.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-secondary hover:bg-accent/20 hover:text-primary text-xs text-foreground transition-colors"
+                  data-testid={`sidebar-llm-tool-${tool.id}`}
+                  title={tool.url}
+                >
+                  <span>{tool.displayLabel}</span>
+                  <ExternalLink className="w-3 h-3 opacity-60" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="pt-2">
           {levels.map((level) => {
             const items = sections
               .filter((s) => s.level === level)

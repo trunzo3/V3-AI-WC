@@ -21,10 +21,7 @@ import {
 } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { logger } from "./lib/logger";
-import {
-  resetCohortSectionsToDefaults,
-  seedCohortSections,
-} from "./lib/cohort-sections";
+import { resetCohortSectionsToDefaults } from "./lib/cohort-sections";
 
 const DEFAULT_COHORT_CODE = "WORKSHOP";
 
@@ -67,13 +64,6 @@ async function ensureDefaultCohort(): Promise<void> {
     .limit(1);
   if (existing) {
     logger.info({ cohortId: existing.id }, "Default cohort already exists.");
-    // Re-sync cohort_sections to the canonical ALL_SECTIONS list so changes
-    // (added/removed sections, level shifts, default code edits) take effect.
-    await resetCohortSectionsToDefaults(existing.id);
-    logger.info(
-      { cohortId: existing.id },
-      "Reset default cohort sections to ALL_SECTIONS defaults.",
-    );
     return;
   }
   const [created] = await db
@@ -87,10 +77,25 @@ async function ensureDefaultCohort(): Promise<void> {
     })
     .returning();
   if (!created) throw new Error("Failed to create default cohort.");
-  await seedCohortSections(created.id);
   logger.info(
     { cohortId: created.id, code: DEFAULT_COHORT_CODE },
     "Created default cohort.",
+  );
+}
+
+/**
+ * Re-sync cohort_sections for every cohort to the canonical ALL_SECTIONS list.
+ * Wipes existing rows and re-inserts so changes (added/removed sections, level
+ * shifts, default code edits) take effect across the whole app.
+ */
+async function resyncAllCohortSections(): Promise<void> {
+  const cohorts = await db.select({ id: cohortsTable.id }).from(cohortsTable);
+  for (const c of cohorts) {
+    await resetCohortSectionsToDefaults(c.id);
+  }
+  logger.info(
+    { cohortCount: cohorts.length },
+    "Re-synced cohort_sections for all cohorts to ALL_SECTIONS defaults.",
   );
 }
 
@@ -158,6 +163,7 @@ async function ensureAppSettings(): Promise<void> {
 async function main(): Promise<void> {
   logger.info("Running seed...");
   await ensureDefaultCohort();
+  await resyncAllCohortSections();
   await ensureLlmTools();
   await ensureSafariLibrary();
   await ensureFeedbackCategories();

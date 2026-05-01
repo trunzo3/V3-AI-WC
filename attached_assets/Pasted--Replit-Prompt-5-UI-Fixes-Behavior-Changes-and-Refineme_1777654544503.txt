@@ -1,0 +1,267 @@
+# Replit Prompt 5 — UI Fixes, Behavior Changes, and Refinements
+
+## Context
+
+Prompts 1–4 built the full v2.1 app: cohort system, participant UI, admin panel, and PDF export. This prompt is a cleanup pass — 15 fixes and refinements. None are architectural changes. All use existing tables, routes, and infrastructure.
+
+---
+
+## 1. Admin Login Consolidation
+
+**Current:** Two admin login experiences — a gear icon on the participant login page shows an inline password-only form (white/light theme), and `/admin/login` shows a separate page with email + password (dark theme).
+
+**Fix:** Remove the inline admin form from the participant login page. The gear icon should navigate to `/admin/login` instead of toggling an inline form. Keep the gear icon (subtle, bottom-left) but make it a link, not a toggle. The only admin login is `/admin/login` with both email and password fields, dark theme. Remove all inline admin auth code from the participant login component.
+
+---
+
+## 2. Generic Section — Rich Text Editor
+
+**Current:** The "Body content" field in the generic section admin form is a plain `<textarea>`. Pasting formatted text (bold, bullets) from a browser or document strips formatting.
+
+**Fix:** Replace the body content textarea with a WYSIWYG rich text editor. Use a lightweight library — `@tiptap/react` with the starter kit is ideal (headings, bold, italic, bullet lists, ordered lists, links, code blocks). If tiptap is too heavy, use `react-quill` or `suneditor-react`. The editor should:
+- Accept pasted formatted text and preserve bold, italic, bullets, links
+- Store the content as HTML in the database (the `content` column in `generic_sections`)
+- On the participant side, the `GenericSectionView` component already uses `dangerouslySetInnerHTML` — it should render the HTML correctly once the content is actually HTML instead of plain text
+
+Also apply the same WYSIWYG treatment to the **facilitator message** editor in the cohort edit form, since that also renders as HTML on the vestibule.
+
+Install the editor library:
+```bash
+pnpm --filter @workspace/workshop add @tiptap/react @tiptap/starter-kit @tiptap/extension-link
+```
+
+---
+
+## 3. Code Toggle Behavior Fix
+
+**Current:** The "Code on" toggle in the Sections tab is confusing. When toggled off, the section still appears but with a bubble icon and no way to unlock it.
+
+**Fix:**
+- Rename the toggle label from "Code on" to "Requires code"
+- When "Requires code" is ON: the section is locked and requires the specified code to unlock. Lock icon in sidebar.
+- When "Requires code" is OFF: the section is automatically unlocked for all participants — no code needed. It appears as an open/accessible section in the sidebar immediately. No lock icon, no bubble icon.
+- This behavior applies identically to Level 1, Level 2, and Level 3 sections. The cohort's tier access setting ("Open levels") controls whether a level is accessible at all. The "Requires code" toggle controls whether individual sections within an accessible level need a code.
+- Backend: when a section has `code_active = false` (Requires code OFF), the `GET /sections` endpoint should return it as unlocked regardless of whether it exists in `unlocked_sections`. No code entry needed.
+- Sidebar icons: use a lock icon (🔒) for locked sections, a gold filled circle for unlocked sections that have notes, and an empty circle for unlocked sections without notes. Remove any "bubble" icon state.
+
+---
+
+## 4. Remove "Add Custom Key" from Settings
+
+**Current:** The Settings tab has a "+ Add custom key" button that lets admin create arbitrary key-value pairs.
+
+**Fix:** Remove the "+ Add custom key" button and the dialog it opens. Only show the pre-defined settings that are seeded (Talk with Anthony URL, Support email, Feedback dialog intro text). New settings are added in code via the seed script, not from the admin UI.
+
+---
+
+## 5. Login Screen — Remove Pre-filled Workshop Code
+
+**Current:** The workshop code field on the participant login page pre-fills with "WORKSHOP" (the default cohort code).
+
+**Fix:** The workshop code field must be empty by default. Use placeholder text only (gray hint: "Enter workshop code"). No pre-filled value. The field should never auto-populate with any cohort code on initial page load.
+
+---
+
+## 6. Returning Participant Login Flow
+
+**Current:** Returning participants must re-enter their name and workshop code every time. If they don't enter their name, it defaults to the part before @ in their email.
+
+**Fix:** Change the login flow for returning participants:
+
+1. **First visit:** Show three fields — Workshop Code, Name, Email, Confirm Email. All required.
+2. **Return visit:** Show one field — Email. When the participant enters their email and it matches an existing account:
+   - Pre-fill the Name field with their stored name (shown but editable — they can change it if they want)
+   - Hide the Workshop Code field entirely (they're already bound to a cohort)
+   - Show a small "Switch workshop" link below the email field. Clicking it reveals the Workshop Code field for the rare case where someone needs to join a different cohort.
+   - Auto-detect returning vs. new: after email is entered (on blur or on submit), check if the email exists via the backend. If exists, collapse to the returning flow. If new, show the full form.
+
+3. **Backend change:** The `GET /auth/me` or a new lightweight `POST /auth/check-email` endpoint should return whether an email exists and, if so, the participant's name — without creating a session. This lets the frontend know to show the returning flow before the user submits.
+
+---
+
+## 7. Cohort Deletion
+
+**Current:** No way to delete cohorts from the admin panel.
+
+**Fix:** Add a delete button (red trash icon) to each cohort card in the Cohorts tab. Clicking it opens a confirmation dialog:
+- Dialog text: "Permanently delete [Cohort Name]? This will remove all section mappings, Safari lineup, and content variants for this cohort. Participant data (notes, workflows, feedback) will NOT be deleted."
+- The dialog has a text input: "Type DELETE to confirm"
+- The delete button in the dialog is disabled until the user types "DELETE" (case-sensitive)
+- On confirm: call `DELETE /admin/cohorts/:id` (create this endpoint if it doesn't exist)
+- Backend deletes: the cohort row, all `cohort_sections` rows for that cohort, all `cohort_safari_tabs` rows, all `content_variants` rows for that cohort
+- Backend does NOT delete: participants, notes, unlocked_sections, workflow_maps, or feedback
+- After deletion: if the deleted cohort was the currently selected cohort in the admin switcher, switch to the first available cohort (or show "No cohorts" state)
+- Refresh the cohort list after deletion
+
+---
+
+## 8. Merge Safari Library + Safari Lineup into One Tab
+
+**Current:** "Safari library" and "Safari lineup" are separate tabs in the admin panel.
+
+**Fix:** Merge them into a single tab called "Tool Safari." Layout:
+
+**Top section — GLOBAL area:**
+- Header: "Tool Safari library" with a "GLOBAL" badge
+- Subtext: "Changes here apply to all cohorts"
+- Light gray background tint (`#F5F3EE` or similar) to visually distinguish from per-cohort area
+- Contains: the tool list (add, edit, delete, reorder tools) AND file management per tool (see item #9)
+
+**Bottom section — PER-COHORT area:**
+- Header: "Safari lineup for [Cohort Name]"
+- Subtext: "Choose which tools appear in this cohort's Tool Safari"
+- Standard background
+- Contains: the two-column picker (In This Cohort / Available in Library) with add, remove, reorder
+
+Remove the old "Safari library" and "Safari lineup" tabs from the tab bar.
+
+---
+
+## 9. Safari File Upload
+
+**Current:** The Safari Library shows tools with name, sort order, and active status, but no way to upload PDF guides.
+
+**Fix:** Add file management to each tool in the Safari Library section:
+- Each tool card gets a "Files" button or expandable area
+- Clicking it shows:
+  - List of uploaded files for that tool (filename, size, download link, delete button)
+  - Upload button: "Upload Guide (PDF)"
+- Upload uses the existing file upload infrastructure: `POST /admin/files` with `{ displayName, mimeType, fileData (base64), sectionId: "tool-safari", safariLibraryId: [tool id] }`
+- Download uses existing: `GET /api/files/:id/download`
+- Delete uses existing: `DELETE /admin/files/:id`
+- On the participant side, the Tool Safari component should show a "Download Safari Guide (PDF)" button for each tab that has an uploaded file, using the file associated with that tool's `safari_library_id`
+
+---
+
+## 10. Rename "LLM Tools" Tab
+
+**Current:** Tab is labeled "LLM tools" which doesn't clearly indicate what it controls.
+
+**Fix:** Rename the tab to "Verification test links" so it's obvious these are the clickable tool links shown in the Verification Test exercise. No other changes to the tab's functionality.
+
+---
+
+## 11. Global vs Cohort Visual Distinction
+
+**Current:** Global and per-cohort tabs are separated by a subtle pipe character `|` in the tab bar. Not obvious enough.
+
+**Fix:**
+- Above the global tabs, add a small label: "GLOBAL" in muted uppercase text (11px, gray, letter-spacing)
+- Above the per-cohort tabs, add a label: "COHORT: [Selected Cohort Name]" in muted uppercase text
+- Inside global tab content areas, add a thin banner at the top: "Changes here apply to all cohorts." (subtle background tint, 13px, muted text)
+- Inside per-cohort tab content areas, add a thin banner: "Showing settings for [Cohort Name]." 
+- The pipe separator can remain but add these labels above each group for clarity
+
+---
+
+## 12. Rename "Vestibule" to "Home"
+
+**Current:** The home screen says "THE VESTIBULE" above the welcome message. The sidebar link says "Vestibule (Home)."
+
+**Fix:**
+- Remove "THE VESTIBULE" label from the home screen entirely. The page starts with "Welcome back, [Name]." and the subtitle below it.
+- Sidebar link text changes from "Vestibule (Home)" to "← Home" (with a left arrow character, not an emoji house icon)
+- The `← Home` link should be styled as a navigation link (navy color, 14px, font-weight 500) — clearly clickable, not a page title
+- Update any other references to "vestibule" in the UI to say "home"
+
+---
+
+## 13. LLM Tool Pills in Sidebar
+
+**New feature:** Add quick-access links to LLM tools in the sidebar, pinned below the "← Home" link and above the scrolling section list.
+
+**Layout:**
+```
+← Home
+
+[Gemini] [ChatGPT] [Claude] [Copilot]
+
+▾ LEVEL 1 — CORE WORKSHOP    5/18
+  Verification Test
+  Tool Safari
+  ...
+```
+
+**Implementation:**
+- Fetch the LLM tools list from `GET /llm-tools` (same endpoint used by the Verification Test)
+- Display each active tool as a small pill/chip: background `#E8E4DC`, navy text, 11px font, font-weight 600, border-radius 20px, padding 4px 10px
+- Each pill is an `<a>` tag with `target="_blank"` — clicking opens the tool URL in a new tab
+- The Home link + pills area is pinned (doesn't scroll). The section list below scrolls independently.
+- If no LLM tools are configured, don't show the pills area — just show "← Home" and the section list
+
+**Styling:**
+- Wrap Home + pills in a `position: sticky; top: 0` container (or equivalent for the sidebar's scroll container)
+- Add a subtle bottom border or shadow to separate the pinned area from the scrolling list
+- Pills wrap to a second row if there are too many (flex-wrap: wrap)
+
+---
+
+## 14. Level 2/3 Placeholder Sections
+
+**Current:** Level 2 has 2 sections (Simulate, Systematize) and Level 3 has 3 sections (Build, Orchestrate, Analyze).
+
+**Fix:** Replace them with more descriptive placeholder sections. Update `ALL_SECTIONS` in `artifacts/api-server/src/lib/sections.ts`:
+
+**Remove these entries:**
+- simulate, systematize, build, orchestrate, analyze
+
+**Add these Level 2 entries (tier: 2):**
+```typescript
+{ id: "advanced-prompt-engineering", title: "Advanced Prompt Engineering", description: "Go beyond basics with multi-step chains, system prompts, and structured outputs.", day: 2, order: 7, tier: 2, type: "locked" as const },
+{ id: "voice-management", title: "Voice Management — Human vs. AI", description: "Control AI tone, register, and voice to match your professional context.", day: 2, order: 8, tier: 2, type: "locked" as const },
+{ id: "context-architecture", title: "Context Architecture", description: "Design persistent AI workspaces that remember your role, preferences, and standards.", day: 2, order: 9, tier: 2, type: "locked" as const },
+{ id: "tool-configuration", title: "Tool Configuration Workshop", description: "Set up custom instructions, memory, and tool-specific optimizations.", day: 2, order: 10, tier: 2, type: "locked" as const },
+{ id: "workflow-optimization", title: "Workflow Optimization Lab", description: "Refine and stress-test the workflows you built in Level 1.", day: 2, order: 11, tier: 2, type: "locked" as const },
+{ id: "output-quality", title: "Output Quality — Humanizing & Accessibility", description: "Make AI-generated content sound human and meet accessibility standards.", day: 2, order: 12, tier: 2, type: "locked" as const },
+{ id: "prompt-library", title: "Prompt Library Builder", description: "Create a reusable library of tested prompts for your team's common tasks.", day: 2, order: 13, tier: 2, type: "locked" as const },
+{ id: "cognitive-bias", title: "Cognitive Bias & AI Awareness", description: "Recognize how cognitive biases shape AI interactions and organizational adoption.", day: 2, order: 14, tier: 2, type: "locked" as const },
+{ id: "navigating-skepticism", title: "Navigating AI Skepticism", description: "Build credibility with skeptical colleagues and leadership through evidence and empathy.", day: 2, order: 15, tier: 2, type: "locked" as const },
+```
+
+**Add these Level 3 entries (tier: 3):**
+```typescript
+{ id: "vibe-coding", title: "Vibe Coding", description: "Build functional prototypes by describing what you want in plain language.", day: 2, order: 16, tier: 3, type: "locked" as const },
+{ id: "agentic-workflows", title: "Agentic Workflow Design", description: "Design multi-step AI workflows that run autonomously with human checkpoints.", day: 2, order: 17, tier: 3, type: "locked" as const },
+{ id: "build-first-tool", title: "Build Your First Tool", description: "Create a functional AI-powered tool for a real team need — no coding experience required.", day: 2, order: 18, tier: 3, type: "locked" as const },
+{ id: "training-others", title: "Training Others on AI", description: "Teach your team to use AI effectively — facilitation frameworks and common pitfalls.", day: 2, order: 19, tier: 3, type: "locked" as const },
+{ id: "knowledge-base", title: "Team Knowledge Base Builder", description: "Build a shared AI-powered knowledge base for your team's institutional knowledge.", day: 2, order: 20, tier: 3, type: "locked" as const },
+{ id: "data-visualization", title: "Data Visualization with AI", description: "Turn raw data into clear, compelling visuals using AI tools.", day: 2, order: 21, tier: 3, type: "locked" as const },
+{ id: "ai-governance", title: "Organizational AI Governance", description: "Create policies, guidelines, and guardrails for responsible AI use in your organization.", day: 2, order: 22, tier: 3, type: "locked" as const },
+```
+
+After updating `ALL_SECTIONS`, re-run the seed to reset `cohort_sections` for all existing cohorts. The old 5 placeholder IDs should be removed and replaced with the new 16.
+
+---
+
+## 15. Cohort Creation Label Fix
+
+**Current:** The level toggles in the "New cohort" dialog are labeled "Default-unlocked levels."
+
+**Fix:** Rename the label to "Open levels" or "Levels available to participants." The toggles control which levels participants can access in this cohort. Level 1 is on by default. Levels 2 and 3 are off by default.
+
+---
+
+## Summary of Tab Order After Changes
+
+**GLOBAL section:**
+1. Cohorts
+2. Tool Safari (merged library + lineup)
+3. Verification test links (renamed from LLM Tools)
+4. Feedback
+5. Settings
+
+**COHORT: [Name] section:**
+6. Sections
+7. Content variants
+8. Participants
+
+Note: Safari lineup functionality moves INTO the Tool Safari tab (bottom section), so it's no longer a separate per-cohort tab. The Tool Safari tab has both global (library) and per-cohort (lineup) sections within it.
+
+---
+
+## DO NOT in this prompt:
+- Change the database schema (use existing tables and columns)
+- Restructure the monorepo or build system
+- Touch the PDF export functionality
+- Change the session/auth middleware
+- Add backend routes beyond what's specified (the cohort delete endpoint and the email-check endpoint)

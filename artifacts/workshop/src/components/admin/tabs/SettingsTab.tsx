@@ -9,16 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Save } from "lucide-react";
+import { Save } from "lucide-react";
 
 const KNOWN_SETTINGS: { key: string; label: string; placeholder?: string }[] = [
   {
@@ -79,73 +71,10 @@ export function SettingsTab() {
 
   const customRows = settings.filter((s) => !KNOWN_KEYS.has(s.key));
 
-  // ----- New custom setting dialog -----
-  const [open, setOpen] = useState(false);
-  const [newKey, setNewKey] = useState("");
-  const [newVal, setNewVal] = useState("");
-  const createCustom = () => {
-    if (!newKey.trim()) {
-      toast({ title: "Key required", variant: "destructive" });
-      return;
-    }
-    upsertMut.mutate(
-      { data: { key: newKey.trim(), value: newVal } },
-      {
-        onSuccess: () => {
-          toast({ title: "Setting saved" });
-          refresh();
-          setOpen(false);
-          setNewKey("");
-          setNewVal("");
-        },
-        onError: () =>
-          toast({ title: "Save failed", variant: "destructive" }),
-      },
-    );
-  };
-
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle>App settings</CardTitle>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" data-testid="button-new-setting">
-              <Plus className="w-4 h-4 mr-2" />
-              Add custom key
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add custom setting</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label>Key</Label>
-                <Input
-                  value={newKey}
-                  onChange={(e) => setNewKey(e.target.value)}
-                  placeholder="lower_snake_case"
-                />
-              </div>
-              <div>
-                <Label>Value</Label>
-                <Input
-                  value={newVal}
-                  onChange={(e) => setNewVal(e.target.value)}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={createCustom} disabled={upsertMut.isPending}>
-                Save
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading ? (

@@ -14,9 +14,7 @@ All participant endpoints require an authenticated session cookie
  * OpenAPI spec version: 0.1.0
  */
 
-export interface LoginRequest {
-  /** @minLength 1 */
-  name: string;
-  email: string;
-  cohortCode?: string;
+export interface CheckEmailResponse {
+  exists: boolean;
+  name?: string | null;
 }
