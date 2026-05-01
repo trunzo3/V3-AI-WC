@@ -2,6 +2,7 @@ import type { Section } from "@workspace/api-client-react";
 import { Lock } from "lucide-react";
 import { SectionHeader, GoalBox } from "./SectionHeader";
 import { NotesField } from "./NotesField";
+import { CopyButton } from "./CopyButton";
 import {
   VerificationTest,
   ToolSafari,
@@ -33,6 +34,43 @@ import { WorkflowConfigurator } from "./sections/WorkflowConfigurator";
 // (legacy plaintext bodies authored before the WYSIWYG was introduced).
 function looksLikeHtml(s: string): boolean {
   return /<\/?[a-z][\s\S]*?>/i.test(s);
+}
+
+function TextBlock({ html }: { html: string }) {
+  if (!html.trim()) return null;
+  if (looksLikeHtml(html)) {
+    return (
+      <div
+        className="prose prose-slate max-w-none mb-6 text-foreground"
+        // Content is admin-authored via the Tiptap editor, which only
+        // emits StarterKit + Link + Underline nodes. No script/style/iframe
+        // vectors.
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  }
+  return (
+    <div className="prose prose-slate max-w-none mb-6 whitespace-pre-wrap text-foreground">
+      {html}
+    </div>
+  );
+}
+
+function PromptBlock({ text, index }: { text: string; index: number }) {
+  return (
+    <div
+      className="bg-primary rounded-lg p-6 text-white mb-6"
+      data-testid="generic-prompt-block"
+    >
+      <span className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded mb-4">
+        Prompt {index}
+      </span>
+      <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono">
+        {text}
+      </pre>
+      <CopyButton text={text} label="Copy Prompt" />
+    </div>
+  );
 }
 
 function LockedSection({
@@ -79,36 +117,27 @@ function GenericSectionView({
 }) {
   const generic = section.generic;
   const goal = generic?.goalText?.trim();
-  const promptBlock = generic?.promptBlock?.trim();
-  const content = generic?.content ?? "";
+  const blocks = generic?.contentBlocks ?? [];
+
+  // Prompt blocks are numbered sequentially among themselves so authors who
+  // mix multiple text/prompt blocks see "Prompt 1", "Prompt 2", … rather
+  // than the absolute index of every block in the section.
+  let promptCounter = 0;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <SectionHeader title={title} type={section.type} />
       {goal && <GoalBox text={goal} />}
 
-      {content &&
-        (looksLikeHtml(content) ? (
-          <div
-            className="prose prose-slate max-w-none mb-8 text-foreground"
-            // Content is admin-authored via the Tiptap editor, which only
-            // emits StarterKit + Link nodes. No script/style/iframe vectors.
-            dangerouslySetInnerHTML={{ __html: content }}
-          />
-        ) : (
-          <div className="prose prose-slate max-w-none mb-8 whitespace-pre-wrap text-foreground">
-            {content}
-          </div>
-        ))}
-
-      {promptBlock && (
-        <div className="bg-primary rounded-lg p-6 text-white mb-8">
-          <span className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded mb-4">
-            Prompt
-          </span>
-          <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono">{promptBlock}</pre>
-        </div>
-      )}
+      {blocks.map((block, i) => {
+        if (block.type === "prompt") {
+          promptCounter += 1;
+          return (
+            <PromptBlock key={i} text={block.content} index={promptCounter} />
+          );
+        }
+        return <TextBlock key={i} html={block.content} />;
+      })}
 
       <div className="border-t pt-6 mt-6">
         <NotesField sectionId={section.id} fieldKey="notes" label="Your Notes" />

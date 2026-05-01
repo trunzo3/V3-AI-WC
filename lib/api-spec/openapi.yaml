@@ -1047,6 +1047,10 @@ components:
         id: { type: integer }
         name: { type: string }
         facilitatorMessage: { type: string }
+        homeMessage:
+          type: string
+          nullable: true
+          description: HTML rendered above the action cards on the participant home page.
         tierAccess:
           type: object
           additionalProperties: { type: boolean }
@@ -1091,11 +1095,21 @@ components:
         generic:
           nullable: true
           type: object
-          required: [content, promptBlock, goalText]
+          required: [contentBlocks, goalText]
           properties:
-            content: { type: string }
-            promptBlock: { type: string, nullable: true }
+            contentBlocks:
+              type: array
+              items: { $ref: "#/components/schemas/GenericContentBlock" }
             goalText: { type: string, nullable: true }
+
+    GenericContentBlock:
+      type: object
+      required: [type, content]
+      properties:
+        type:
+          type: string
+          enum: [text, prompt]
+        content: { type: string }
 
     SectionsResponse:
       type: object
@@ -1328,6 +1342,9 @@ components:
         audienceType: { type: string }
         cohortCode: { type: string }
         facilitatorMessage: { type: string }
+        homeMessage:
+          type: string
+          nullable: true
         tierAccess:
           type: object
           additionalProperties: { type: boolean }
@@ -1362,6 +1379,9 @@ components:
         cohortCode: { type: string, minLength: 1 }
         audienceType: { type: string }
         facilitatorMessage: { type: string }
+        homeMessage:
+          type: string
+          nullable: true
         tierAccess:
           type: object
           additionalProperties: { type: boolean }
@@ -1373,6 +1393,9 @@ components:
         cohortCode: { type: string, minLength: 1 }
         audienceType: { type: string }
         facilitatorMessage: { type: string }
+        homeMessage:
+          type: string
+          nullable: true
         tierAccess:
           type: object
           additionalProperties: { type: boolean }
@@ -1479,14 +1502,13 @@ components:
 
     AdminGenericSection:
       type: object
-      required: [id, title, content, sectionType]
+      required: [id, title, contentBlocks, sectionType]
       properties:
         id: { type: integer }
         title: { type: string }
-        content: { type: string }
-        promptBlock:
-          type: string
-          nullable: true
+        contentBlocks:
+          type: array
+          items: { $ref: "#/components/schemas/GenericContentBlock" }
         goalText:
           type: string
           nullable: true
@@ -1519,10 +1541,9 @@ components:
       required: [title]
       properties:
         title: { type: string, minLength: 1 }
-        content: { type: string }
-        promptBlock:
-          type: string
-          nullable: true
+        contentBlocks:
+          type: array
+          items: { $ref: "#/components/schemas/GenericContentBlock" }
         goalText:
           type: string
           nullable: true

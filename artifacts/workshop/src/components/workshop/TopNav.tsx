@@ -46,7 +46,12 @@ export function TopNav({ onLogoClick }: TopNavProps) {
   const categories = catsResp?.categories ?? [];
 
   const { data: settings } = useGetAppSettings();
-  const talkUrl = (settings as Record<string, string> | undefined)?.["talk_with_anthony_url"] || "https://talkwithanthony.com";
+  const settingsMap = settings as Record<string, string> | undefined;
+  const talkUrl =
+    settingsMap?.["talk_with_anthony_url"] || "https://talkwithanthony.com";
+  const feedbackIntro =
+    settingsMap?.["feedback_intro"]?.trim() ||
+    "Tell us what you're working on, what you're stuck on, or what you'd like to go deeper on.";
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,8 +144,8 @@ export function TopNav({ onLogoClick }: TopNavProps) {
                 <DialogTitle>What should we teach next?</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-2">
-                <p className="text-sm text-muted-foreground">
-                  Tell us what you're working on, what you're stuck on, or what you'd like to go deeper on.
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {feedbackIntro}
                 </p>
 
                 {categories.length > 0 && (

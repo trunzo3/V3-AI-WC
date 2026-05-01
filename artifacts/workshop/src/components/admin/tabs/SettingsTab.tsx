@@ -19,11 +19,6 @@ const KNOWN_SETTINGS: { key: string; label: string; placeholder?: string }[] = [
     placeholder: "https://calendly.com/...",
   },
   {
-    key: "support_email",
-    label: "Support email",
-    placeholder: "support@example.com",
-  },
-  {
     key: "feedback_intro",
     label: "Feedback dialog intro text",
   },

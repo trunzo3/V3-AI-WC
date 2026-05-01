@@ -18,6 +18,11 @@ import { requireParticipant, getParticipantContext } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
+interface GenericContentBlockResponse {
+  type: "text" | "prompt";
+  content: string;
+}
+
 interface SectionResponse {
   id: string;
   title: string;
@@ -29,8 +34,7 @@ interface SectionResponse {
   hasCode: boolean;
   isGeneric: boolean;
   generic: {
-    content: string;
-    promptBlock: string | null;
+    contentBlocks: GenericContentBlockResponse[];
     goalText: string | null;
   } | null;
 }
@@ -94,8 +98,9 @@ router.get("/sections", requireParticipant, async (req, res) => {
       type = g.sectionType;
       isGeneric = true;
       generic = {
-        content: g.content ?? "",
-        promptBlock: g.promptBlock,
+        contentBlocks: Array.isArray(g.contentBlocks)
+          ? (g.contentBlocks as GenericContentBlockResponse[])
+          : [],
         goalText: g.goalText,
       };
     } else {

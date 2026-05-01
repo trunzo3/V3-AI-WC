@@ -60,6 +60,8 @@ export interface Cohort {
   id: number;
   name: string;
   facilitatorMessage: string;
+  /** HTML rendered above the action cards on the participant home page. */
+  homeMessage?: string | null;
   /** Map of tier level to default-unlocked boolean, e.g. {"1": true, "2": false} */
   tierAccess: CohortTierAccess;
   audienceType: string;
@@ -88,9 +90,21 @@ export const SectionType = {
   locked: "locked",
 } as const;
 
-export type SectionGeneric = {
+export type GenericContentBlockType =
+  (typeof GenericContentBlockType)[keyof typeof GenericContentBlockType];
+
+export const GenericContentBlockType = {
+  text: "text",
+  prompt: "prompt",
+} as const;
+
+export interface GenericContentBlock {
+  type: GenericContentBlockType;
   content: string;
-  promptBlock: string | null;
+}
+
+export type SectionGeneric = {
+  contentBlocks: GenericContentBlock[];
   goalText: string | null;
 } | null;
 
@@ -257,6 +271,7 @@ export interface AdminCohort {
   audienceType: string;
   cohortCode: string;
   facilitatorMessage: string;
+  homeMessage?: string | null;
   tierAccess: AdminCohortTierAccess;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -279,6 +294,7 @@ export interface AdminCohortCreateRequest {
   cohortCode: string;
   audienceType?: string;
   facilitatorMessage?: string;
+  homeMessage?: string | null;
   tierAccess?: AdminCohortCreateRequestTierAccess;
 }
 
@@ -291,6 +307,7 @@ export interface AdminCohortUpdateRequest {
   cohortCode?: string;
   audienceType?: string;
   facilitatorMessage?: string;
+  homeMessage?: string | null;
   tierAccess?: AdminCohortUpdateRequestTierAccess;
 }
 
@@ -362,8 +379,7 @@ export interface AdminVariantUpsertResponse {
 export interface AdminGenericSection {
   id: number;
   title: string;
-  content: string;
-  promptBlock?: string | null;
+  contentBlocks: GenericContentBlock[];
   goalText?: string | null;
   sectionType: string;
   createdAt?: string | null;
@@ -381,8 +397,7 @@ export interface AdminGenericSectionResponse {
 export interface AdminGenericSectionRequest {
   /** @minLength 1 */
   title: string;
-  content?: string;
-  promptBlock?: string | null;
+  contentBlocks?: GenericContentBlock[];
   goalText?: string | null;
   sectionType?: string;
   /** When creating, also insert this generic section into the given cohort */

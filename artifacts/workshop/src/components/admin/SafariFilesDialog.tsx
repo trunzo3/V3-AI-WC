@@ -20,7 +20,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2, Upload, Download } from "lucide-react";
+import { Loader2, Trash2, Download, FileUp } from "lucide-react";
 
 // Note: do NOT prefix with import.meta.env.BASE_URL here. The shared proxy
 // routes root-relative /api/* directly to the api-server; prefixing with
@@ -189,28 +189,41 @@ export function SafariFilesDialog({
         </DialogHeader>
 
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/pdf,image/*,.doc,.docx,.txt,.md"
-              className="text-sm"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void handleUpload(f);
-              }}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf,image/*,.doc,.docx,.txt,.md"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void handleUpload(f);
+            }}
+            disabled={uploading}
+            data-testid="input-safari-file"
+          />
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              data-testid="input-safari-file"
-            />
-            {uploading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-            ) : (
-              <Upload className="w-4 h-4 text-muted-foreground" />
-            )}
-          </div>
-
-          <div className="text-xs text-muted-foreground">
-            Max 20 MB per file.
+              data-testid="button-upload-safari-file"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Uploading…
+                </>
+              ) : (
+                <>
+                  <FileUp className="w-4 h-4 mr-2" />
+                  Upload PDF guide
+                </>
+              )}
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              PDF, image, doc — max 20 MB
+            </span>
           </div>
 
           {loading ? (

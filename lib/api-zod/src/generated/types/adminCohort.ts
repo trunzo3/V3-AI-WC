@@ -21,6 +21,7 @@ export interface AdminCohort {
   audienceType: string;
   cohortCode: string;
   facilitatorMessage: string;
+  homeMessage?: string | null;
   tierAccess: AdminCohortTierAccess;
   createdAt?: Date | null;
   updatedAt?: Date | null;

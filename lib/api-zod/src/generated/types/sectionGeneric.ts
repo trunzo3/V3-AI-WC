@@ -13,9 +13,9 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
+import type { GenericContentBlock } from "./genericContentBlock";
 
 export type SectionGeneric = {
-  content: string;
-  promptBlock: string | null;
+  contentBlocks: GenericContentBlock[];
   goalText: string | null;
 } | null;

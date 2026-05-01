@@ -13,15 +13,11 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
-import type { CohortTierAccess } from "./cohortTierAccess";
 
-export interface Cohort {
-  id: number;
-  name: string;
-  facilitatorMessage: string;
-  /** HTML rendered above the action cards on the participant home page. */
-  homeMessage?: string | null;
-  /** Map of tier level to default-unlocked boolean, e.g. {"1": true, "2": false} */
-  tierAccess: CohortTierAccess;
-  audienceType: string;
-}
+export type GenericContentBlockType =
+  (typeof GenericContentBlockType)[keyof typeof GenericContentBlockType];
+
+export const GenericContentBlockType = {
+  text: "text",
+  prompt: "prompt",
+} as const;

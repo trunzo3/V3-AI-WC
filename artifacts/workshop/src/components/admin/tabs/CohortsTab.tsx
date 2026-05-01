@@ -33,6 +33,7 @@ interface FormState {
   cohortCode: string;
   audienceType: string;
   facilitatorMessage: string;
+  homeMessage: string;
   tier1: boolean;
   tier2: boolean;
   tier3: boolean;
@@ -43,6 +44,7 @@ const EMPTY_FORM: FormState = {
   cohortCode: "",
   audienceType: "general",
   facilitatorMessage: "",
+  homeMessage: "",
   tier1: true,
   tier2: false,
   tier3: false,
@@ -54,6 +56,7 @@ function fromCohort(c: AdminCohort): FormState {
     cohortCode: c.cohortCode,
     audienceType: c.audienceType ?? "general",
     facilitatorMessage: c.facilitatorMessage ?? "",
+    homeMessage: c.homeMessage ?? "",
     tier1: !!c.tierAccess?.["1"],
     tier2: !!c.tierAccess?.["2"],
     tier3: !!c.tierAccess?.["3"],
@@ -136,6 +139,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
       cohortCode: form.cohortCode.trim(),
       audienceType: form.audienceType.trim() || "general",
       facilitatorMessage: form.facilitatorMessage,
+      homeMessage: form.homeMessage,
       tierAccess: { "1": form.tier1, "2": form.tier2, "3": form.tier3 },
     };
     if (!payload.name || !payload.cohortCode) {
@@ -234,8 +238,19 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                   onChange={(html) =>
                     setForm({ ...form, facilitatorMessage: html })
                   }
-                  placeholder="Welcome message shown on the participant home page…"
+                  placeholder="Welcome message shown to participants…"
                   testId="input-cohort-message"
+                />
+              </div>
+              <div>
+                <Label htmlFor="cohort-home-msg">Home screen message</Label>
+                <RichTextEditor
+                  value={form.homeMessage}
+                  onChange={(html) =>
+                    setForm({ ...form, homeMessage: html })
+                  }
+                  placeholder="Optional message rendered on the participant home page (under the greeting)…"
+                  testId="input-cohort-home-message"
                 />
               </div>
               <div>

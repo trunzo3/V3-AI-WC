@@ -11,6 +11,7 @@ import {
   getAdminListGenericSectionsQueryKey,
   type AdminCohortSection,
   type AdminGenericSection,
+  type GenericContentBlock,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock } from "lucide-react";
+import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X } from "lucide-react";
 
 interface Props {
   cohortId: number;
@@ -202,21 +203,55 @@ export function SectionsTab({ cohortId }: Props) {
   const [editingGeneric, setEditingGeneric] = useState<AdminGenericSection | null>(
     null,
   );
-  const [genForm, setGenForm] = useState({
+  interface GenForm {
+    title: string;
+    contentBlocks: GenericContentBlock[];
+    goalText: string;
+    sectionType: "exercise" | "reference";
+    targetLevel: number;
+  }
+  const [genForm, setGenForm] = useState<GenForm>({
     title: "",
-    content: "",
-    promptBlock: "",
+    contentBlocks: [],
     goalText: "",
-    sectionType: "exercise" as "exercise" | "reference",
+    sectionType: "exercise",
     targetLevel: 1,
   });
+
+  const updateBlock = (idx: number, patch: Partial<GenericContentBlock>) => {
+    setGenForm((f) => {
+      const next = f.contentBlocks.slice();
+      next[idx] = { ...next[idx]!, ...patch };
+      return { ...f, contentBlocks: next };
+    });
+  };
+  const moveBlock = (idx: number, dir: -1 | 1) => {
+    setGenForm((f) => {
+      const next = f.contentBlocks.slice();
+      const target = idx + dir;
+      if (target < 0 || target >= next.length) return f;
+      [next[idx], next[target]] = [next[target]!, next[idx]!];
+      return { ...f, contentBlocks: next };
+    });
+  };
+  const removeBlock = (idx: number) => {
+    setGenForm((f) => ({
+      ...f,
+      contentBlocks: f.contentBlocks.filter((_, i) => i !== idx),
+    }));
+  };
+  const addBlock = (type: "text" | "prompt") => {
+    setGenForm((f) => ({
+      ...f,
+      contentBlocks: [...f.contentBlocks, { type, content: "" }],
+    }));
+  };
 
   const openCreateGeneric = () => {
     setEditingGeneric(null);
     setGenForm({
       title: "",
-      content: "",
-      promptBlock: "",
+      contentBlocks: [],
       goalText: "",
       sectionType: "exercise",
       targetLevel: 1,
@@ -227,8 +262,9 @@ export function SectionsTab({ cohortId }: Props) {
     setEditingGeneric(g);
     setGenForm({
       title: g.title,
-      content: g.content ?? "",
-      promptBlock: g.promptBlock ?? "",
+      contentBlocks: Array.isArray(g.contentBlocks)
+        ? (g.contentBlocks as GenericContentBlock[])
+        : [],
       goalText: g.goalText ?? "",
       sectionType: (g.sectionType as "exercise" | "reference") ?? "exercise",
       targetLevel: 1,
@@ -247,8 +283,7 @@ export function SectionsTab({ cohortId }: Props) {
     }
     const payload = {
       title: genForm.title.trim(),
-      content: genForm.content,
-      promptBlock: genForm.promptBlock || null,
+      contentBlocks: genForm.contentBlocks,
       goalText: genForm.goalText || null,
       sectionType: genForm.sectionType,
     };
@@ -411,27 +446,107 @@ export function SectionsTab({ cohortId }: Props) {
                       }
                     />
                   </div>
-                  <div>
-                    <Label>Prompt block (optional)</Label>
-                    <Textarea
-                      rows={3}
-                      value={genForm.promptBlock}
-                      onChange={(e) =>
-                        setGenForm({ ...genForm, promptBlock: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label>Body content</Label>
-                    <RichTextEditor
-                      value={genForm.content}
-                      onChange={(html) =>
-                        setGenForm({ ...genForm, content: html })
-                      }
-                      placeholder="Write the body of this section…"
-                      minHeight={180}
-                      testId="input-generic-body"
-                    />
+                  <div className="space-y-3">
+                    <Label>Content blocks</Label>
+                    {genForm.contentBlocks.length === 0 && (
+                      <div className="text-sm text-muted-foreground italic border rounded-md p-3">
+                        No blocks yet. Add a text or prompt block below.
+                      </div>
+                    )}
+                    {genForm.contentBlocks.map((block, idx) => {
+                      const last = idx === genForm.contentBlocks.length - 1;
+                      return (
+                        <div
+                          key={idx}
+                          className="border rounded-md p-3 space-y-2 bg-muted/30"
+                          data-testid={`generic-block-${idx}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <Badge
+                              variant={block.type === "prompt" ? "default" : "outline"}
+                              className="text-[10px] uppercase tracking-widest"
+                            >
+                              {block.type === "prompt" ? "Prompt block" : "Text block"}
+                            </Badge>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={idx === 0}
+                                onClick={() => moveBlock(idx, -1)}
+                                data-testid={`button-block-up-${idx}`}
+                                aria-label="Move block up"
+                              >
+                                <ArrowUp className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={last}
+                                onClick={() => moveBlock(idx, 1)}
+                                data-testid={`button-block-down-${idx}`}
+                                aria-label="Move block down"
+                              >
+                                <ArrowDown className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeBlock(idx)}
+                                data-testid={`button-block-remove-${idx}`}
+                                aria-label="Remove block"
+                              >
+                                <X className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                          {block.type === "text" ? (
+                            <RichTextEditor
+                              value={block.content}
+                              onChange={(html) =>
+                                updateBlock(idx, { content: html })
+                              }
+                              placeholder="Write the body of this block…"
+                              minHeight={140}
+                              testId={`input-generic-block-text-${idx}`}
+                            />
+                          ) : (
+                            <Textarea
+                              rows={4}
+                              value={block.content}
+                              onChange={(e) =>
+                                updateBlock(idx, { content: e.target.value })
+                              }
+                              className="font-mono text-sm"
+                              placeholder="Paste the prompt text here…"
+                              data-testid={`input-generic-block-prompt-${idx}`}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addBlock("text")}
+                        data-testid="button-add-text-block"
+                      >
+                        <Plus className="w-4 h-4 mr-1.5" />
+                        Add text block
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addBlock("prompt")}
+                        data-testid="button-add-prompt-block"
+                      >
+                        <Plus className="w-4 h-4 mr-1.5" />
+                        Add prompt block
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 <DialogFooter>

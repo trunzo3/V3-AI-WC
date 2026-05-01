@@ -1,0 +1,196 @@
+# Replit Prompt 6 — Final Fixes and Generic Section Block Editor
+
+## Context
+
+Prompts 1–5 are complete. This prompt covers 9 remaining fixes including a block editor for generic sections. All changes use existing infrastructure.
+
+---
+
+## 1. Remove "VESTIBULE" from Home Screen Header
+
+The top-right corner of the nav bar on the home screen currently shows "VESTIBULE". Replace it with the participant's cohort/workshop name (from the cohort record). Example: if the cohort is "SWERT Fresno June 2026", show "SWERT Fresno June 2026" in that position.
+
+---
+
+## 2. Copy Button on Generic Section Prompt Blocks
+
+The generic section participant view (GenericSectionView) renders a navy prompt block but has no copy button. The hardcoded sections use a CopyButton component for this. Add the same CopyButton inside the generic section's prompt block rendering — same styling, same behavior (copies the prompt text to clipboard, shows "Copied!" feedback).
+
+This applies to BOTH the current single prompt_block rendering AND the new block editor prompt blocks (see item 8).
+
+---
+
+## 3. Remove Support Email from Settings
+
+Remove the support_email entry from the seed script. Remove it from the Settings tab UI. If it already exists in the app_settings table, leave it (don't delete existing data), but don't display it in the admin UI. The Settings tab should only show: "Talk with Anthony — Calendly link" and "Feedback dialog intro text".
+
+---
+
+## 4. Wire Feedback Intro Text to Feedback Dialog
+
+The "What should we teach next?" dialog on the participant side currently has hardcoded intro text ("Tell us what you're working on, what you're stuck on, or what you'd like to go deeper on.").
+
+Fix: The dialog should fetch the feedback_intro value from GET /app-settings and display it as the intro paragraph. If the setting is empty or not set, fall back to the current hardcoded text. This way, when the admin edits the "Feedback dialog intro text" setting, the change actually appears in the dialog.
+
+---
+
+## 5. Editable Home Screen Message
+
+Current state: The home screen shows a hardcoded subtitle below "Welcome back, [Name]": "This is your home base between sessions. Begin by getting your bearings, then enter the workshop when you're ready."
+
+Fix:
+- Add a home_message column (text, nullable) to the cohorts table
+- In the cohort edit form in admin, add a "Home screen message" field using the WYSIWYG rich text editor (same Tiptap editor used for facilitator message and generic section body)
+- On the home screen, render the home_message content (as HTML) in place of the hardcoded subtitle. If home_message is null or empty, fall back to the current hardcoded text.
+- The GET /auth/me response already includes cohort data — add home_message to the returned cohort fields
+
+Migration: Add the column with a Drizzle schema change. No data migration needed — existing cohorts will have null and use the fallback text.
+
+---
+
+## 6. Add Underline to WYSIWYG Toolbar
+
+Install the extension:
+pnpm --filter @workspace/workshop add @tiptap/extension-underline
+
+In RichTextEditor.tsx:
+- Import and add Underline to the extensions array
+- Add a "U" (underlined) button to the toolbar between Italic and the heading buttons
+- The button toggles editor.chain().focus().toggleUnderline().run()
+
+---
+
+## 7. Fix Tool Safari File Upload
+
+The "Manage Files" dialog in the Tool Safari library section has styling issues and the upload may not be functional. Fix:
+
+- The "Choose File" input should be styled as a clear, prominent upload button (navy or gold background, white text, "Upload PDF Guide" label)
+- The upload icon/link that doesn't do anything should be removed or wired to trigger the file input
+- After selecting a file, it should upload immediately (or show a confirmation) using the existing POST /admin/files endpoint with: sectionId set to "tool-safari", safariLibraryId set to the tool's ID, displayName set to the filename, mimeType set to the file mime type, fileData set to the base64 encoded file content
+- After successful upload, refresh the file list in the dialog
+- Each uploaded file should show: filename, a download link (GET /api/files/:id/download), and a delete button (DELETE /admin/files/:id)
+- On the participant side in Tool Safari: for each tab, check if files exist where safariLibraryId matches that tool. If so, show a styled "Download Safari Guide (PDF)" button. Use the existing file download pattern from v1.0.
+- Max file size: 20 MB (validate on frontend before encoding to base64)
+
+---
+
+## 8. Generic Section Block Editor
+
+### Data Model Change
+
+In the generic_sections table:
+- Remove the content column (text)
+- Remove the prompt_block column (text, nullable)
+- Add content_blocks column (jsonb, not null, default '[]')
+
+The content_blocks column stores an ordered array of block objects. Each object has two fields: type (either "text" or "prompt") and content (a string). For text blocks, content is HTML from the WYSIWYG editor. For prompt blocks, content is plain text.
+
+Example value:
+[{"type":"text","content":"<p><strong>Think about a real update</strong> you need to send...</p>"},{"type":"prompt","content":"You are an experienced HHS program manager. Draft a one-paragraph status update..."},{"type":"text","content":"<p>Now review the output. Did it capture your tone?</p>"},{"type":"prompt","content":"Rewrite the update above for a non-technical audience..."}]
+
+- No other block types beyond "text" and "prompt"
+- Array position determines render order
+- The goal_text field stays as its own separate column — it is NOT part of the block system
+
+### Admin UI — Block Editor
+
+Replace the current body content textarea and prompt block textarea in the generic section create/edit dialog with a block editor.
+
+Layout:
+- Goal text field stays at the top (plain text input, same as now)
+- Below it: the block editor area showing all blocks in order
+- At the bottom of the block editor: two buttons side by side: "+ Add text block" and "+ Add prompt block"
+
+Each block in the editor:
+- Shows its type label ("Text block" or "Prompt block") in muted text
+- Has up/down arrow buttons on the left for reordering
+- Has a remove button (red X or trash icon) on the right
+- Text blocks render the WYSIWYG Tiptap editor (with B, I, U, H2, H3, bullet list, ordered list, link, blockquote, undo/redo toolbar)
+- Prompt blocks render a plain textarea (monospace font) with a label "Prompt text (participants can copy this)"
+
+Save behavior:
+- On save (Create or Save Changes), serialize the entire block list as a JSON array and write it to content_blocks
+- Full array replace on every save — never diff or patch individual blocks
+- Read the full array on load and populate the editor
+
+Reorder behavior:
+- Up arrow swaps the block with the one above it
+- Down arrow swaps the block with the one below it
+- First block's up arrow is disabled, last block's down arrow is disabled
+- After reorder, the editor re-renders with updated positions — no save needed until the user clicks Save
+
+### Participant Side — GenericSectionView
+
+Update the GenericSectionView component to render from content_blocks.
+
+Render order from top to bottom:
+1. EXERCISE or REFERENCE badge
+2. Section Title
+3. Goal box (if goal_text exists)
+4. All blocks rendered in array order
+5. YOUR NOTES auto-save textarea at the bottom
+
+Text block rendering:
+- Render the HTML content using dangerouslySetInnerHTML
+- Wrap in a div with appropriate prose styling (font-size 14px, line-height 1.7, standard margins between paragraphs)
+
+Prompt block rendering:
+- Navy background box (#1A2744), border-radius 10px, padding 20px
+- Label in gold pill at top-left: "PROMPT 1", "PROMPT 2", etc. — numbered sequentially among prompt blocks only (not by position in the full block list)
+- Copy button at top-right: same CopyButton component used in hardcoded sections
+- Plain text content in white/light color, monospace font, white-space pre-wrap
+- Margin between blocks: 12px between consecutive prompt blocks, 24px between a text block and a prompt block
+
+Prompt numbering logic: If blocks are [text, prompt, text, prompt, prompt], the prompts are labeled "Prompt 1", "Prompt 2", "Prompt 3". Text blocks do not affect the prompt counter.
+
+### Backward Compatibility
+
+If a generic section has the old content and prompt_block columns populated but content_blocks is empty or missing, migrate on read: construct a content_blocks array from the old fields. Put the old content as a text block first, then the old prompt_block as a prompt block second. This way existing generic sections don't break.
+
+Alternatively, run a one-time migration in the seed script that converts any existing generic sections with old-format data into the new content_blocks format.
+
+### PDF Export
+
+Update the workbook PDF template to render generic section blocks in order:
+- Text blocks render as formatted HTML (same as body content currently renders)
+- Prompt blocks render as styled boxes matching the navy prompt block design, with "PROMPT 1" / "PROMPT 2" labels. No copy button in PDF.
+
+### API Changes
+
+- POST /admin/generic-sections — accept content_blocks (jsonb array) instead of content and prompt_block
+- PUT /admin/generic-sections/:id — same
+- GET /admin/generic-sections — return content_blocks
+- The participant-facing section data should include content_blocks for generic sections
+- Update the OpenAPI spec and run codegen
+
+---
+
+## 9. Prompt Label Numbering
+
+This is part of item 8 but called out explicitly for clarity.
+
+Prompt blocks are numbered sequentially among themselves, not by their position in the block list. Example:
+
+- Block 1: text block (no label)
+- Block 2: prompt block (labeled "Prompt 1")
+- Block 3: text block (no label)
+- Block 4: prompt block (labeled "Prompt 2")
+- Block 5: prompt block (labeled "Prompt 3")
+
+The numbering counter only increments for prompt-type blocks.
+
+---
+
+## Tab Order Reminder (unchanged from Prompt 5)
+
+GLOBAL: Cohorts, Tool Safari, Verification test links, Feedback, Settings
+COHORT: Sections, Content variants, Participants
+
+---
+
+## DO NOT in this prompt:
+- Change the cohort system, auth flow, or section code logic
+- Touch hardcoded section components (Day1.tsx, Day2.tsx, etc.)
+- Modify the sidebar, login page, or home page layout (except items 1, 4, and 5)
+- Change the session middleware or build system
+- Add block types beyond "text" and "prompt"

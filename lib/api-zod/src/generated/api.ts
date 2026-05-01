@@ -82,6 +82,12 @@ export const GetCurrentParticipantResponse = zod.object({
     id: zod.number(),
     name: zod.string(),
     facilitatorMessage: zod.string(),
+    homeMessage: zod
+      .string()
+      .nullish()
+      .describe(
+        "HTML rendered above the action cards on the participant home page.",
+      ),
     tierAccess: zod
       .record(zod.string(), zod.boolean())
       .describe(
@@ -127,8 +133,12 @@ export const ListSectionsResponse = zod.object({
       isGeneric: zod.boolean(),
       generic: zod
         .object({
-          content: zod.string(),
-          promptBlock: zod.string().nullable(),
+          contentBlocks: zod.array(
+            zod.object({
+              type: zod.enum(["text", "prompt"]),
+              content: zod.string(),
+            }),
+          ),
           goalText: zod.string().nullable(),
         })
         .nullish(),
@@ -365,6 +375,7 @@ export const AdminListCohortsResponse = zod.object({
       audienceType: zod.string(),
       cohortCode: zod.string(),
       facilitatorMessage: zod.string(),
+      homeMessage: zod.string().nullish(),
       tierAccess: zod.record(zod.string(), zod.boolean()),
       createdAt: zod.coerce.date().nullish(),
       updatedAt: zod.coerce.date().nullish(),
@@ -381,6 +392,7 @@ export const AdminCreateCohortBody = zod.object({
   cohortCode: zod.string().min(1),
   audienceType: zod.string().optional(),
   facilitatorMessage: zod.string().optional(),
+  homeMessage: zod.string().nullish(),
   tierAccess: zod.record(zod.string(), zod.boolean()).optional(),
 });
 
@@ -398,6 +410,7 @@ export const AdminGetCohortResponse = zod.object({
     audienceType: zod.string(),
     cohortCode: zod.string(),
     facilitatorMessage: zod.string(),
+    homeMessage: zod.string().nullish(),
     tierAccess: zod.record(zod.string(), zod.boolean()),
     createdAt: zod.coerce.date().nullish(),
     updatedAt: zod.coerce.date().nullish(),
@@ -416,6 +429,7 @@ export const AdminUpdateCohortBody = zod.object({
   cohortCode: zod.string().min(1).optional(),
   audienceType: zod.string().optional(),
   facilitatorMessage: zod.string().optional(),
+  homeMessage: zod.string().nullish(),
   tierAccess: zod.record(zod.string(), zod.boolean()).optional(),
 });
 
@@ -426,6 +440,7 @@ export const AdminUpdateCohortResponse = zod.object({
     audienceType: zod.string(),
     cohortCode: zod.string(),
     facilitatorMessage: zod.string(),
+    homeMessage: zod.string().nullish(),
     tierAccess: zod.record(zod.string(), zod.boolean()),
     createdAt: zod.coerce.date().nullish(),
     updatedAt: zod.coerce.date().nullish(),
@@ -565,8 +580,12 @@ export const AdminListGenericSectionsResponse = zod.object({
     zod.object({
       id: zod.number(),
       title: zod.string(),
-      content: zod.string(),
-      promptBlock: zod.string().nullish(),
+      contentBlocks: zod.array(
+        zod.object({
+          type: zod.enum(["text", "prompt"]),
+          content: zod.string(),
+        }),
+      ),
       goalText: zod.string().nullish(),
       sectionType: zod.string(),
       createdAt: zod.coerce.date().nullish(),
@@ -581,8 +600,14 @@ export const AdminListGenericSectionsResponse = zod.object({
 
 export const AdminCreateGenericSectionBody = zod.object({
   title: zod.string().min(1),
-  content: zod.string().optional(),
-  promptBlock: zod.string().nullish(),
+  contentBlocks: zod
+    .array(
+      zod.object({
+        type: zod.enum(["text", "prompt"]),
+        content: zod.string(),
+      }),
+    )
+    .optional(),
   goalText: zod.string().nullish(),
   sectionType: zod.string().optional(),
   cohortId: zod
@@ -603,8 +628,14 @@ export const AdminUpdateGenericSectionParams = zod.object({
 
 export const AdminUpdateGenericSectionBody = zod.object({
   title: zod.string().min(1),
-  content: zod.string().optional(),
-  promptBlock: zod.string().nullish(),
+  contentBlocks: zod
+    .array(
+      zod.object({
+        type: zod.enum(["text", "prompt"]),
+        content: zod.string(),
+      }),
+    )
+    .optional(),
   goalText: zod.string().nullish(),
   sectionType: zod.string().optional(),
   cohortId: zod
@@ -620,8 +651,12 @@ export const AdminUpdateGenericSectionResponse = zod.object({
   section: zod.object({
     id: zod.number(),
     title: zod.string(),
-    content: zod.string(),
-    promptBlock: zod.string().nullish(),
+    contentBlocks: zod.array(
+      zod.object({
+        type: zod.enum(["text", "prompt"]),
+        content: zod.string(),
+      }),
+    ),
     goalText: zod.string().nullish(),
     sectionType: zod.string(),
     createdAt: zod.coerce.date().nullish(),

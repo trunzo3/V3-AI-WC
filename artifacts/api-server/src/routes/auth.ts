@@ -176,12 +176,18 @@ router.get("/auth/me", async (req, res) => {
 
   const cohortInfo: Pick<
     Cohort,
-    "id" | "name" | "facilitatorMessage" | "tierAccess" | "audienceType"
+    | "id"
+    | "name"
+    | "facilitatorMessage"
+    | "homeMessage"
+    | "tierAccess"
+    | "audienceType"
   > | null = row.cohort
     ? {
         id: row.cohort.id,
         name: row.cohort.name,
         facilitatorMessage: row.cohort.facilitatorMessage,
+        homeMessage: row.cohort.homeMessage ?? null,
         tierAccess: row.cohort.tierAccess,
         audienceType: row.cohort.audienceType,
       }

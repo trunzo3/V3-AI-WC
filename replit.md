@@ -57,9 +57,15 @@ Two surface areas:
   - The header has a cohort switcher (selection persisted in
     `localStorage["workshop-admin-cohort-id"]`) plus stats cards scoped to the
     selected cohort.
-  - Generic-section body and cohort facilitator messages use a Tiptap WYSIWYG
-    (`components/admin/RichTextEditor.tsx`). Bodies are stored as HTML;
-    `SectionRenderer` falls back to `whitespace-pre-wrap` for legacy plaintext.
+  - Generic-section bodies use a block editor (text/prompt blocks, reorderable);
+    cohort facilitator + home-screen messages use a Tiptap WYSIWYG
+    (`components/admin/RichTextEditor.tsx`, with bold/italic/underline).
+  - Cohorts have a `home_message` HTML field rendered above the action cards
+    on the participant home page (`data-testid="home-message"`).
+  - The participant home header shows the cohort name (from `/api/auth/me`)
+    in place of the legacy "VESTIBULE" / "Cohort: CODE" label.
+  - Tool Safari upload uses a styled "Upload PDF Guide" button that triggers
+    a hidden native file input.
 
 Admin UI consumes the generated client from `@workspace/api-client-react`. Only
 the bulk endpoints `PUT /admin/cohorts/:id/sections` and
@@ -109,7 +115,12 @@ Sections come from two sources:
    `SECTION_CODE_CONFIG: SectionCodeEntry[]`, where one code can map to many
    section ids (entering the code unlocks all listed sections at once).
 2. **Generic sections** — created by admins, stored in `generic_sections`,
-   referenced by id `generic_<id>` from `cohort_sections`.
+   referenced by id `generic_<id>` from `cohort_sections`. Bodies are stored
+   as a `content_blocks` jsonb array of `{type:"text"|"prompt", content:string}`.
+   Text blocks render as HTML (Tiptap WYSIWYG with bold/italic/underline);
+   prompt blocks render as a navy box with a gold "Prompt N" pill (numbered
+   among prompts only) and a CopyButton. The legacy `content` and
+   `prompt_block` columns have been dropped.
 
 Running the seed (`pnpm --filter @workspace/api-server run seed`) resets
 **every** cohort's `cohort_sections` to match `ALL_SECTIONS` exactly, so edits

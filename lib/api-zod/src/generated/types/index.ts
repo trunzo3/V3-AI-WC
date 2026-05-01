@@ -81,6 +81,8 @@ export * from "./feedbackCategory";
 export * from "./feedbackListResponse";
 export * from "./feedbackResponse";
 export * from "./feedbackUpsertRequest";
+export * from "./genericContentBlock";
+export * from "./genericContentBlockType";
 export * from "./healthStatus";
 export * from "./llmTool";
 export * from "./llmToolsResponse";

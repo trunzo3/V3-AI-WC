@@ -22,5 +22,6 @@ export interface AdminCohortUpdateRequest {
   cohortCode?: string;
   audienceType?: string;
   facilitatorMessage?: string;
+  homeMessage?: string | null;
   tierAccess?: AdminCohortUpdateRequestTierAccess;
 }

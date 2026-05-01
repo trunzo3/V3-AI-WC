@@ -13,12 +13,12 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
+import type { GenericContentBlock } from "./genericContentBlock";
 
 export interface AdminGenericSectionRequest {
   /** @minLength 1 */
   title: string;
-  content?: string;
-  promptBlock?: string | null;
+  contentBlocks?: GenericContentBlock[];
   goalText?: string | null;
   sectionType?: string;
   /** When creating, also insert this generic section into the given cohort */

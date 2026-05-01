@@ -72,6 +72,7 @@ const createCohortSchema = z.object({
   audienceType: z.string().trim().default("general"),
   cohortCode: z.string().trim().min(1),
   facilitatorMessage: z.string().optional(),
+  homeMessage: z.string().nullish(),
   tierAccess: tierAccessSchema.optional(),
 });
 
@@ -102,6 +103,7 @@ router.post("/admin/cohorts", requireAdmin, async (req, res) => {
         cohortCode: data.cohortCode,
         facilitatorMessage:
           data.facilitatorMessage ?? DEFAULT_FACILITATOR_MESSAGE,
+        homeMessage: data.homeMessage ?? null,
         tierAccess: data.tierAccess ?? DEFAULT_TIER_ACCESS,
       })
       .returning();
@@ -142,6 +144,7 @@ const updateCohortSchema = z.object({
   audienceType: z.string().trim().optional(),
   cohortCode: z.string().trim().min(1).optional(),
   facilitatorMessage: z.string().optional(),
+  homeMessage: z.string().nullish(),
   tierAccess: tierAccessSchema.optional(),
   settings: z.record(z.string(), z.unknown()).optional(),
 });
@@ -440,10 +443,14 @@ router.put(
 
 // ----- Generic sections ---------------------------------------------------
 
+const contentBlockSchema = z.object({
+  type: z.enum(["text", "prompt"]),
+  content: z.string(),
+});
+
 const genericCreateSchema = z.object({
   title: z.string().trim().min(1),
-  content: z.string().default(""),
-  promptBlock: z.string().nullish(),
+  contentBlocks: z.array(contentBlockSchema).default([]),
   goalText: z.string().nullish(),
   sectionType: z.enum(["exercise", "reference"]).default("exercise"),
 });
@@ -467,8 +474,7 @@ router.post("/admin/generic-sections", requireAdmin, async (req, res) => {
     .insert(genericSectionsTable)
     .values({
       title: parsed.data.title,
-      content: parsed.data.content,
-      promptBlock: parsed.data.promptBlock ?? null,
+      contentBlocks: parsed.data.contentBlocks,
       goalText: parsed.data.goalText ?? null,
       sectionType: parsed.data.sectionType,
     })

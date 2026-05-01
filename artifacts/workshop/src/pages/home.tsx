@@ -4,6 +4,7 @@ import {
   useListSections,
   useGetAppSettings,
   useParticipantLogout,
+  useGetCurrentParticipant,
 } from "@workspace/api-client-react";
 import { getSession, clearSession } from "@/lib/auth";
 import { Logo } from "@/components/logo";
@@ -15,6 +16,9 @@ export default function Home() {
   const { data: sectionsResp } = useListSections();
   const sections = sectionsResp?.sections ?? [];
   const { data: settings } = useGetAppSettings();
+  const { data: meResp } = useGetCurrentParticipant();
+  const cohortName = meResp?.cohort?.name?.trim() || "";
+  const homeMessage = (meResp?.cohort?.homeMessage ?? "").trim();
   const logoutMutation = useParticipantLogout();
 
   useEffect(() => {
@@ -47,17 +51,31 @@ export default function Home() {
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => setLocation("/home")}>
           <Logo variant="white" className="scale-75 origin-left" />
         </div>
-        <div className="text-xs uppercase tracking-widest text-white/60">
-          {session.cohortCode ? `Cohort: ${session.cohortCode}` : "Vestibule"}
+        <div
+          className="text-xs uppercase tracking-widest text-white/60"
+          data-testid="home-cohort-name"
+        >
+          {cohortName}
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-12 space-y-10">
         <div className="text-center pb-2">
           <h1 className="text-4xl font-serif font-bold text-primary mb-2">{greeting}</h1>
-          <p className="text-muted-foreground text-base max-w-xl mx-auto">
-            This is your home base between sessions. Begin by getting your bearings, then enter the workshop when you're ready.
-          </p>
+          {homeMessage ? (
+            <div
+              className="prose prose-slate max-w-xl mx-auto text-muted-foreground text-base"
+              data-testid="home-message"
+              // Cohort home message is admin-authored via the Tiptap editor
+              // (StarterKit + Link + Underline nodes only — no script/iframe
+              // vectors).
+              dangerouslySetInnerHTML={{ __html: homeMessage }}
+            />
+          ) : (
+            <p className="text-muted-foreground text-base max-w-xl mx-auto">
+              This is your home base between sessions. Begin by getting your bearings, then enter the workshop when you're ready.
+            </p>
+          )}
         </div>
 
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">

@@ -27,6 +27,7 @@ export const cohortsTable = pgTable(
     facilitatorMessage: text("facilitator_message")
       .notNull()
       .default(DEFAULT_FACILITATOR_MESSAGE),
+    homeMessage: text("home_message"),
     tierAccess: jsonb("tier_access")
       .$type<Record<string, boolean>>()
       .notNull()

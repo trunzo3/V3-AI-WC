@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useUpsertFeedback, useListFeedbackCategories } from "@workspace/api-client-react";
+import {
+  useUpsertFeedback,
+  useListFeedbackCategories,
+  useGetAppSettings,
+} from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -88,6 +92,10 @@ export default function LevelsPage() {
   const feedbackMutation = useUpsertFeedback();
   const { data: catsResp } = useListFeedbackCategories();
   const categories = catsResp?.categories ?? [];
+  const { data: settings } = useGetAppSettings();
+  const feedbackIntro =
+    (settings as Record<string, string> | undefined)?.["feedback_intro"]?.trim() ||
+    "Tell us what you're working on, what you're stuck on, or what you'd like to go deeper on.";
   const { toast } = useToast();
 
   useEffect(() => {
@@ -195,8 +203,8 @@ export default function LevelsPage() {
 
         <div className="mt-10 border-t border-border pt-8">
           <h4 className="text-base font-bold text-primary mb-2">What should we teach next?</h4>
-          <p className="text-sm text-muted-foreground mb-4">
-            Tell us what you're working on, what you're stuck on, or what you'd like to go deeper on.
+          <p className="text-sm text-muted-foreground mb-4 whitespace-pre-wrap">
+            {feedbackIntro}
           </p>
 
           {categories.length > 0 && (
