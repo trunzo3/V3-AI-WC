@@ -130,6 +130,11 @@ export const ListSectionsResponse = zod.object({
       type: zod.enum(["exercise", "reference", "locked"]),
       unlocked: zod.boolean(),
       hasCode: zod.boolean(),
+      hasNotes: zod
+        .boolean()
+        .describe(
+          "True when the current participant has saved at least one non-empty note for this section.",
+        ),
       isGeneric: zod.boolean(),
       generic: zod
         .object({

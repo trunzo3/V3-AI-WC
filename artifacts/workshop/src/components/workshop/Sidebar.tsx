@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Lock, ChevronDown, ChevronRight, LogOut, CheckCircle2, Circle, ExternalLink } from "lucide-react";
+import { Lock, ChevronDown, ChevronRight, LogOut, ExternalLink } from "lucide-react";
 import type { Section } from "@workspace/api-client-react";
 import { useParticipantLogout, useListLlmTools } from "@workspace/api-client-react";
 import { clearSession, getSession } from "@/lib/auth";
@@ -155,12 +155,15 @@ export function Sidebar({
                             !section.unlocked && "opacity-60",
                           )}
                         >
-                          {section.unlocked ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-accent" />
-                          ) : section.hasCode ? (
+                          {!section.unlocked ? (
                             <Lock className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
+                          ) : section.hasNotes ? (
+                            <span
+                              className="w-2 h-2 rounded-full bg-accent flex-shrink-0"
+                              aria-label="Has notes"
+                            />
                           ) : (
-                            <Circle className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground/40" />
+                            <span className="w-3 h-3 flex-shrink-0" aria-hidden />
                           )}
                           <span className="truncate">{section.title}</span>
                         </button>

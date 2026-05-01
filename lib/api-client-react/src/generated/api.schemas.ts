@@ -117,6 +117,8 @@ export interface Section {
   type: SectionType;
   unlocked: boolean;
   hasCode: boolean;
+  /** True when the current participant has saved at least one non-empty note for this section. */
+  hasNotes: boolean;
   isGeneric: boolean;
   generic?: SectionGeneric;
 }

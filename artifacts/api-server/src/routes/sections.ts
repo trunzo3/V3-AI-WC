@@ -7,6 +7,7 @@ import {
   unlockedSectionsTable,
   genericSectionsTable,
   cohortsTable,
+  notesTable,
 } from "@workspace/db";
 import {
   ALL_SECTIONS,
@@ -32,6 +33,7 @@ interface SectionResponse {
   type: string;
   unlocked: boolean;
   hasCode: boolean;
+  hasNotes: boolean;
   isGeneric: boolean;
   generic: {
     contentBlocks: GenericContentBlockResponse[];
@@ -79,6 +81,18 @@ router.get("/sections", requireParticipant, async (req, res) => {
     .from(unlockedSectionsTable)
     .where(eq(unlockedSectionsTable.participantId, participantId));
   const unlockedIds = new Set(unlockedRows.map((u) => u.sectionId));
+
+  // Section ids where the participant has saved at least one non-empty note.
+  const noteRows = await db
+    .select({ sectionId: notesTable.sectionId })
+    .from(notesTable)
+    .where(
+      and(
+        eq(notesTable.participantId, participantId),
+        sql`length(trim(${notesTable.content})) > 0`,
+      ),
+    );
+  const sectionsWithNotes = new Set(noteRows.map((n) => n.sectionId));
 
   const tierAccess = cohort.tierAccess ?? {};
 
@@ -128,6 +142,7 @@ router.get("/sections", requireParticipant, async (req, res) => {
       type,
       unlocked,
       hasCode: Boolean(cs.code) && cs.codeActive,
+      hasNotes: sectionsWithNotes.has(cs.sectionId),
       isGeneric,
       generic,
     });
