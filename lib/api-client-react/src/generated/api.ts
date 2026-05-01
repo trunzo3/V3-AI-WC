@@ -25,10 +25,47 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AdminBulkCountResponse,
+  AdminCohortCreateRequest,
+  AdminCohortListResponse,
+  AdminCohortResponse,
+  AdminCohortSafariTabInput,
+  AdminCohortSafariTabsResponse,
+  AdminCohortSectionInput,
+  AdminCohortSectionsResponse,
+  AdminCohortUpdateRequest,
+  AdminCohortVariantsResponse,
+  AdminFeedbackCategoryCreateRequest,
+  AdminFeedbackCategoryResponse,
+  AdminFeedbackCategoryUpdateRequest,
+  AdminFeedbackListResponse,
+  AdminGenericSectionListResponse,
+  AdminGenericSectionRequest,
+  AdminGenericSectionResponse,
+  AdminListFeedbackParams,
+  AdminLlmToolCreateRequest,
+  AdminLlmToolListResponse,
+  AdminLlmToolResponse,
+  AdminLlmToolUpdateRequest,
   AdminLoginRequest,
+  AdminMeResponse,
+  AdminParticipantActiveRequest,
+  AdminParticipantListResponse,
+  AdminParticipantResponse,
+  AdminSafariLibraryCreateRequest,
+  AdminSafariLibraryListResponse,
+  AdminSafariLibraryResponse,
+  AdminSafariLibraryUpdateRequest,
+  AdminSettingResponse,
+  AdminSettingUpsertRequest,
+  AdminSettingsListResponse,
+  AdminUnlockAllResponse,
+  AdminVariantUpsertRequest,
+  AdminVariantUpsertResponse,
   AppSettingsResponse,
   BadRequestResponse,
   ContentVariantsResponse,
+  ErrorResponse,
   FeedbackCategoriesResponse,
   FeedbackListResponse,
   FeedbackResponse,
@@ -1602,6 +1639,3021 @@ export function useGetAppSettings<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetAppSettingsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Whether the current session is admin
+ */
+export const getGetAdminMeUrl = () => {
+  return `/api/admin/me`;
+};
+
+export const getAdminMe = async (
+  options?: RequestInit,
+): Promise<AdminMeResponse> => {
+  return customFetch<AdminMeResponse>(getGetAdminMeUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAdminMeQueryKey = () => {
+  return [`/api/admin/me`] as const;
+};
+
+export const getGetAdminMeQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminMe>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminMe>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAdminMeQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminMe>>> = ({
+    signal,
+  }) => getAdminMe({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminMe>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminMeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminMe>>
+>;
+export type GetAdminMeQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Whether the current session is admin
+ */
+
+export function useGetAdminMe<
+  TData = Awaited<ReturnType<typeof getAdminMe>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminMe>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminMeQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all cohorts (newest first)
+ */
+export const getAdminListCohortsUrl = () => {
+  return `/api/admin/cohorts`;
+};
+
+export const adminListCohorts = async (
+  options?: RequestInit,
+): Promise<AdminCohortListResponse> => {
+  return customFetch<AdminCohortListResponse>(getAdminListCohortsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getAdminListCohortsQueryKey = () => {
+  return [`/api/admin/cohorts`] as const;
+};
+
+export const getAdminListCohortsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListCohorts>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListCohorts>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getAdminListCohortsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListCohorts>>
+  > = ({ signal }) => adminListCohorts({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListCohorts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListCohortsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListCohorts>>
+>;
+export type AdminListCohortsQueryError = ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List all cohorts (newest first)
+ */
+
+export function useAdminListCohorts<
+  TData = Awaited<ReturnType<typeof adminListCohorts>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListCohorts>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListCohortsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new cohort and seed default sections
+ */
+export const getAdminCreateCohortUrl = () => {
+  return `/api/admin/cohorts`;
+};
+
+export const adminCreateCohort = async (
+  adminCohortCreateRequest: AdminCohortCreateRequest,
+  options?: RequestInit,
+): Promise<AdminCohortResponse> => {
+  return customFetch<AdminCohortResponse>(getAdminCreateCohortUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminCohortCreateRequest),
+  });
+};
+
+export const getAdminCreateCohortMutationOptions = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateCohort>>,
+    TError,
+    { data: BodyType<AdminCohortCreateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminCreateCohort>>,
+  TError,
+  { data: BodyType<AdminCohortCreateRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminCreateCohort"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminCreateCohort>>,
+    { data: BodyType<AdminCohortCreateRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adminCreateCohort(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminCreateCohortMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminCreateCohort>>
+>;
+export type AdminCreateCohortMutationBody = BodyType<AdminCohortCreateRequest>;
+export type AdminCreateCohortMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | ErrorResponse
+>;
+
+/**
+ * @summary Create a new cohort and seed default sections
+ */
+export const useAdminCreateCohort = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateCohort>>,
+    TError,
+    { data: BodyType<AdminCohortCreateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminCreateCohort>>,
+  TError,
+  { data: BodyType<AdminCohortCreateRequest> },
+  TContext
+> => {
+  return useMutation(getAdminCreateCohortMutationOptions(options));
+};
+
+/**
+ * @summary Get a single cohort
+ */
+export const getAdminGetCohortUrl = (id: number) => {
+  return `/api/admin/cohorts/${id}`;
+};
+
+export const adminGetCohort = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AdminCohortResponse> => {
+  return customFetch<AdminCohortResponse>(getAdminGetCohortUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getAdminGetCohortQueryKey = (id: number) => {
+  return [`/api/admin/cohorts/${id}`] as const;
+};
+
+export const getAdminGetCohortQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminGetCohort>>,
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminGetCohort>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getAdminGetCohortQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof adminGetCohort>>> = ({
+    signal,
+  }) => adminGetCohort(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminGetCohort>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminGetCohortQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminGetCohort>>
+>;
+export type AdminGetCohortQueryError = ErrorType<
+  UnauthorizedResponse | NotFoundResponse
+>;
+
+/**
+ * @summary Get a single cohort
+ */
+
+export function useAdminGetCohort<
+  TData = Awaited<ReturnType<typeof adminGetCohort>>,
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminGetCohort>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminGetCohortQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update a cohort
+ */
+export const getAdminUpdateCohortUrl = (id: number) => {
+  return `/api/admin/cohorts/${id}`;
+};
+
+export const adminUpdateCohort = async (
+  id: number,
+  adminCohortUpdateRequest: AdminCohortUpdateRequest,
+  options?: RequestInit,
+): Promise<AdminCohortResponse> => {
+  return customFetch<AdminCohortResponse>(getAdminUpdateCohortUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminCohortUpdateRequest),
+  });
+};
+
+export const getAdminUpdateCohortMutationOptions = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateCohort>>,
+    TError,
+    { id: number; data: BodyType<AdminCohortUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminUpdateCohort>>,
+  TError,
+  { id: number; data: BodyType<AdminCohortUpdateRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminUpdateCohort"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminUpdateCohort>>,
+    { id: number; data: BodyType<AdminCohortUpdateRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return adminUpdateCohort(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminUpdateCohortMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminUpdateCohort>>
+>;
+export type AdminUpdateCohortMutationBody = BodyType<AdminCohortUpdateRequest>;
+export type AdminUpdateCohortMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+>;
+
+/**
+ * @summary Update a cohort
+ */
+export const useAdminUpdateCohort = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateCohort>>,
+    TError,
+    { id: number; data: BodyType<AdminCohortUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminUpdateCohort>>,
+  TError,
+  { id: number; data: BodyType<AdminCohortUpdateRequest> },
+  TContext
+> => {
+  return useMutation(getAdminUpdateCohortMutationOptions(options));
+};
+
+/**
+ * @summary List a cohort's section configuration (rows in cohort_sections)
+ */
+export const getAdminListCohortSectionsUrl = (cohortId: number) => {
+  return `/api/admin/cohorts/${cohortId}/sections`;
+};
+
+export const adminListCohortSections = async (
+  cohortId: number,
+  options?: RequestInit,
+): Promise<AdminCohortSectionsResponse> => {
+  return customFetch<AdminCohortSectionsResponse>(
+    getAdminListCohortSectionsUrl(cohortId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminListCohortSectionsQueryKey = (cohortId: number) => {
+  return [`/api/admin/cohorts/${cohortId}/sections`] as const;
+};
+
+export const getAdminListCohortSectionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListCohortSections>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  cohortId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListCohortSections>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAdminListCohortSectionsQueryKey(cohortId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListCohortSections>>
+  > = ({ signal }) =>
+    adminListCohortSections(cohortId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!cohortId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListCohortSections>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListCohortSectionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListCohortSections>>
+>;
+export type AdminListCohortSectionsQueryError = ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List a cohort's section configuration (rows in cohort_sections)
+ */
+
+export function useAdminListCohortSections<
+  TData = Awaited<ReturnType<typeof adminListCohortSections>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  cohortId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListCohortSections>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListCohortSectionsQueryOptions(
+    cohortId,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Replace the cohort's section list (ordering, codes, visibility)
+ */
+export const getAdminBulkUpdateCohortSectionsUrl = (cohortId: number) => {
+  return `/api/admin/cohorts/${cohortId}/sections`;
+};
+
+export const adminBulkUpdateCohortSections = async (
+  cohortId: number,
+  adminCohortSectionInput: AdminCohortSectionInput[],
+  options?: RequestInit,
+): Promise<AdminBulkCountResponse> => {
+  return customFetch<AdminBulkCountResponse>(
+    getAdminBulkUpdateCohortSectionsUrl(cohortId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adminCohortSectionInput),
+    },
+  );
+};
+
+export const getAdminBulkUpdateCohortSectionsMutationOptions = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminBulkUpdateCohortSections>>,
+    TError,
+    { cohortId: number; data: BodyType<AdminCohortSectionInput[]> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminBulkUpdateCohortSections>>,
+  TError,
+  { cohortId: number; data: BodyType<AdminCohortSectionInput[]> },
+  TContext
+> => {
+  const mutationKey = ["adminBulkUpdateCohortSections"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminBulkUpdateCohortSections>>,
+    { cohortId: number; data: BodyType<AdminCohortSectionInput[]> }
+  > = (props) => {
+    const { cohortId, data } = props ?? {};
+
+    return adminBulkUpdateCohortSections(cohortId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminBulkUpdateCohortSectionsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminBulkUpdateCohortSections>>
+>;
+export type AdminBulkUpdateCohortSectionsMutationBody = BodyType<
+  AdminCohortSectionInput[]
+>;
+export type AdminBulkUpdateCohortSectionsMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse
+>;
+
+/**
+ * @summary Replace the cohort's section list (ordering, codes, visibility)
+ */
+export const useAdminBulkUpdateCohortSections = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminBulkUpdateCohortSections>>,
+    TError,
+    { cohortId: number; data: BodyType<AdminCohortSectionInput[]> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminBulkUpdateCohortSections>>,
+  TError,
+  { cohortId: number; data: BodyType<AdminCohortSectionInput[]> },
+  TContext
+> => {
+  return useMutation(getAdminBulkUpdateCohortSectionsMutationOptions(options));
+};
+
+/**
+ * @summary Unlock every visible section for every participant in the cohort
+ */
+export const getAdminUnlockAllForCohortUrl = (cohortId: number) => {
+  return `/api/admin/cohorts/${cohortId}/unlock-all`;
+};
+
+export const adminUnlockAllForCohort = async (
+  cohortId: number,
+  options?: RequestInit,
+): Promise<AdminUnlockAllResponse> => {
+  return customFetch<AdminUnlockAllResponse>(
+    getAdminUnlockAllForCohortUrl(cohortId),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getAdminUnlockAllForCohortMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUnlockAllForCohort>>,
+    TError,
+    { cohortId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminUnlockAllForCohort>>,
+  TError,
+  { cohortId: number },
+  TContext
+> => {
+  const mutationKey = ["adminUnlockAllForCohort"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminUnlockAllForCohort>>,
+    { cohortId: number }
+  > = (props) => {
+    const { cohortId } = props ?? {};
+
+    return adminUnlockAllForCohort(cohortId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminUnlockAllForCohortMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminUnlockAllForCohort>>
+>;
+
+export type AdminUnlockAllForCohortMutationError =
+  ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary Unlock every visible section for every participant in the cohort
+ */
+export const useAdminUnlockAllForCohort = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUnlockAllForCohort>>,
+    TError,
+    { cohortId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminUnlockAllForCohort>>,
+  TError,
+  { cohortId: number },
+  TContext
+> => {
+  return useMutation(getAdminUnlockAllForCohortMutationOptions(options));
+};
+
+/**
+ * @summary List content variants for a cohort
+ */
+export const getAdminListCohortVariantsUrl = (cohortId: number) => {
+  return `/api/admin/cohorts/${cohortId}/variants`;
+};
+
+export const adminListCohortVariants = async (
+  cohortId: number,
+  options?: RequestInit,
+): Promise<AdminCohortVariantsResponse> => {
+  return customFetch<AdminCohortVariantsResponse>(
+    getAdminListCohortVariantsUrl(cohortId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminListCohortVariantsQueryKey = (cohortId: number) => {
+  return [`/api/admin/cohorts/${cohortId}/variants`] as const;
+};
+
+export const getAdminListCohortVariantsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListCohortVariants>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  cohortId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListCohortVariants>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAdminListCohortVariantsQueryKey(cohortId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListCohortVariants>>
+  > = ({ signal }) =>
+    adminListCohortVariants(cohortId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!cohortId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListCohortVariants>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListCohortVariantsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListCohortVariants>>
+>;
+export type AdminListCohortVariantsQueryError = ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List content variants for a cohort
+ */
+
+export function useAdminListCohortVariants<
+  TData = Awaited<ReturnType<typeof adminListCohortVariants>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  cohortId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListCohortVariants>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListCohortVariantsQueryOptions(
+    cohortId,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Upsert (or clear with empty content) a content variant
+ */
+export const getAdminUpsertCohortVariantUrl = (cohortId: number) => {
+  return `/api/admin/cohorts/${cohortId}/variants`;
+};
+
+export const adminUpsertCohortVariant = async (
+  cohortId: number,
+  adminVariantUpsertRequest: AdminVariantUpsertRequest,
+  options?: RequestInit,
+): Promise<AdminVariantUpsertResponse> => {
+  return customFetch<AdminVariantUpsertResponse>(
+    getAdminUpsertCohortVariantUrl(cohortId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adminVariantUpsertRequest),
+    },
+  );
+};
+
+export const getAdminUpsertCohortVariantMutationOptions = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpsertCohortVariant>>,
+    TError,
+    { cohortId: number; data: BodyType<AdminVariantUpsertRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminUpsertCohortVariant>>,
+  TError,
+  { cohortId: number; data: BodyType<AdminVariantUpsertRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminUpsertCohortVariant"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminUpsertCohortVariant>>,
+    { cohortId: number; data: BodyType<AdminVariantUpsertRequest> }
+  > = (props) => {
+    const { cohortId, data } = props ?? {};
+
+    return adminUpsertCohortVariant(cohortId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminUpsertCohortVariantMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminUpsertCohortVariant>>
+>;
+export type AdminUpsertCohortVariantMutationBody =
+  BodyType<AdminVariantUpsertRequest>;
+export type AdminUpsertCohortVariantMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse
+>;
+
+/**
+ * @summary Upsert (or clear with empty content) a content variant
+ */
+export const useAdminUpsertCohortVariant = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpsertCohortVariant>>,
+    TError,
+    { cohortId: number; data: BodyType<AdminVariantUpsertRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminUpsertCohortVariant>>,
+  TError,
+  { cohortId: number; data: BodyType<AdminVariantUpsertRequest> },
+  TContext
+> => {
+  return useMutation(getAdminUpsertCohortVariantMutationOptions(options));
+};
+
+/**
+ * @summary List all generic (admin-authored) section bodies
+ */
+export const getAdminListGenericSectionsUrl = () => {
+  return `/api/admin/generic-sections`;
+};
+
+export const adminListGenericSections = async (
+  options?: RequestInit,
+): Promise<AdminGenericSectionListResponse> => {
+  return customFetch<AdminGenericSectionListResponse>(
+    getAdminListGenericSectionsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminListGenericSectionsQueryKey = () => {
+  return [`/api/admin/generic-sections`] as const;
+};
+
+export const getAdminListGenericSectionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListGenericSections>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListGenericSections>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAdminListGenericSectionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListGenericSections>>
+  > = ({ signal }) => adminListGenericSections({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListGenericSections>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListGenericSectionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListGenericSections>>
+>;
+export type AdminListGenericSectionsQueryError =
+  ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List all generic (admin-authored) section bodies
+ */
+
+export function useAdminListGenericSections<
+  TData = Awaited<ReturnType<typeof adminListGenericSections>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListGenericSections>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListGenericSectionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a generic section body
+ */
+export const getAdminCreateGenericSectionUrl = () => {
+  return `/api/admin/generic-sections`;
+};
+
+export const adminCreateGenericSection = async (
+  adminGenericSectionRequest: AdminGenericSectionRequest,
+  options?: RequestInit,
+): Promise<AdminGenericSectionResponse> => {
+  return customFetch<AdminGenericSectionResponse>(
+    getAdminCreateGenericSectionUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adminGenericSectionRequest),
+    },
+  );
+};
+
+export const getAdminCreateGenericSectionMutationOptions = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateGenericSection>>,
+    TError,
+    { data: BodyType<AdminGenericSectionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminCreateGenericSection>>,
+  TError,
+  { data: BodyType<AdminGenericSectionRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminCreateGenericSection"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminCreateGenericSection>>,
+    { data: BodyType<AdminGenericSectionRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adminCreateGenericSection(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminCreateGenericSectionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminCreateGenericSection>>
+>;
+export type AdminCreateGenericSectionMutationBody =
+  BodyType<AdminGenericSectionRequest>;
+export type AdminCreateGenericSectionMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse
+>;
+
+/**
+ * @summary Create a generic section body
+ */
+export const useAdminCreateGenericSection = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateGenericSection>>,
+    TError,
+    { data: BodyType<AdminGenericSectionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminCreateGenericSection>>,
+  TError,
+  { data: BodyType<AdminGenericSectionRequest> },
+  TContext
+> => {
+  return useMutation(getAdminCreateGenericSectionMutationOptions(options));
+};
+
+/**
+ * @summary Update a generic section body
+ */
+export const getAdminUpdateGenericSectionUrl = (id: number) => {
+  return `/api/admin/generic-sections/${id}`;
+};
+
+export const adminUpdateGenericSection = async (
+  id: number,
+  adminGenericSectionRequest: AdminGenericSectionRequest,
+  options?: RequestInit,
+): Promise<AdminGenericSectionResponse> => {
+  return customFetch<AdminGenericSectionResponse>(
+    getAdminUpdateGenericSectionUrl(id),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adminGenericSectionRequest),
+    },
+  );
+};
+
+export const getAdminUpdateGenericSectionMutationOptions = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateGenericSection>>,
+    TError,
+    { id: number; data: BodyType<AdminGenericSectionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminUpdateGenericSection>>,
+  TError,
+  { id: number; data: BodyType<AdminGenericSectionRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminUpdateGenericSection"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminUpdateGenericSection>>,
+    { id: number; data: BodyType<AdminGenericSectionRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return adminUpdateGenericSection(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminUpdateGenericSectionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminUpdateGenericSection>>
+>;
+export type AdminUpdateGenericSectionMutationBody =
+  BodyType<AdminGenericSectionRequest>;
+export type AdminUpdateGenericSectionMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+>;
+
+/**
+ * @summary Update a generic section body
+ */
+export const useAdminUpdateGenericSection = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateGenericSection>>,
+    TError,
+    { id: number; data: BodyType<AdminGenericSectionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminUpdateGenericSection>>,
+  TError,
+  { id: number; data: BodyType<AdminGenericSectionRequest> },
+  TContext
+> => {
+  return useMutation(getAdminUpdateGenericSectionMutationOptions(options));
+};
+
+/**
+ * @summary Delete a generic section body and remove it from all cohorts
+ */
+export const getAdminDeleteGenericSectionUrl = (id: number) => {
+  return `/api/admin/generic-sections/${id}`;
+};
+
+export const adminDeleteGenericSection = async (
+  id: number,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getAdminDeleteGenericSectionUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getAdminDeleteGenericSectionMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteGenericSection>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminDeleteGenericSection>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["adminDeleteGenericSection"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminDeleteGenericSection>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return adminDeleteGenericSection(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminDeleteGenericSectionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminDeleteGenericSection>>
+>;
+
+export type AdminDeleteGenericSectionMutationError =
+  ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary Delete a generic section body and remove it from all cohorts
+ */
+export const useAdminDeleteGenericSection = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteGenericSection>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminDeleteGenericSection>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getAdminDeleteGenericSectionMutationOptions(options));
+};
+
+/**
+ * @summary List all safari library tools
+ */
+export const getAdminListSafariLibraryUrl = () => {
+  return `/api/admin/safari-library`;
+};
+
+export const adminListSafariLibrary = async (
+  options?: RequestInit,
+): Promise<AdminSafariLibraryListResponse> => {
+  return customFetch<AdminSafariLibraryListResponse>(
+    getAdminListSafariLibraryUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminListSafariLibraryQueryKey = () => {
+  return [`/api/admin/safari-library`] as const;
+};
+
+export const getAdminListSafariLibraryQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListSafariLibrary>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListSafariLibrary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAdminListSafariLibraryQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListSafariLibrary>>
+  > = ({ signal }) => adminListSafariLibrary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListSafariLibrary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListSafariLibraryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListSafariLibrary>>
+>;
+export type AdminListSafariLibraryQueryError = ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List all safari library tools
+ */
+
+export function useAdminListSafariLibrary<
+  TData = Awaited<ReturnType<typeof adminListSafariLibrary>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListSafariLibrary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListSafariLibraryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a safari library tool
+ */
+export const getAdminCreateSafariLibraryItemUrl = () => {
+  return `/api/admin/safari-library`;
+};
+
+export const adminCreateSafariLibraryItem = async (
+  adminSafariLibraryCreateRequest: AdminSafariLibraryCreateRequest,
+  options?: RequestInit,
+): Promise<AdminSafariLibraryResponse> => {
+  return customFetch<AdminSafariLibraryResponse>(
+    getAdminCreateSafariLibraryItemUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adminSafariLibraryCreateRequest),
+    },
+  );
+};
+
+export const getAdminCreateSafariLibraryItemMutationOptions = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateSafariLibraryItem>>,
+    TError,
+    { data: BodyType<AdminSafariLibraryCreateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminCreateSafariLibraryItem>>,
+  TError,
+  { data: BodyType<AdminSafariLibraryCreateRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminCreateSafariLibraryItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminCreateSafariLibraryItem>>,
+    { data: BodyType<AdminSafariLibraryCreateRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adminCreateSafariLibraryItem(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminCreateSafariLibraryItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminCreateSafariLibraryItem>>
+>;
+export type AdminCreateSafariLibraryItemMutationBody =
+  BodyType<AdminSafariLibraryCreateRequest>;
+export type AdminCreateSafariLibraryItemMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse
+>;
+
+/**
+ * @summary Create a safari library tool
+ */
+export const useAdminCreateSafariLibraryItem = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateSafariLibraryItem>>,
+    TError,
+    { data: BodyType<AdminSafariLibraryCreateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminCreateSafariLibraryItem>>,
+  TError,
+  { data: BodyType<AdminSafariLibraryCreateRequest> },
+  TContext
+> => {
+  return useMutation(getAdminCreateSafariLibraryItemMutationOptions(options));
+};
+
+/**
+ * @summary Update a safari library tool
+ */
+export const getAdminUpdateSafariLibraryItemUrl = (id: number) => {
+  return `/api/admin/safari-library/${id}`;
+};
+
+export const adminUpdateSafariLibraryItem = async (
+  id: number,
+  adminSafariLibraryUpdateRequest: AdminSafariLibraryUpdateRequest,
+  options?: RequestInit,
+): Promise<AdminSafariLibraryResponse> => {
+  return customFetch<AdminSafariLibraryResponse>(
+    getAdminUpdateSafariLibraryItemUrl(id),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adminSafariLibraryUpdateRequest),
+    },
+  );
+};
+
+export const getAdminUpdateSafariLibraryItemMutationOptions = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateSafariLibraryItem>>,
+    TError,
+    { id: number; data: BodyType<AdminSafariLibraryUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminUpdateSafariLibraryItem>>,
+  TError,
+  { id: number; data: BodyType<AdminSafariLibraryUpdateRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminUpdateSafariLibraryItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminUpdateSafariLibraryItem>>,
+    { id: number; data: BodyType<AdminSafariLibraryUpdateRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return adminUpdateSafariLibraryItem(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminUpdateSafariLibraryItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminUpdateSafariLibraryItem>>
+>;
+export type AdminUpdateSafariLibraryItemMutationBody =
+  BodyType<AdminSafariLibraryUpdateRequest>;
+export type AdminUpdateSafariLibraryItemMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+>;
+
+/**
+ * @summary Update a safari library tool
+ */
+export const useAdminUpdateSafariLibraryItem = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateSafariLibraryItem>>,
+    TError,
+    { id: number; data: BodyType<AdminSafariLibraryUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminUpdateSafariLibraryItem>>,
+  TError,
+  { id: number; data: BodyType<AdminSafariLibraryUpdateRequest> },
+  TContext
+> => {
+  return useMutation(getAdminUpdateSafariLibraryItemMutationOptions(options));
+};
+
+/**
+ * @summary Delete a safari library tool (and cascade lineup rows)
+ */
+export const getAdminDeleteSafariLibraryItemUrl = (id: number) => {
+  return `/api/admin/safari-library/${id}`;
+};
+
+export const adminDeleteSafariLibraryItem = async (
+  id: number,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getAdminDeleteSafariLibraryItemUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getAdminDeleteSafariLibraryItemMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteSafariLibraryItem>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminDeleteSafariLibraryItem>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["adminDeleteSafariLibraryItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminDeleteSafariLibraryItem>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return adminDeleteSafariLibraryItem(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminDeleteSafariLibraryItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminDeleteSafariLibraryItem>>
+>;
+
+export type AdminDeleteSafariLibraryItemMutationError =
+  ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary Delete a safari library tool (and cascade lineup rows)
+ */
+export const useAdminDeleteSafariLibraryItem = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteSafariLibraryItem>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminDeleteSafariLibraryItem>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getAdminDeleteSafariLibraryItemMutationOptions(options));
+};
+
+/**
+ * @summary List a cohort's safari lineup
+ */
+export const getAdminListCohortSafariTabsUrl = (cohortId: number) => {
+  return `/api/admin/cohorts/${cohortId}/safari-tabs`;
+};
+
+export const adminListCohortSafariTabs = async (
+  cohortId: number,
+  options?: RequestInit,
+): Promise<AdminCohortSafariTabsResponse> => {
+  return customFetch<AdminCohortSafariTabsResponse>(
+    getAdminListCohortSafariTabsUrl(cohortId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminListCohortSafariTabsQueryKey = (cohortId: number) => {
+  return [`/api/admin/cohorts/${cohortId}/safari-tabs`] as const;
+};
+
+export const getAdminListCohortSafariTabsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListCohortSafariTabs>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  cohortId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListCohortSafariTabs>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAdminListCohortSafariTabsQueryKey(cohortId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListCohortSafariTabs>>
+  > = ({ signal }) =>
+    adminListCohortSafariTabs(cohortId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!cohortId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListCohortSafariTabs>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListCohortSafariTabsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListCohortSafariTabs>>
+>;
+export type AdminListCohortSafariTabsQueryError =
+  ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List a cohort's safari lineup
+ */
+
+export function useAdminListCohortSafariTabs<
+  TData = Awaited<ReturnType<typeof adminListCohortSafariTabs>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  cohortId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListCohortSafariTabs>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListCohortSafariTabsQueryOptions(
+    cohortId,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Replace a cohort's safari lineup
+ */
+export const getAdminBulkUpdateCohortSafariTabsUrl = (cohortId: number) => {
+  return `/api/admin/cohorts/${cohortId}/safari-tabs`;
+};
+
+export const adminBulkUpdateCohortSafariTabs = async (
+  cohortId: number,
+  adminCohortSafariTabInput: AdminCohortSafariTabInput[],
+  options?: RequestInit,
+): Promise<AdminBulkCountResponse> => {
+  return customFetch<AdminBulkCountResponse>(
+    getAdminBulkUpdateCohortSafariTabsUrl(cohortId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adminCohortSafariTabInput),
+    },
+  );
+};
+
+export const getAdminBulkUpdateCohortSafariTabsMutationOptions = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminBulkUpdateCohortSafariTabs>>,
+    TError,
+    { cohortId: number; data: BodyType<AdminCohortSafariTabInput[]> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminBulkUpdateCohortSafariTabs>>,
+  TError,
+  { cohortId: number; data: BodyType<AdminCohortSafariTabInput[]> },
+  TContext
+> => {
+  const mutationKey = ["adminBulkUpdateCohortSafariTabs"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminBulkUpdateCohortSafariTabs>>,
+    { cohortId: number; data: BodyType<AdminCohortSafariTabInput[]> }
+  > = (props) => {
+    const { cohortId, data } = props ?? {};
+
+    return adminBulkUpdateCohortSafariTabs(cohortId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminBulkUpdateCohortSafariTabsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminBulkUpdateCohortSafariTabs>>
+>;
+export type AdminBulkUpdateCohortSafariTabsMutationBody = BodyType<
+  AdminCohortSafariTabInput[]
+>;
+export type AdminBulkUpdateCohortSafariTabsMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse
+>;
+
+/**
+ * @summary Replace a cohort's safari lineup
+ */
+export const useAdminBulkUpdateCohortSafariTabs = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminBulkUpdateCohortSafariTabs>>,
+    TError,
+    { cohortId: number; data: BodyType<AdminCohortSafariTabInput[]> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminBulkUpdateCohortSafariTabs>>,
+  TError,
+  { cohortId: number; data: BodyType<AdminCohortSafariTabInput[]> },
+  TContext
+> => {
+  return useMutation(
+    getAdminBulkUpdateCohortSafariTabsMutationOptions(options),
+  );
+};
+
+/**
+ * @summary List all LLM tools (including inactive)
+ */
+export const getAdminListLlmToolsUrl = () => {
+  return `/api/admin/llm-tools`;
+};
+
+export const adminListLlmTools = async (
+  options?: RequestInit,
+): Promise<AdminLlmToolListResponse> => {
+  return customFetch<AdminLlmToolListResponse>(getAdminListLlmToolsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getAdminListLlmToolsQueryKey = () => {
+  return [`/api/admin/llm-tools`] as const;
+};
+
+export const getAdminListLlmToolsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListLlmTools>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListLlmTools>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getAdminListLlmToolsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListLlmTools>>
+  > = ({ signal }) => adminListLlmTools({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListLlmTools>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListLlmToolsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListLlmTools>>
+>;
+export type AdminListLlmToolsQueryError = ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List all LLM tools (including inactive)
+ */
+
+export function useAdminListLlmTools<
+  TData = Awaited<ReturnType<typeof adminListLlmTools>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListLlmTools>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListLlmToolsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create an LLM tool
+ */
+export const getAdminCreateLlmToolUrl = () => {
+  return `/api/admin/llm-tools`;
+};
+
+export const adminCreateLlmTool = async (
+  adminLlmToolCreateRequest: AdminLlmToolCreateRequest,
+  options?: RequestInit,
+): Promise<AdminLlmToolResponse> => {
+  return customFetch<AdminLlmToolResponse>(getAdminCreateLlmToolUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminLlmToolCreateRequest),
+  });
+};
+
+export const getAdminCreateLlmToolMutationOptions = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateLlmTool>>,
+    TError,
+    { data: BodyType<AdminLlmToolCreateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminCreateLlmTool>>,
+  TError,
+  { data: BodyType<AdminLlmToolCreateRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminCreateLlmTool"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminCreateLlmTool>>,
+    { data: BodyType<AdminLlmToolCreateRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adminCreateLlmTool(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminCreateLlmToolMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminCreateLlmTool>>
+>;
+export type AdminCreateLlmToolMutationBody =
+  BodyType<AdminLlmToolCreateRequest>;
+export type AdminCreateLlmToolMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse
+>;
+
+/**
+ * @summary Create an LLM tool
+ */
+export const useAdminCreateLlmTool = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateLlmTool>>,
+    TError,
+    { data: BodyType<AdminLlmToolCreateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminCreateLlmTool>>,
+  TError,
+  { data: BodyType<AdminLlmToolCreateRequest> },
+  TContext
+> => {
+  return useMutation(getAdminCreateLlmToolMutationOptions(options));
+};
+
+/**
+ * @summary Update an LLM tool
+ */
+export const getAdminUpdateLlmToolUrl = (id: number) => {
+  return `/api/admin/llm-tools/${id}`;
+};
+
+export const adminUpdateLlmTool = async (
+  id: number,
+  adminLlmToolUpdateRequest: AdminLlmToolUpdateRequest,
+  options?: RequestInit,
+): Promise<AdminLlmToolResponse> => {
+  return customFetch<AdminLlmToolResponse>(getAdminUpdateLlmToolUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminLlmToolUpdateRequest),
+  });
+};
+
+export const getAdminUpdateLlmToolMutationOptions = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateLlmTool>>,
+    TError,
+    { id: number; data: BodyType<AdminLlmToolUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminUpdateLlmTool>>,
+  TError,
+  { id: number; data: BodyType<AdminLlmToolUpdateRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminUpdateLlmTool"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminUpdateLlmTool>>,
+    { id: number; data: BodyType<AdminLlmToolUpdateRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return adminUpdateLlmTool(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminUpdateLlmToolMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminUpdateLlmTool>>
+>;
+export type AdminUpdateLlmToolMutationBody =
+  BodyType<AdminLlmToolUpdateRequest>;
+export type AdminUpdateLlmToolMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+>;
+
+/**
+ * @summary Update an LLM tool
+ */
+export const useAdminUpdateLlmTool = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateLlmTool>>,
+    TError,
+    { id: number; data: BodyType<AdminLlmToolUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminUpdateLlmTool>>,
+  TError,
+  { id: number; data: BodyType<AdminLlmToolUpdateRequest> },
+  TContext
+> => {
+  return useMutation(getAdminUpdateLlmToolMutationOptions(options));
+};
+
+/**
+ * @summary Delete an LLM tool
+ */
+export const getAdminDeleteLlmToolUrl = (id: number) => {
+  return `/api/admin/llm-tools/${id}`;
+};
+
+export const adminDeleteLlmTool = async (
+  id: number,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getAdminDeleteLlmToolUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getAdminDeleteLlmToolMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteLlmTool>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminDeleteLlmTool>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["adminDeleteLlmTool"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminDeleteLlmTool>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return adminDeleteLlmTool(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminDeleteLlmToolMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminDeleteLlmTool>>
+>;
+
+export type AdminDeleteLlmToolMutationError = ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary Delete an LLM tool
+ */
+export const useAdminDeleteLlmTool = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteLlmTool>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminDeleteLlmTool>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getAdminDeleteLlmToolMutationOptions(options));
+};
+
+/**
+ * @summary List all feedback categories
+ */
+export const getAdminListFeedbackCategoriesUrl = () => {
+  return `/api/admin/feedback-categories`;
+};
+
+export const adminListFeedbackCategories = async (
+  options?: RequestInit,
+): Promise<FeedbackCategoriesResponse> => {
+  return customFetch<FeedbackCategoriesResponse>(
+    getAdminListFeedbackCategoriesUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminListFeedbackCategoriesQueryKey = () => {
+  return [`/api/admin/feedback-categories`] as const;
+};
+
+export const getAdminListFeedbackCategoriesQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListFeedbackCategories>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListFeedbackCategories>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAdminListFeedbackCategoriesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListFeedbackCategories>>
+  > = ({ signal }) =>
+    adminListFeedbackCategories({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListFeedbackCategories>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListFeedbackCategoriesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListFeedbackCategories>>
+>;
+export type AdminListFeedbackCategoriesQueryError =
+  ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List all feedback categories
+ */
+
+export function useAdminListFeedbackCategories<
+  TData = Awaited<ReturnType<typeof adminListFeedbackCategories>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListFeedbackCategories>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListFeedbackCategoriesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a feedback category
+ */
+export const getAdminCreateFeedbackCategoryUrl = () => {
+  return `/api/admin/feedback-categories`;
+};
+
+export const adminCreateFeedbackCategory = async (
+  adminFeedbackCategoryCreateRequest: AdminFeedbackCategoryCreateRequest,
+  options?: RequestInit,
+): Promise<AdminFeedbackCategoryResponse> => {
+  return customFetch<AdminFeedbackCategoryResponse>(
+    getAdminCreateFeedbackCategoryUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adminFeedbackCategoryCreateRequest),
+    },
+  );
+};
+
+export const getAdminCreateFeedbackCategoryMutationOptions = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateFeedbackCategory>>,
+    TError,
+    { data: BodyType<AdminFeedbackCategoryCreateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminCreateFeedbackCategory>>,
+  TError,
+  { data: BodyType<AdminFeedbackCategoryCreateRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminCreateFeedbackCategory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminCreateFeedbackCategory>>,
+    { data: BodyType<AdminFeedbackCategoryCreateRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adminCreateFeedbackCategory(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminCreateFeedbackCategoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminCreateFeedbackCategory>>
+>;
+export type AdminCreateFeedbackCategoryMutationBody =
+  BodyType<AdminFeedbackCategoryCreateRequest>;
+export type AdminCreateFeedbackCategoryMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse
+>;
+
+/**
+ * @summary Create a feedback category
+ */
+export const useAdminCreateFeedbackCategory = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateFeedbackCategory>>,
+    TError,
+    { data: BodyType<AdminFeedbackCategoryCreateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminCreateFeedbackCategory>>,
+  TError,
+  { data: BodyType<AdminFeedbackCategoryCreateRequest> },
+  TContext
+> => {
+  return useMutation(getAdminCreateFeedbackCategoryMutationOptions(options));
+};
+
+/**
+ * @summary Update a feedback category
+ */
+export const getAdminUpdateFeedbackCategoryUrl = (id: number) => {
+  return `/api/admin/feedback-categories/${id}`;
+};
+
+export const adminUpdateFeedbackCategory = async (
+  id: number,
+  adminFeedbackCategoryUpdateRequest: AdminFeedbackCategoryUpdateRequest,
+  options?: RequestInit,
+): Promise<AdminFeedbackCategoryResponse> => {
+  return customFetch<AdminFeedbackCategoryResponse>(
+    getAdminUpdateFeedbackCategoryUrl(id),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adminFeedbackCategoryUpdateRequest),
+    },
+  );
+};
+
+export const getAdminUpdateFeedbackCategoryMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateFeedbackCategory>>,
+    TError,
+    { id: number; data: BodyType<AdminFeedbackCategoryUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminUpdateFeedbackCategory>>,
+  TError,
+  { id: number; data: BodyType<AdminFeedbackCategoryUpdateRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminUpdateFeedbackCategory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminUpdateFeedbackCategory>>,
+    { id: number; data: BodyType<AdminFeedbackCategoryUpdateRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return adminUpdateFeedbackCategory(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminUpdateFeedbackCategoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminUpdateFeedbackCategory>>
+>;
+export type AdminUpdateFeedbackCategoryMutationBody =
+  BodyType<AdminFeedbackCategoryUpdateRequest>;
+export type AdminUpdateFeedbackCategoryMutationError = ErrorType<
+  UnauthorizedResponse | NotFoundResponse
+>;
+
+/**
+ * @summary Update a feedback category
+ */
+export const useAdminUpdateFeedbackCategory = <
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateFeedbackCategory>>,
+    TError,
+    { id: number; data: BodyType<AdminFeedbackCategoryUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminUpdateFeedbackCategory>>,
+  TError,
+  { id: number; data: BodyType<AdminFeedbackCategoryUpdateRequest> },
+  TContext
+> => {
+  return useMutation(getAdminUpdateFeedbackCategoryMutationOptions(options));
+};
+
+/**
+ * @summary Delete a feedback category
+ */
+export const getAdminDeleteFeedbackCategoryUrl = (id: number) => {
+  return `/api/admin/feedback-categories/${id}`;
+};
+
+export const adminDeleteFeedbackCategory = async (
+  id: number,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getAdminDeleteFeedbackCategoryUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getAdminDeleteFeedbackCategoryMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteFeedbackCategory>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminDeleteFeedbackCategory>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["adminDeleteFeedbackCategory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminDeleteFeedbackCategory>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return adminDeleteFeedbackCategory(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminDeleteFeedbackCategoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminDeleteFeedbackCategory>>
+>;
+
+export type AdminDeleteFeedbackCategoryMutationError =
+  ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary Delete a feedback category
+ */
+export const useAdminDeleteFeedbackCategory = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteFeedbackCategory>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminDeleteFeedbackCategory>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getAdminDeleteFeedbackCategoryMutationOptions(options));
+};
+
+/**
+ * @summary List all app settings (key/value rows)
+ */
+export const getAdminListSettingsUrl = () => {
+  return `/api/admin/settings`;
+};
+
+export const adminListSettings = async (
+  options?: RequestInit,
+): Promise<AdminSettingsListResponse> => {
+  return customFetch<AdminSettingsListResponse>(getAdminListSettingsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getAdminListSettingsQueryKey = () => {
+  return [`/api/admin/settings`] as const;
+};
+
+export const getAdminListSettingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListSettings>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getAdminListSettingsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListSettings>>
+  > = ({ signal }) => adminListSettings({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListSettings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListSettingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListSettings>>
+>;
+export type AdminListSettingsQueryError = ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List all app settings (key/value rows)
+ */
+
+export function useAdminListSettings<
+  TData = Awaited<ReturnType<typeof adminListSettings>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListSettingsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Upsert a single key/value app setting
+ */
+export const getAdminUpsertSettingUrl = () => {
+  return `/api/admin/settings`;
+};
+
+export const adminUpsertSetting = async (
+  adminSettingUpsertRequest: AdminSettingUpsertRequest,
+  options?: RequestInit,
+): Promise<AdminSettingResponse> => {
+  return customFetch<AdminSettingResponse>(getAdminUpsertSettingUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminSettingUpsertRequest),
+  });
+};
+
+export const getAdminUpsertSettingMutationOptions = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpsertSetting>>,
+    TError,
+    { data: BodyType<AdminSettingUpsertRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminUpsertSetting>>,
+  TError,
+  { data: BodyType<AdminSettingUpsertRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminUpsertSetting"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminUpsertSetting>>,
+    { data: BodyType<AdminSettingUpsertRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adminUpsertSetting(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminUpsertSettingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminUpsertSetting>>
+>;
+export type AdminUpsertSettingMutationBody =
+  BodyType<AdminSettingUpsertRequest>;
+export type AdminUpsertSettingMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse
+>;
+
+/**
+ * @summary Upsert a single key/value app setting
+ */
+export const useAdminUpsertSetting = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpsertSetting>>,
+    TError,
+    { data: BodyType<AdminSettingUpsertRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminUpsertSetting>>,
+  TError,
+  { data: BodyType<AdminSettingUpsertRequest> },
+  TContext
+> => {
+  return useMutation(getAdminUpsertSettingMutationOptions(options));
+};
+
+/**
+ * @summary List participants in a cohort with note + unlock counts
+ */
+export const getAdminListCohortParticipantsUrl = (cohortId: number) => {
+  return `/api/admin/cohorts/${cohortId}/participants`;
+};
+
+export const adminListCohortParticipants = async (
+  cohortId: number,
+  options?: RequestInit,
+): Promise<AdminParticipantListResponse> => {
+  return customFetch<AdminParticipantListResponse>(
+    getAdminListCohortParticipantsUrl(cohortId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminListCohortParticipantsQueryKey = (cohortId: number) => {
+  return [`/api/admin/cohorts/${cohortId}/participants`] as const;
+};
+
+export const getAdminListCohortParticipantsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListCohortParticipants>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  cohortId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListCohortParticipants>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAdminListCohortParticipantsQueryKey(cohortId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListCohortParticipants>>
+  > = ({ signal }) =>
+    adminListCohortParticipants(cohortId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!cohortId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListCohortParticipants>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListCohortParticipantsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListCohortParticipants>>
+>;
+export type AdminListCohortParticipantsQueryError =
+  ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List participants in a cohort with note + unlock counts
+ */
+
+export function useAdminListCohortParticipants<
+  TData = Awaited<ReturnType<typeof adminListCohortParticipants>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  cohortId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListCohortParticipants>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListCohortParticipantsQueryOptions(
+    cohortId,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Set a participant's active flag
+ */
+export const getAdminSetParticipantActiveUrl = (id: number) => {
+  return `/api/admin/participants/${id}/active`;
+};
+
+export const adminSetParticipantActive = async (
+  id: number,
+  adminParticipantActiveRequest: AdminParticipantActiveRequest,
+  options?: RequestInit,
+): Promise<AdminParticipantResponse> => {
+  return customFetch<AdminParticipantResponse>(
+    getAdminSetParticipantActiveUrl(id),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adminParticipantActiveRequest),
+    },
+  );
+};
+
+export const getAdminSetParticipantActiveMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminSetParticipantActive>>,
+    TError,
+    { id: number; data: BodyType<AdminParticipantActiveRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminSetParticipantActive>>,
+  TError,
+  { id: number; data: BodyType<AdminParticipantActiveRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminSetParticipantActive"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminSetParticipantActive>>,
+    { id: number; data: BodyType<AdminParticipantActiveRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return adminSetParticipantActive(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminSetParticipantActiveMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminSetParticipantActive>>
+>;
+export type AdminSetParticipantActiveMutationBody =
+  BodyType<AdminParticipantActiveRequest>;
+export type AdminSetParticipantActiveMutationError = ErrorType<
+  UnauthorizedResponse | NotFoundResponse
+>;
+
+/**
+ * @summary Set a participant's active flag
+ */
+export const useAdminSetParticipantActive = <
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminSetParticipantActive>>,
+    TError,
+    { id: number; data: BodyType<AdminParticipantActiveRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminSetParticipantActive>>,
+  TError,
+  { id: number; data: BodyType<AdminParticipantActiveRequest> },
+  TContext
+> => {
+  return useMutation(getAdminSetParticipantActiveMutationOptions(options));
+};
+
+/**
+ * @summary Delete a participant and all their data
+ */
+export const getAdminDeleteParticipantUrl = (id: number) => {
+  return `/api/admin/participants/${id}`;
+};
+
+export const adminDeleteParticipant = async (
+  id: number,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getAdminDeleteParticipantUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getAdminDeleteParticipantMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteParticipant>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminDeleteParticipant>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["adminDeleteParticipant"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminDeleteParticipant>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return adminDeleteParticipant(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminDeleteParticipantMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminDeleteParticipant>>
+>;
+
+export type AdminDeleteParticipantMutationError =
+  ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary Delete a participant and all their data
+ */
+export const useAdminDeleteParticipant = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteParticipant>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminDeleteParticipant>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getAdminDeleteParticipantMutationOptions(options));
+};
+
+/**
+ * @summary List feedback (optionally filtered by cohort or category)
+ */
+export const getAdminListFeedbackUrl = (params?: AdminListFeedbackParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/feedback?${stringifiedParams}`
+    : `/api/admin/feedback`;
+};
+
+export const adminListFeedback = async (
+  params?: AdminListFeedbackParams,
+  options?: RequestInit,
+): Promise<AdminFeedbackListResponse> => {
+  return customFetch<AdminFeedbackListResponse>(
+    getAdminListFeedbackUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminListFeedbackQueryKey = (
+  params?: AdminListFeedbackParams,
+) => {
+  return [`/api/admin/feedback`, ...(params ? [params] : [])] as const;
+};
+
+export const getAdminListFeedbackQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListFeedback>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  params?: AdminListFeedbackParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListFeedback>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAdminListFeedbackQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListFeedback>>
+  > = ({ signal }) => adminListFeedback(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListFeedback>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListFeedbackQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListFeedback>>
+>;
+export type AdminListFeedbackQueryError = ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List feedback (optionally filtered by cohort or category)
+ */
+
+export function useAdminListFeedback<
+  TData = Awaited<ReturnType<typeof adminListFeedback>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  params?: AdminListFeedbackParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListFeedback>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListFeedbackQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

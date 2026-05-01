@@ -1,0 +1,399 @@
+# Replit Prompt 3 — Admin UI
+
+## Context
+
+Prompts 1 and 2 are complete. The backend has cohort-scoped routes, and the participant UI has the vestibule, level-grouped sidebar, simplified notes, content variant support, and generic section rendering. This prompt rewrites the admin panel.
+
+The v1.0 admin panel lives at `artifacts/workshop/src/pages/admin/dashboard.tsx`. It's a single-page dashboard with tabs: Participants, Section Codes, Safari Guides, Home Message, Feedback. That structure gets replaced with a two-tier layout: **global management** (cross-cohort) and **per-cohort management** (filtered by a selected cohort).
+
+Keep the existing dark admin theme (slate-950 header, slate-900 cards, white/slate text). Keep shadcn/ui components (Tabs, Table, Dialog, Button, Input, Badge, Card). Admin login page stays unchanged.
+
+---
+
+## 1. Admin Layout — Cohort Switcher
+
+### Top-level structure:
+
+The admin dashboard gets a persistent **cohort selector** in the header bar, next to the logo and logout button.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  IQmeetEQ Admin          [Cohort: SWERT Fresno ▾]  Logout  │
+├─────────────────────────────────────────────────────────────┤
+│  Tabs: Cohorts | Sections | Variants | Safari | Safari Lib  │
+│        | Participants | Feedback | LLM Tools | Settings     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Cohort selector behavior:**
+- Dropdown showing all cohorts, ordered by `created_at` DESC (newest first)
+- Displays cohort name + cohort code in parentheses, e.g., "SWERT Fresno June 2026 (FRESNO26)"
+- When a cohort is selected, all per-cohort tabs filter to that cohort
+- Selected cohort is stored in `localStorage` so it persists across page refreshes
+- If no cohorts exist yet, the selector shows "No cohorts — create one" and the Cohorts tab is auto-selected
+
+**Tab categorization:**
+- **Global tabs** (not affected by cohort selector): Cohorts, Safari Library, LLM Tools, Settings, Feedback
+- **Per-cohort tabs** (filtered by selected cohort): Sections, Content Variants, Safari Lineup, Participants, Facilitator Message
+
+Show a subtle label or divider separating global vs per-cohort tabs so it's clear which ones respond to the cohort selector.
+
+---
+
+## 2. Cohorts Tab (Global)
+
+### Cohort list:
+- Table with columns: Name, Cohort Code, Audience Type, Participants (count), Created
+- Sorted by created_at DESC
+- Each row has Edit and Delete buttons
+- Delete requires confirmation dialog: "This will delete the cohort and all its section mappings, Safari lineup, and content variants. Participant data (notes, workflows) will NOT be deleted. Continue?"
+
+### Create cohort:
+- Button: "+ New Cohort" at top right
+- Opens a dialog/form with fields:
+  - **Name** (text, required) — e.g., "SWERT Fresno June 2026"
+  - **Cohort Code** (text, required) — e.g., "FRESNO26". Auto-uppercased. Validated as unique.
+  - **Audience Type** (text, required) — e.g., "child_welfare", "adult_services", "general". Could be a text input or dropdown of previously used types.
+  - **Tier Access** — Three checkboxes: Level 1 (checked by default), Level 2, Level 3
+- On create, the backend auto-populates `cohort_sections` with all hardcoded sections in default order with default codes (from `SECTION_CODE_CONFIG` / `ALL_SECTIONS`). The admin can then customize from the Sections tab.
+
+### Edit cohort:
+- Same form as create, pre-filled
+- Also includes the **Facilitator Message** editor (rich text / textarea with basic formatting)
+- Save button updates the cohort
+
+---
+
+## 3. Sections Tab (Per-Cohort)
+
+This replaces the v1.0 "Section Codes" tab. It now manages ordering, visibility, codes, display names, and generic sections — all scoped to the selected cohort.
+
+### Layout:
+Sections are grouped by level (Level 1, Level 2, Level 3) with collapsible group headers.
+
+Each section row shows:
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ ↕  [Title]  (original: "RICECO Framework")     Code: [RICECO]   │
+│    Display Name: [Prompting Framework]          Active: [✓]      │
+│    Visible: [✓]    Type: Exercise               [Edit] [Hide]   │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- **↕ Drag handle or Up/Down arrows** — reorder within the level
+- **Title** — The section's current display name (or default if no override)
+- **Original name** — Shown in muted text if display_name differs from default
+- **Code field** — Editable inline. The unlock code for this section in this cohort.
+- **Active toggle** — Whether the code is active (can be entered by participants)
+- **Visible toggle** — Whether the section appears in the sidebar for this cohort
+- **Display Name field** — Optional override. If empty, uses the section's default title.
+- **Type badge** — Exercise / Reference
+
+### Reordering:
+- Up/Down arrow buttons on each row to move within the level
+- OR drag-and-drop if easy to implement with existing UI library
+- Save button at the bottom commits the new order (PUT /admin/cohorts/:id/sections with the full ordered array)
+- Moving between levels is done by changing the level dropdown on the row (1, 2, or 3)
+
+### "Unlock All Sections" button:
+- Prominent button at the top of the Sections tab
+- Styled as a warning/action button (gold or amber background)
+- On click: confirmation dialog "This will unlock ALL sections for every participant in [Cohort Name]. Continue?"
+- Calls `POST /admin/cohorts/:cohortId/unlock-all`
+- Shows success toast with count: "Unlocked X sections for Y participants"
+
+### Add Generic Section:
+- Button: "+ Add Generic Section" at the bottom of the section list (or within a specific level group)
+- Opens a dialog with fields:
+  - **Title** (text, required)
+  - **Content** (textarea, rich text / markdown)
+  - **Goal Text** (text, optional) — rendered as a goal box in the section
+  - **Prompt Block** (textarea, optional) — rendered as the navy copy-to-clipboard block
+  - **Section Type** (select: Exercise / Reference)
+  - **Level** (select: 1, 2, 3)
+  - **Position** (select: after which existing section, or "First" / "Last")
+- On save: creates the generic section via `POST /admin/generic-sections`, then adds it to `cohort_sections` at the specified position via the bulk update
+
+### Edit Generic Section:
+- Generic sections show an "Edit Content" button on their row
+- Opens same dialog as create, pre-filled
+- Updates via `PUT /admin/generic-sections/:id`
+
+---
+
+## 4. Content Variants Tab (Per-Cohort)
+
+### Purpose:
+Edit the swappable content blocks for each section in the selected cohort.
+
+### Layout:
+- List of sections that have defined variant slots
+- For June launch, only Verification Test has slots: `verify_prompt` and `verify_answer_key`
+- But build the UI generically — any section can have slots
+
+### Per-section variant editor:
+Click a section name to expand and see its variant slots.
+
+Each slot shows:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Block: verify_prompt                                            │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ DEFAULT (from code — read only):                            │ │
+│ │ "You are a County Health Department analyst. A colleague..." │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ OVERRIDE for this cohort:                                   │ │
+│ │ [editable textarea]                                         │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│ [Save Override]  [Clear Override (revert to default)]           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+- **Default content** is fetched from the backend (which reads it from the hardcoded section components). For now, hardcode the defaults for the Verification Test slots in the backend or in a constants file.
+- **Override** is the content_variant for this cohort. If none exists, the textarea is empty and labeled "No override — using default."
+- **Save Override** calls `PUT /admin/cohorts/:cohortId/variants` with `{ section_id, block_key, content }`
+- **Clear Override** calls the same endpoint with empty content (backend deletes the variant)
+
+### Variant slot registry:
+Create a constants file that maps section IDs to their available variant slots:
+
+```typescript
+const VARIANT_SLOTS: Record<string, { key: string; label: string; type: "text" | "json" }[]> = {
+  "verification-test": [
+    { key: "verify_prompt", label: "Verification Prompt", type: "text" },
+    { key: "verify_answer_key", label: "Answer Key", type: "json" },
+  ],
+  // Future sections can add slots here without frontend changes
+};
+```
+
+Sections with no entries in `VARIANT_SLOTS` don't appear on this tab.
+
+---
+
+## 5. Safari Lineup Tab (Per-Cohort)
+
+### Purpose:
+Pick which tools from the Safari Library appear in this cohort's Tool Safari section, and in what order.
+
+### Layout:
+Two-column layout:
+
+**Left column: "Available Tools"**
+- List of all tools from `safari_library` that are NOT in this cohort's lineup
+- Each has an "Add →" button
+
+**Right column: "This Cohort's Safari"**
+- Ordered list of tools currently in this cohort's lineup
+- Each has Up/Down arrows for reordering and a "← Remove" button
+- Shows the tool name
+
+### Save:
+- Button at bottom: "Save Lineup"
+- Calls `PUT /admin/cohorts/:cohortId/safari-tabs` with the ordered array of `{ safari_library_id, sort_order }`
+
+---
+
+## 6. Safari Library Tab (Global)
+
+### Purpose:
+Manage the master list of Safari tools and their associated files (PDF guides). Changes here propagate to all cohorts.
+
+### Layout:
+Table with columns: Name, Files, Active, Sort Order, Actions
+
+Each row:
+- **Name** — editable inline or via edit dialog
+- **Files** — count of uploaded files, with "Manage Files" link
+- **Active** — toggle
+- **Sort Order** — shown but managed via up/down arrows
+- **Actions** — Edit, Delete
+
+### Create tool:
+- Button: "+ Add Tool"
+- Dialog: Name field
+- Creates via `POST /admin/safari-library`
+
+### File management:
+- "Manage Files" opens a sub-view or dialog showing all files uploaded for this tool
+- Upload: same as v1.0 file upload (base64 in JSON body: displayName, mimeType, fileData, plus `safari_library_id`)
+- Download and Delete: same as v1.0
+- Files are associated with the safari_library entry (not a cohort)
+
+### Delete tool:
+- Confirmation: "This will remove [Tool Name] from all cohort lineups and delete its files. Continue?"
+
+---
+
+## 7. Participants Tab (Per-Cohort)
+
+### Same as v1.0 but filtered by selected cohort.
+
+Table columns: Email, Last Login, Sections Unlocked, Has Notes, Has Workflows, Has Feedback, Actions
+
+- Data from `GET /admin/cohorts/:cohortId/participants`
+- Same active/inactive toggle
+- Same delete with confirmation
+- Add cohort name as a subtle subtitle: "Participants in [Cohort Name]"
+
+---
+
+## 8. Feedback Tab (Global)
+
+### All feedback across all cohorts in one view.
+
+Table columns: Participant Email, Cohort, Category, Feedback Content, Date
+
+### Filters (above the table):
+- **Cohort filter** — dropdown of all cohorts + "All Cohorts" option
+- **Category filter** — dropdown of all feedback categories + "All Categories" option
+- **Date range** — optional, two date inputs (from/to)
+
+### Sort:
+- Click column headers to sort
+- Default: newest first
+
+Data from `GET /admin/feedback?cohort_id=X&category=Y&sort=date`
+
+---
+
+## 9. LLM Tools Tab (Global)
+
+### Simple list management for LLM tool links.
+
+Table columns: Name, Display Label, URL, Active, Sort Order, Actions
+
+### Create:
+- Button: "+ Add LLM Tool"
+- Dialog fields: Name, Display Label (e.g., "✦ Gemini"), URL
+- Creates via `POST /admin/llm-tools`
+
+### Edit:
+- Inline or dialog: update name, display_label, url
+- Toggle active/inactive
+
+### Reorder:
+- Up/Down arrows
+
+### Delete:
+- Simple confirmation
+
+---
+
+## 10. Settings Tab (Global)
+
+### App-wide configuration.
+
+Simple key-value editor. For now, just one setting:
+
+**Talk with Anthony URL**
+- Label: "Talk with Anthony — Calendly Link"
+- Current value shown in an input field
+- "Save" button
+- Calls `PUT /admin/settings` with `{ key: "talk_with_anthony_url", value: "..." }`
+
+Future settings can be added as additional rows. Build this as a generic key-value list, not a one-off form — so adding a new setting later is just adding a row to the seed and a label mapping.
+
+---
+
+## 11. Stats Cards
+
+Update the stats cards at the top of the admin dashboard:
+
+### Global stats (always shown):
+- Total Participants (across all cohorts)
+- Total Cohorts
+- Total Feedback Received
+
+### Per-cohort stats (when a cohort is selected):
+- Participants in This Cohort
+- Sections Unlocked (in this cohort)
+- Workflow Maps Created (by this cohort's participants)
+
+Update `GET /admin/stats` endpoint if needed to accept an optional `cohort_id` query param and return both global and cohort-scoped stats.
+
+---
+
+## 12. Facilitator Message
+
+Instead of a separate tab, the facilitator message editor lives inside the **Cohort edit form** (see Section 2 — Edit Cohort). It's a textarea/rich-text field within the cohort settings.
+
+If you want it more accessible: also show it as an inline editor on the Sections tab for the selected cohort, at the top, labeled "Facilitator Message (shown on participant home screen)."
+
+Either approach works. The facilitator message is stored on the `cohorts` table, updated via `PUT /admin/cohorts/:id`.
+
+---
+
+## 13. Tab Ordering
+
+Arrange tabs in this order (left to right):
+
+**Global tabs:**
+1. Cohorts
+2. Safari Library
+3. LLM Tools
+4. Feedback
+5. Settings
+
+**Divider or visual separator**
+
+**Per-cohort tabs** (labeled "Selected Cohort: [name]"):
+6. Sections
+7. Content Variants
+8. Safari Lineup
+9. Participants
+
+---
+
+## 14. API Endpoints Used
+
+All of these should exist from Prompt 1. If any are missing, create them.
+
+### Global:
+- `GET /admin/cohorts` — list cohorts
+- `POST /admin/cohorts` — create cohort
+- `PUT /admin/cohorts/:id` — update cohort
+- `GET /admin/cohorts/:id` — get single cohort
+- `GET /admin/safari-library` — list Safari tools
+- `POST /admin/safari-library` — create tool
+- `PUT /admin/safari-library/:id` — update tool
+- `DELETE /admin/safari-library/:id` — delete tool
+- `GET /admin/llm-tools` — list LLM tools (including inactive)
+- `POST /admin/llm-tools` — create
+- `PUT /admin/llm-tools/:id` — update
+- `DELETE /admin/llm-tools/:id` — delete
+- `GET /admin/feedback` — all feedback, with query params for filtering
+- `GET /admin/feedback-categories` — list categories
+- `POST /admin/feedback-categories` — create
+- `PUT /admin/feedback-categories/:id` — update
+- `DELETE /admin/feedback-categories/:id` — delete
+- `GET /admin/settings` — get all settings
+- `PUT /admin/settings` — upsert setting
+- `GET /admin/stats` — global + optional cohort stats
+
+### Per-cohort:
+- `GET /admin/cohorts/:cohortId/sections` — section list for cohort
+- `PUT /admin/cohorts/:cohortId/sections` — bulk update ordering/codes/visibility
+- `POST /admin/cohorts/:cohortId/unlock-all` — unlock all for all participants
+- `GET /admin/cohorts/:cohortId/variants` — content variants for cohort
+- `PUT /admin/cohorts/:cohortId/variants` — upsert variant
+- `GET /admin/cohorts/:cohortId/safari-tabs` — Safari lineup
+- `PUT /admin/cohorts/:cohortId/safari-tabs` — set Safari lineup
+- `GET /admin/cohorts/:cohortId/participants` — participants filtered by cohort
+- `POST /admin/files` — upload file (with safari_library_id)
+- `DELETE /admin/files/:id` — delete file
+- `GET /admin/generic-sections` — list generic sections
+- `POST /admin/generic-sections` — create
+- `PUT /admin/generic-sections/:id` — update
+- `DELETE /admin/generic-sections/:id` — delete
+
+---
+
+## DO NOT in this prompt:
+- Touch participant-facing pages (login, home/vestibule, workshop, section components)
+- Change the admin login flow or credentials
+- Modify the database schema (use what Prompt 1 created)
+- Add new backend routes (use what Prompt 1 created; if a route is missing, add it but don't restructure existing routes)
+- Change the build system or monorepo structure
+- Build the PDF export (that's Prompt 4)

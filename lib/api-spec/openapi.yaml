@@ -37,6 +37,22 @@ tags:
     description: Per-cohort safari (resource) tabs
   - name: app-settings
     description: Public app-wide key/value settings
+  - name: admin-cohorts
+    description: Admin cohort management (CRUD)
+  - name: admin-sections
+    description: Admin section ordering, codes, visibility, generic sections
+  - name: admin-variants
+    description: Admin per-cohort content variants
+  - name: admin-safari
+    description: Admin safari library + per-cohort lineup
+  - name: admin-llm-tools
+    description: Admin LLM tool catalog
+  - name: admin-feedback
+    description: Admin feedback review + categories
+  - name: admin-settings
+    description: Admin app-wide key/value settings
+  - name: admin-participants
+    description: Admin participant management
 
 paths:
   /healthz:
@@ -314,6 +330,579 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/AppSettingsResponse" }
 
+  # ===== Admin =============================================================
+
+  /admin/me:
+    get:
+      operationId: getAdminMe
+      tags: [auth]
+      summary: Whether the current session is admin
+      responses:
+        "200":
+          description: Admin status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminMeResponse" }
+
+  /admin/cohorts:
+    get:
+      operationId: adminListCohorts
+      tags: [admin-cohorts]
+      summary: List all cohorts (newest first)
+      responses:
+        "200":
+          description: Cohorts
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminCohortListResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: adminCreateCohort
+      tags: [admin-cohorts]
+      summary: Create a new cohort and seed default sections
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminCohortCreateRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminCohortResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409":
+          description: Cohort code already in use
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/cohorts/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IntegerId"
+    get:
+      operationId: adminGetCohort
+      tags: [admin-cohorts]
+      summary: Get a single cohort
+      responses:
+        "200":
+          description: Cohort
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminCohortResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      operationId: adminUpdateCohort
+      tags: [admin-cohorts]
+      summary: Update a cohort
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminCohortUpdateRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminCohortResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /admin/cohorts/{cohortId}/sections:
+    parameters:
+      - $ref: "#/components/parameters/CohortId"
+    get:
+      operationId: adminListCohortSections
+      tags: [admin-sections]
+      summary: List a cohort's section configuration (rows in cohort_sections)
+      responses:
+        "200":
+          description: Sections
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminCohortSectionsResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      operationId: adminBulkUpdateCohortSections
+      tags: [admin-sections]
+      summary: Replace the cohort's section list (ordering, codes, visibility)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: "#/components/schemas/AdminCohortSectionInput" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminBulkCountResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/cohorts/{cohortId}/unlock-all:
+    parameters:
+      - $ref: "#/components/parameters/CohortId"
+    post:
+      operationId: adminUnlockAllForCohort
+      tags: [admin-sections]
+      summary: Unlock every visible section for every participant in the cohort
+      responses:
+        "200":
+          description: Done
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminUnlockAllResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/cohorts/{cohortId}/variants:
+    parameters:
+      - $ref: "#/components/parameters/CohortId"
+    get:
+      operationId: adminListCohortVariants
+      tags: [admin-variants]
+      summary: List content variants for a cohort
+      responses:
+        "200":
+          description: Variants
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminCohortVariantsResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      operationId: adminUpsertCohortVariant
+      tags: [admin-variants]
+      summary: Upsert (or clear with empty content) a content variant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminVariantUpsertRequest" }
+      responses:
+        "200":
+          description: Saved or deleted
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminVariantUpsertResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/generic-sections:
+    get:
+      operationId: adminListGenericSections
+      tags: [admin-sections]
+      summary: List all generic (admin-authored) section bodies
+      responses:
+        "200":
+          description: Generic sections
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminGenericSectionListResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: adminCreateGenericSection
+      tags: [admin-sections]
+      summary: Create a generic section body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminGenericSectionRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminGenericSectionResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/generic-sections/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IntegerId"
+    put:
+      operationId: adminUpdateGenericSection
+      tags: [admin-sections]
+      summary: Update a generic section body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminGenericSectionRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminGenericSectionResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: adminDeleteGenericSection
+      tags: [admin-sections]
+      summary: Delete a generic section body and remove it from all cohorts
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/safari-library:
+    get:
+      operationId: adminListSafariLibrary
+      tags: [admin-safari]
+      summary: List all safari library tools
+      responses:
+        "200":
+          description: Tools
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminSafariLibraryListResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: adminCreateSafariLibraryItem
+      tags: [admin-safari]
+      summary: Create a safari library tool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminSafariLibraryCreateRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminSafariLibraryResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/safari-library/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IntegerId"
+    put:
+      operationId: adminUpdateSafariLibraryItem
+      tags: [admin-safari]
+      summary: Update a safari library tool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminSafariLibraryUpdateRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminSafariLibraryResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: adminDeleteSafariLibraryItem
+      tags: [admin-safari]
+      summary: Delete a safari library tool (and cascade lineup rows)
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/cohorts/{cohortId}/safari-tabs:
+    parameters:
+      - $ref: "#/components/parameters/CohortId"
+    get:
+      operationId: adminListCohortSafariTabs
+      tags: [admin-safari]
+      summary: List a cohort's safari lineup
+      responses:
+        "200":
+          description: Tabs
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminCohortSafariTabsResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      operationId: adminBulkUpdateCohortSafariTabs
+      tags: [admin-safari]
+      summary: Replace a cohort's safari lineup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                { $ref: "#/components/schemas/AdminCohortSafariTabInput" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminBulkCountResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/llm-tools:
+    get:
+      operationId: adminListLlmTools
+      tags: [admin-llm-tools]
+      summary: List all LLM tools (including inactive)
+      responses:
+        "200":
+          description: Tools
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminLlmToolListResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: adminCreateLlmTool
+      tags: [admin-llm-tools]
+      summary: Create an LLM tool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminLlmToolCreateRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminLlmToolResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/llm-tools/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IntegerId"
+    put:
+      operationId: adminUpdateLlmTool
+      tags: [admin-llm-tools]
+      summary: Update an LLM tool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminLlmToolUpdateRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminLlmToolResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: adminDeleteLlmTool
+      tags: [admin-llm-tools]
+      summary: Delete an LLM tool
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/feedback-categories:
+    get:
+      operationId: adminListFeedbackCategories
+      tags: [admin-feedback]
+      summary: List all feedback categories
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeedbackCategoriesResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: adminCreateFeedbackCategory
+      tags: [admin-feedback]
+      summary: Create a feedback category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              { $ref: "#/components/schemas/AdminFeedbackCategoryCreateRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminFeedbackCategoryResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/feedback-categories/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IntegerId"
+    put:
+      operationId: adminUpdateFeedbackCategory
+      tags: [admin-feedback]
+      summary: Update a feedback category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              { $ref: "#/components/schemas/AdminFeedbackCategoryUpdateRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminFeedbackCategoryResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: adminDeleteFeedbackCategory
+      tags: [admin-feedback]
+      summary: Delete a feedback category
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/settings:
+    get:
+      operationId: adminListSettings
+      tags: [admin-settings]
+      summary: List all app settings (key/value rows)
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSettingsListResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      operationId: adminUpsertSetting
+      tags: [admin-settings]
+      summary: Upsert a single key/value app setting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminSettingUpsertRequest" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSettingResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/cohorts/{cohortId}/participants:
+    parameters:
+      - $ref: "#/components/parameters/CohortId"
+    get:
+      operationId: adminListCohortParticipants
+      tags: [admin-participants]
+      summary: List participants in a cohort with note + unlock counts
+      responses:
+        "200":
+          description: Participants
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminParticipantListResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/participants/{id}/active:
+    parameters:
+      - $ref: "#/components/parameters/IntegerId"
+    patch:
+      operationId: adminSetParticipantActive
+      tags: [admin-participants]
+      summary: Set a participant's active flag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminParticipantActiveRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminParticipantResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /admin/participants/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IntegerId"
+    delete:
+      operationId: adminDeleteParticipant
+      tags: [admin-participants]
+      summary: Delete a participant and all their data
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/feedback:
+    get:
+      operationId: adminListFeedback
+      tags: [admin-feedback]
+      summary: List feedback (optionally filtered by cohort or category)
+      parameters:
+        - in: query
+          name: cohort_id
+          required: false
+          schema: { type: string }
+        - in: query
+          name: category
+          required: false
+          schema: { type: string }
+        - in: query
+          name: sort
+          required: false
+          schema: { type: string, enum: [date, id] }
+      responses:
+        "200":
+          description: Feedback list
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminFeedbackListResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
 components:
   parameters:
     SectionId:
@@ -322,6 +911,18 @@ components:
       required: true
       description: Section id (e.g. `welcome`, `iq-meets-eq`, `generic_42`)
       schema: { type: string, minLength: 1 }
+    IntegerId:
+      name: id
+      in: path
+      required: true
+      description: Numeric id
+      schema: { type: integer }
+    CohortId:
+      name: cohortId
+      in: path
+      required: true
+      description: Numeric cohort id
+      schema: { type: integer }
 
   responses:
     BadRequest:
@@ -646,3 +1247,474 @@ components:
     AppSettingsResponse:
       type: object
       additionalProperties: { type: string }
+
+    AdminMeResponse:
+      type: object
+      required: [isAdmin]
+      properties:
+        isAdmin: { type: boolean }
+
+    AdminCohort:
+      type: object
+      required:
+        [
+          id,
+          name,
+          audienceType,
+          cohortCode,
+          facilitatorMessage,
+          tierAccess,
+        ]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        audienceType: { type: string }
+        cohortCode: { type: string }
+        facilitatorMessage: { type: string }
+        tierAccess:
+          type: object
+          additionalProperties: { type: boolean }
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    AdminCohortListResponse:
+      type: object
+      required: [cohorts]
+      properties:
+        cohorts:
+          type: array
+          items: { $ref: "#/components/schemas/AdminCohort" }
+
+    AdminCohortResponse:
+      type: object
+      required: [cohort]
+      properties:
+        cohort: { $ref: "#/components/schemas/AdminCohort" }
+
+    AdminCohortCreateRequest:
+      type: object
+      required: [name, cohortCode]
+      properties:
+        name: { type: string, minLength: 1 }
+        cohortCode: { type: string, minLength: 1 }
+        audienceType: { type: string }
+        facilitatorMessage: { type: string }
+        tierAccess:
+          type: object
+          additionalProperties: { type: boolean }
+
+    AdminCohortUpdateRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        cohortCode: { type: string, minLength: 1 }
+        audienceType: { type: string }
+        facilitatorMessage: { type: string }
+        tierAccess:
+          type: object
+          additionalProperties: { type: boolean }
+
+    AdminCohortSection:
+      type: object
+      required: [id, cohortId, sectionId, level, sortOrder, visible, codeActive]
+      properties:
+        id: { type: integer }
+        cohortId: { type: integer }
+        sectionId: { type: string }
+        level: { type: integer }
+        sortOrder: { type: integer }
+        displayName:
+          type: string
+          nullable: true
+        visible: { type: boolean }
+        code:
+          type: string
+          nullable: true
+        codeActive: { type: boolean }
+
+    AdminCohortSectionsResponse:
+      type: object
+      required: [sections]
+      properties:
+        sections:
+          type: array
+          items: { $ref: "#/components/schemas/AdminCohortSection" }
+
+    AdminCohortSectionInput:
+      type: object
+      required: [sectionId, level, sortOrder, visible, codeActive]
+      properties:
+        sectionId: { type: string, minLength: 1 }
+        level: { type: integer }
+        sortOrder: { type: integer }
+        displayName:
+          type: string
+          nullable: true
+        visible: { type: boolean }
+        code:
+          type: string
+          nullable: true
+        codeActive: { type: boolean }
+
+    AdminBulkCountResponse:
+      type: object
+      required: [success, count]
+      properties:
+        success: { type: boolean }
+        count: { type: integer }
+
+    AdminUnlockAllResponse:
+      type: object
+      required: [success, inserted]
+      properties:
+        success: { type: boolean }
+        inserted: { type: integer }
+
+    AdminContentVariant:
+      type: object
+      required: [id, cohortId, sectionId, blockKey, content]
+      properties:
+        id: { type: integer }
+        cohortId: { type: integer }
+        sectionId: { type: string }
+        blockKey: { type: string }
+        content: { type: string }
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    AdminCohortVariantsResponse:
+      type: object
+      required: [variants]
+      properties:
+        variants:
+          type: array
+          items: { $ref: "#/components/schemas/AdminContentVariant" }
+
+    AdminVariantUpsertRequest:
+      type: object
+      required: [sectionId, blockKey, content]
+      properties:
+        sectionId: { type: string, minLength: 1 }
+        blockKey: { type: string, minLength: 1 }
+        content: { type: string }
+
+    AdminVariantUpsertResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        deleted: { type: boolean }
+        variant:
+          oneOf:
+            - $ref: "#/components/schemas/AdminContentVariant"
+            - type: "null"
+
+    AdminGenericSection:
+      type: object
+      required: [id, title, content, sectionType]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        content: { type: string }
+        promptBlock:
+          type: string
+          nullable: true
+        goalText:
+          type: string
+          nullable: true
+        sectionType: { type: string }
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    AdminGenericSectionListResponse:
+      type: object
+      required: [sections]
+      properties:
+        sections:
+          type: array
+          items: { $ref: "#/components/schemas/AdminGenericSection" }
+
+    AdminGenericSectionResponse:
+      type: object
+      required: [section]
+      properties:
+        section: { $ref: "#/components/schemas/AdminGenericSection" }
+
+    AdminGenericSectionRequest:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1 }
+        content: { type: string }
+        promptBlock:
+          type: string
+          nullable: true
+        goalText:
+          type: string
+          nullable: true
+        sectionType: { type: string }
+        cohortId:
+          type: integer
+          nullable: true
+          description: When creating, also insert this generic section into the given cohort
+        insertAfterSortOrder:
+          type: integer
+          nullable: true
+
+    AdminSafariLibraryItem:
+      type: object
+      required: [id, name, sortOrder, active]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        sortOrder: { type: integer }
+        active: { type: boolean }
+
+    AdminSafariLibraryListResponse:
+      type: object
+      required: [tools]
+      properties:
+        tools:
+          type: array
+          items: { $ref: "#/components/schemas/AdminSafariLibraryItem" }
+
+    AdminSafariLibraryResponse:
+      type: object
+      required: [tool]
+      properties:
+        tool: { $ref: "#/components/schemas/AdminSafariLibraryItem" }
+
+    AdminSafariLibraryCreateRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1 }
+        sortOrder: { type: integer }
+        active: { type: boolean }
+
+    AdminSafariLibraryUpdateRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        sortOrder: { type: integer }
+        active: { type: boolean }
+
+    AdminCohortSafariTab:
+      type: object
+      required: [id, cohortId, safariLibraryId, sortOrder, name, active]
+      properties:
+        id: { type: integer }
+        cohortId: { type: integer }
+        safariLibraryId: { type: integer }
+        sortOrder: { type: integer }
+        name: { type: string }
+        active: { type: boolean }
+
+    AdminCohortSafariTabsResponse:
+      type: object
+      required: [tabs]
+      properties:
+        tabs:
+          type: array
+          items: { $ref: "#/components/schemas/AdminCohortSafariTab" }
+
+    AdminCohortSafariTabInput:
+      type: object
+      required: [safariLibraryId, sortOrder]
+      properties:
+        safariLibraryId: { type: integer }
+        sortOrder: { type: integer }
+
+
+    AdminLlmTool:
+      type: object
+      required: [id, name, displayLabel, url, sortOrder, active]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        displayLabel: { type: string }
+        url: { type: string }
+        sortOrder: { type: integer }
+        active: { type: boolean }
+
+    AdminLlmToolListResponse:
+      type: object
+      required: [tools]
+      properties:
+        tools:
+          type: array
+          items: { $ref: "#/components/schemas/AdminLlmTool" }
+
+    AdminLlmToolResponse:
+      type: object
+      required: [tool]
+      properties:
+        tool: { $ref: "#/components/schemas/AdminLlmTool" }
+
+    AdminLlmToolCreateRequest:
+      type: object
+      required: [name, displayLabel, url]
+      properties:
+        name: { type: string, minLength: 1 }
+        displayLabel: { type: string, minLength: 1 }
+        url: { type: string, minLength: 1 }
+        sortOrder: { type: integer }
+        active: { type: boolean }
+
+    AdminLlmToolUpdateRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        displayLabel: { type: string, minLength: 1 }
+        url: { type: string, minLength: 1 }
+        sortOrder: { type: integer }
+        active: { type: boolean }
+
+    AdminFeedbackCategoryCreateRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1 }
+        sortOrder: { type: integer }
+        active: { type: boolean }
+
+    AdminFeedbackCategoryUpdateRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        sortOrder: { type: integer }
+        active: { type: boolean }
+
+    AdminFeedbackCategoryResponse:
+      type: object
+      required: [category]
+      properties:
+        category: { $ref: "#/components/schemas/FeedbackCategory" }
+
+    AdminAppSetting:
+      type: object
+      required: [id, key, value]
+      properties:
+        id: { type: integer }
+        key: { type: string }
+        value: { type: string }
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    AdminSettingsListResponse:
+      type: object
+      required: [settings]
+      properties:
+        settings:
+          type: array
+          items: { $ref: "#/components/schemas/AdminAppSetting" }
+
+    AdminSettingResponse:
+      type: object
+      required: [setting]
+      properties:
+        setting: { $ref: "#/components/schemas/AdminAppSetting" }
+
+    AdminSettingUpsertRequest:
+      type: object
+      required: [key, value]
+      properties:
+        key: { type: string, minLength: 1 }
+        value: { type: string }
+
+    AdminParticipantSummary:
+      type: object
+      description: Participant row. List endpoint also includes noteCount/unlockedCount; mutation endpoints return only the base participant fields.
+      required: [id, name, email, cohortId, isActive]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        cohortId: { type: integer }
+        isActive: { type: boolean }
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+        noteCount: { type: integer }
+        unlockedCount: { type: integer }
+
+    AdminParticipantListResponse:
+      type: object
+      required: [participants]
+      properties:
+        participants:
+          type: array
+          items: { $ref: "#/components/schemas/AdminParticipantSummary" }
+
+    AdminParticipantResponse:
+      type: object
+      required: [participant]
+      properties:
+        participant: { $ref: "#/components/schemas/AdminParticipantSummary" }
+
+    AdminParticipantActiveRequest:
+      type: object
+      required: [isActive]
+      properties:
+        isActive: { type: boolean }
+
+    AdminFeedbackEntry:
+      type: object
+      required: [id, participantId, cohortId, content]
+      properties:
+        id: { type: integer }
+        participantId: { type: integer }
+        cohortId: { type: integer }
+        category:
+          type: string
+          nullable: true
+        content: { type: string }
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        participantName:
+          type: string
+          nullable: true
+        participantEmail:
+          type: string
+          nullable: true
+        cohortName:
+          type: string
+          nullable: true
+
+    AdminFeedbackListResponse:
+      type: object
+      required: [feedback]
+      properties:
+        feedback:
+          type: array
+          items: { $ref: "#/components/schemas/AdminFeedbackEntry" }

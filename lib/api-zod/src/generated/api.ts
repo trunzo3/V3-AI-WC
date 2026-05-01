@@ -333,3 +333,628 @@ export const ListSafariTabsResponse = zod.object({
  * @summary Public app-wide key/value settings
  */
 export const GetAppSettingsResponse = zod.record(zod.string(), zod.string());
+
+/**
+ * @summary Whether the current session is admin
+ */
+export const GetAdminMeResponse = zod.object({
+  isAdmin: zod.boolean(),
+});
+
+/**
+ * @summary List all cohorts (newest first)
+ */
+export const AdminListCohortsResponse = zod.object({
+  cohorts: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      audienceType: zod.string(),
+      cohortCode: zod.string(),
+      facilitatorMessage: zod.string(),
+      tierAccess: zod.record(zod.string(), zod.boolean()),
+      createdAt: zod.coerce.date().nullish(),
+      updatedAt: zod.coerce.date().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a new cohort and seed default sections
+ */
+
+export const AdminCreateCohortBody = zod.object({
+  name: zod.string().min(1),
+  cohortCode: zod.string().min(1),
+  audienceType: zod.string().optional(),
+  facilitatorMessage: zod.string().optional(),
+  tierAccess: zod.record(zod.string(), zod.boolean()).optional(),
+});
+
+/**
+ * @summary Get a single cohort
+ */
+export const AdminGetCohortParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminGetCohortResponse = zod.object({
+  cohort: zod.object({
+    id: zod.number(),
+    name: zod.string(),
+    audienceType: zod.string(),
+    cohortCode: zod.string(),
+    facilitatorMessage: zod.string(),
+    tierAccess: zod.record(zod.string(), zod.boolean()),
+    createdAt: zod.coerce.date().nullish(),
+    updatedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary Update a cohort
+ */
+export const AdminUpdateCohortParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminUpdateCohortBody = zod.object({
+  name: zod.string().min(1).optional(),
+  cohortCode: zod.string().min(1).optional(),
+  audienceType: zod.string().optional(),
+  facilitatorMessage: zod.string().optional(),
+  tierAccess: zod.record(zod.string(), zod.boolean()).optional(),
+});
+
+export const AdminUpdateCohortResponse = zod.object({
+  cohort: zod.object({
+    id: zod.number(),
+    name: zod.string(),
+    audienceType: zod.string(),
+    cohortCode: zod.string(),
+    facilitatorMessage: zod.string(),
+    tierAccess: zod.record(zod.string(), zod.boolean()),
+    createdAt: zod.coerce.date().nullish(),
+    updatedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary List a cohort's section configuration (rows in cohort_sections)
+ */
+export const AdminListCohortSectionsParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const AdminListCohortSectionsResponse = zod.object({
+  sections: zod.array(
+    zod.object({
+      id: zod.number(),
+      cohortId: zod.number(),
+      sectionId: zod.string(),
+      level: zod.number(),
+      sortOrder: zod.number(),
+      displayName: zod.string().nullish(),
+      visible: zod.boolean(),
+      code: zod.string().nullish(),
+      codeActive: zod.boolean(),
+    }),
+  ),
+});
+
+/**
+ * @summary Replace the cohort's section list (ordering, codes, visibility)
+ */
+export const AdminBulkUpdateCohortSectionsParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const AdminBulkUpdateCohortSectionsBodyItem = zod.object({
+  sectionId: zod.string().min(1),
+  level: zod.number(),
+  sortOrder: zod.number(),
+  displayName: zod.string().nullish(),
+  visible: zod.boolean(),
+  code: zod.string().nullish(),
+  codeActive: zod.boolean(),
+});
+export const AdminBulkUpdateCohortSectionsBody = zod.array(
+  AdminBulkUpdateCohortSectionsBodyItem,
+);
+
+export const AdminBulkUpdateCohortSectionsResponse = zod.object({
+  success: zod.boolean(),
+  count: zod.number(),
+});
+
+/**
+ * @summary Unlock every visible section for every participant in the cohort
+ */
+export const AdminUnlockAllForCohortParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const AdminUnlockAllForCohortResponse = zod.object({
+  success: zod.boolean(),
+  inserted: zod.number(),
+});
+
+/**
+ * @summary List content variants for a cohort
+ */
+export const AdminListCohortVariantsParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const AdminListCohortVariantsResponse = zod.object({
+  variants: zod.array(
+    zod.object({
+      id: zod.number(),
+      cohortId: zod.number(),
+      sectionId: zod.string(),
+      blockKey: zod.string(),
+      content: zod.string(),
+      createdAt: zod.coerce.date().nullish(),
+      updatedAt: zod.coerce.date().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Upsert (or clear with empty content) a content variant
+ */
+export const AdminUpsertCohortVariantParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const AdminUpsertCohortVariantBody = zod.object({
+  sectionId: zod.string().min(1),
+  blockKey: zod.string().min(1),
+  content: zod.string(),
+});
+
+export const AdminUpsertCohortVariantResponse = zod.object({
+  success: zod.boolean().optional(),
+  deleted: zod.boolean().optional(),
+  variant: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        cohortId: zod.number(),
+        sectionId: zod.string(),
+        blockKey: zod.string(),
+        content: zod.string(),
+        createdAt: zod.coerce.date().nullish(),
+        updatedAt: zod.coerce.date().nullish(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+
+/**
+ * @summary List all generic (admin-authored) section bodies
+ */
+export const AdminListGenericSectionsResponse = zod.object({
+  sections: zod.array(
+    zod.object({
+      id: zod.number(),
+      title: zod.string(),
+      content: zod.string(),
+      promptBlock: zod.string().nullish(),
+      goalText: zod.string().nullish(),
+      sectionType: zod.string(),
+      createdAt: zod.coerce.date().nullish(),
+      updatedAt: zod.coerce.date().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a generic section body
+ */
+
+export const AdminCreateGenericSectionBody = zod.object({
+  title: zod.string().min(1),
+  content: zod.string().optional(),
+  promptBlock: zod.string().nullish(),
+  goalText: zod.string().nullish(),
+  sectionType: zod.string().optional(),
+  cohortId: zod
+    .number()
+    .nullish()
+    .describe(
+      "When creating, also insert this generic section into the given cohort",
+    ),
+  insertAfterSortOrder: zod.number().nullish(),
+});
+
+/**
+ * @summary Update a generic section body
+ */
+export const AdminUpdateGenericSectionParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminUpdateGenericSectionBody = zod.object({
+  title: zod.string().min(1),
+  content: zod.string().optional(),
+  promptBlock: zod.string().nullish(),
+  goalText: zod.string().nullish(),
+  sectionType: zod.string().optional(),
+  cohortId: zod
+    .number()
+    .nullish()
+    .describe(
+      "When creating, also insert this generic section into the given cohort",
+    ),
+  insertAfterSortOrder: zod.number().nullish(),
+});
+
+export const AdminUpdateGenericSectionResponse = zod.object({
+  section: zod.object({
+    id: zod.number(),
+    title: zod.string(),
+    content: zod.string(),
+    promptBlock: zod.string().nullish(),
+    goalText: zod.string().nullish(),
+    sectionType: zod.string(),
+    createdAt: zod.coerce.date().nullish(),
+    updatedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary Delete a generic section body and remove it from all cohorts
+ */
+export const AdminDeleteGenericSectionParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminDeleteGenericSectionResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
+ * @summary List all safari library tools
+ */
+export const AdminListSafariLibraryResponse = zod.object({
+  tools: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      sortOrder: zod.number(),
+      active: zod.boolean(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a safari library tool
+ */
+
+export const AdminCreateSafariLibraryItemBody = zod.object({
+  name: zod.string().min(1),
+  sortOrder: zod.number().optional(),
+  active: zod.boolean().optional(),
+});
+
+/**
+ * @summary Update a safari library tool
+ */
+export const AdminUpdateSafariLibraryItemParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminUpdateSafariLibraryItemBody = zod.object({
+  name: zod.string().min(1).optional(),
+  sortOrder: zod.number().optional(),
+  active: zod.boolean().optional(),
+});
+
+export const AdminUpdateSafariLibraryItemResponse = zod.object({
+  tool: zod.object({
+    id: zod.number(),
+    name: zod.string(),
+    sortOrder: zod.number(),
+    active: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Delete a safari library tool (and cascade lineup rows)
+ */
+export const AdminDeleteSafariLibraryItemParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminDeleteSafariLibraryItemResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
+ * @summary List a cohort's safari lineup
+ */
+export const AdminListCohortSafariTabsParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const AdminListCohortSafariTabsResponse = zod.object({
+  tabs: zod.array(
+    zod.object({
+      id: zod.number(),
+      cohortId: zod.number(),
+      safariLibraryId: zod.number(),
+      sortOrder: zod.number(),
+      name: zod.string(),
+      active: zod.boolean(),
+    }),
+  ),
+});
+
+/**
+ * @summary Replace a cohort's safari lineup
+ */
+export const AdminBulkUpdateCohortSafariTabsParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const AdminBulkUpdateCohortSafariTabsBodyItem = zod.object({
+  safariLibraryId: zod.number(),
+  sortOrder: zod.number(),
+});
+export const AdminBulkUpdateCohortSafariTabsBody = zod.array(
+  AdminBulkUpdateCohortSafariTabsBodyItem,
+);
+
+export const AdminBulkUpdateCohortSafariTabsResponse = zod.object({
+  success: zod.boolean(),
+  count: zod.number(),
+});
+
+/**
+ * @summary List all LLM tools (including inactive)
+ */
+export const AdminListLlmToolsResponse = zod.object({
+  tools: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      displayLabel: zod.string(),
+      url: zod.string(),
+      sortOrder: zod.number(),
+      active: zod.boolean(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create an LLM tool
+ */
+
+export const AdminCreateLlmToolBody = zod.object({
+  name: zod.string().min(1),
+  displayLabel: zod.string().min(1),
+  url: zod.string().min(1),
+  sortOrder: zod.number().optional(),
+  active: zod.boolean().optional(),
+});
+
+/**
+ * @summary Update an LLM tool
+ */
+export const AdminUpdateLlmToolParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminUpdateLlmToolBody = zod.object({
+  name: zod.string().min(1).optional(),
+  displayLabel: zod.string().min(1).optional(),
+  url: zod.string().min(1).optional(),
+  sortOrder: zod.number().optional(),
+  active: zod.boolean().optional(),
+});
+
+export const AdminUpdateLlmToolResponse = zod.object({
+  tool: zod.object({
+    id: zod.number(),
+    name: zod.string(),
+    displayLabel: zod.string(),
+    url: zod.string(),
+    sortOrder: zod.number(),
+    active: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Delete an LLM tool
+ */
+export const AdminDeleteLlmToolParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminDeleteLlmToolResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
+ * @summary List all feedback categories
+ */
+export const AdminListFeedbackCategoriesResponse = zod.object({
+  categories: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      sortOrder: zod.number(),
+      active: zod.boolean(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a feedback category
+ */
+
+export const AdminCreateFeedbackCategoryBody = zod.object({
+  name: zod.string().min(1),
+  sortOrder: zod.number().optional(),
+  active: zod.boolean().optional(),
+});
+
+/**
+ * @summary Update a feedback category
+ */
+export const AdminUpdateFeedbackCategoryParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminUpdateFeedbackCategoryBody = zod.object({
+  name: zod.string().min(1).optional(),
+  sortOrder: zod.number().optional(),
+  active: zod.boolean().optional(),
+});
+
+export const AdminUpdateFeedbackCategoryResponse = zod.object({
+  category: zod.object({
+    id: zod.number(),
+    name: zod.string(),
+    sortOrder: zod.number(),
+    active: zod.boolean(),
+  }),
+});
+
+/**
+ * @summary Delete a feedback category
+ */
+export const AdminDeleteFeedbackCategoryParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminDeleteFeedbackCategoryResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
+ * @summary List all app settings (key/value rows)
+ */
+export const AdminListSettingsResponse = zod.object({
+  settings: zod.array(
+    zod.object({
+      id: zod.number(),
+      key: zod.string(),
+      value: zod.string(),
+      updatedAt: zod.coerce.date().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Upsert a single key/value app setting
+ */
+
+export const AdminUpsertSettingBody = zod.object({
+  key: zod.string().min(1),
+  value: zod.string(),
+});
+
+export const AdminUpsertSettingResponse = zod.object({
+  setting: zod.object({
+    id: zod.number(),
+    key: zod.string(),
+    value: zod.string(),
+    updatedAt: zod.coerce.date().nullish(),
+  }),
+});
+
+/**
+ * @summary List participants in a cohort with note + unlock counts
+ */
+export const AdminListCohortParticipantsParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const AdminListCohortParticipantsResponse = zod.object({
+  participants: zod.array(
+    zod
+      .object({
+        id: zod.number(),
+        name: zod.string(),
+        email: zod.string(),
+        cohortId: zod.number(),
+        isActive: zod.boolean(),
+        createdAt: zod.coerce.date().nullish(),
+        lastLoginAt: zod.coerce.date().nullish(),
+        noteCount: zod.number().optional(),
+        unlockedCount: zod.number().optional(),
+      })
+      .describe(
+        "Participant row. List endpoint also includes noteCount\/unlockedCount; mutation endpoints return only the base participant fields.",
+      ),
+  ),
+});
+
+/**
+ * @summary Set a participant's active flag
+ */
+export const AdminSetParticipantActiveParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminSetParticipantActiveBody = zod.object({
+  isActive: zod.boolean(),
+});
+
+export const AdminSetParticipantActiveResponse = zod.object({
+  participant: zod
+    .object({
+      id: zod.number(),
+      name: zod.string(),
+      email: zod.string(),
+      cohortId: zod.number(),
+      isActive: zod.boolean(),
+      createdAt: zod.coerce.date().nullish(),
+      lastLoginAt: zod.coerce.date().nullish(),
+      noteCount: zod.number().optional(),
+      unlockedCount: zod.number().optional(),
+    })
+    .describe(
+      "Participant row. List endpoint also includes noteCount\/unlockedCount; mutation endpoints return only the base participant fields.",
+    ),
+});
+
+/**
+ * @summary Delete a participant and all their data
+ */
+export const AdminDeleteParticipantParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminDeleteParticipantResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
+ * @summary List feedback (optionally filtered by cohort or category)
+ */
+export const AdminListFeedbackQueryParams = zod.object({
+  cohort_id: zod.coerce.string().optional(),
+  category: zod.coerce.string().optional(),
+  sort: zod.enum(["date", "id"]).optional(),
+});
+
+export const AdminListFeedbackResponse = zod.object({
+  feedback: zod.array(
+    zod.object({
+      id: zod.number(),
+      participantId: zod.number(),
+      cohortId: zod.number(),
+      category: zod.string().nullish(),
+      content: zod.string(),
+      createdAt: zod.coerce.date().nullish(),
+      updatedAt: zod.coerce.date().nullish(),
+      participantName: zod.string().nullish(),
+      participantEmail: zod.string().nullish(),
+      cohortName: zod.string().nullish(),
+    }),
+  ),
+});

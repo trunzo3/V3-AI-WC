@@ -236,6 +236,320 @@ export interface AppSettingsResponse {
   [key: string]: string;
 }
 
+export interface AdminMeResponse {
+  isAdmin: boolean;
+}
+
+export type AdminCohortTierAccess = { [key: string]: boolean };
+
+export interface AdminCohort {
+  id: number;
+  name: string;
+  audienceType: string;
+  cohortCode: string;
+  facilitatorMessage: string;
+  tierAccess: AdminCohortTierAccess;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface AdminCohortListResponse {
+  cohorts: AdminCohort[];
+}
+
+export interface AdminCohortResponse {
+  cohort: AdminCohort;
+}
+
+export type AdminCohortCreateRequestTierAccess = { [key: string]: boolean };
+
+export interface AdminCohortCreateRequest {
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  cohortCode: string;
+  audienceType?: string;
+  facilitatorMessage?: string;
+  tierAccess?: AdminCohortCreateRequestTierAccess;
+}
+
+export type AdminCohortUpdateRequestTierAccess = { [key: string]: boolean };
+
+export interface AdminCohortUpdateRequest {
+  /** @minLength 1 */
+  name?: string;
+  /** @minLength 1 */
+  cohortCode?: string;
+  audienceType?: string;
+  facilitatorMessage?: string;
+  tierAccess?: AdminCohortUpdateRequestTierAccess;
+}
+
+export interface AdminCohortSection {
+  id: number;
+  cohortId: number;
+  sectionId: string;
+  level: number;
+  sortOrder: number;
+  displayName?: string | null;
+  visible: boolean;
+  code?: string | null;
+  codeActive: boolean;
+}
+
+export interface AdminCohortSectionsResponse {
+  sections: AdminCohortSection[];
+}
+
+export interface AdminCohortSectionInput {
+  /** @minLength 1 */
+  sectionId: string;
+  level: number;
+  sortOrder: number;
+  displayName?: string | null;
+  visible: boolean;
+  code?: string | null;
+  codeActive: boolean;
+}
+
+export interface AdminBulkCountResponse {
+  success: boolean;
+  count: number;
+}
+
+export interface AdminUnlockAllResponse {
+  success: boolean;
+  inserted: number;
+}
+
+export interface AdminContentVariant {
+  id: number;
+  cohortId: number;
+  sectionId: string;
+  blockKey: string;
+  content: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface AdminCohortVariantsResponse {
+  variants: AdminContentVariant[];
+}
+
+export interface AdminVariantUpsertRequest {
+  /** @minLength 1 */
+  sectionId: string;
+  /** @minLength 1 */
+  blockKey: string;
+  content: string;
+}
+
+export interface AdminVariantUpsertResponse {
+  success?: boolean;
+  deleted?: boolean;
+  variant?: AdminContentVariant | null;
+}
+
+export interface AdminGenericSection {
+  id: number;
+  title: string;
+  content: string;
+  promptBlock?: string | null;
+  goalText?: string | null;
+  sectionType: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface AdminGenericSectionListResponse {
+  sections: AdminGenericSection[];
+}
+
+export interface AdminGenericSectionResponse {
+  section: AdminGenericSection;
+}
+
+export interface AdminGenericSectionRequest {
+  /** @minLength 1 */
+  title: string;
+  content?: string;
+  promptBlock?: string | null;
+  goalText?: string | null;
+  sectionType?: string;
+  /** When creating, also insert this generic section into the given cohort */
+  cohortId?: number | null;
+  insertAfterSortOrder?: number | null;
+}
+
+export interface AdminSafariLibraryItem {
+  id: number;
+  name: string;
+  sortOrder: number;
+  active: boolean;
+}
+
+export interface AdminSafariLibraryListResponse {
+  tools: AdminSafariLibraryItem[];
+}
+
+export interface AdminSafariLibraryResponse {
+  tool: AdminSafariLibraryItem;
+}
+
+export interface AdminSafariLibraryCreateRequest {
+  /** @minLength 1 */
+  name: string;
+  sortOrder?: number;
+  active?: boolean;
+}
+
+export interface AdminSafariLibraryUpdateRequest {
+  /** @minLength 1 */
+  name?: string;
+  sortOrder?: number;
+  active?: boolean;
+}
+
+export interface AdminCohortSafariTab {
+  id: number;
+  cohortId: number;
+  safariLibraryId: number;
+  sortOrder: number;
+  name: string;
+  active: boolean;
+}
+
+export interface AdminCohortSafariTabsResponse {
+  tabs: AdminCohortSafariTab[];
+}
+
+export interface AdminCohortSafariTabInput {
+  safariLibraryId: number;
+  sortOrder: number;
+}
+
+export interface AdminLlmTool {
+  id: number;
+  name: string;
+  displayLabel: string;
+  url: string;
+  sortOrder: number;
+  active: boolean;
+}
+
+export interface AdminLlmToolListResponse {
+  tools: AdminLlmTool[];
+}
+
+export interface AdminLlmToolResponse {
+  tool: AdminLlmTool;
+}
+
+export interface AdminLlmToolCreateRequest {
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  displayLabel: string;
+  /** @minLength 1 */
+  url: string;
+  sortOrder?: number;
+  active?: boolean;
+}
+
+export interface AdminLlmToolUpdateRequest {
+  /** @minLength 1 */
+  name?: string;
+  /** @minLength 1 */
+  displayLabel?: string;
+  /** @minLength 1 */
+  url?: string;
+  sortOrder?: number;
+  active?: boolean;
+}
+
+export interface AdminFeedbackCategoryCreateRequest {
+  /** @minLength 1 */
+  name: string;
+  sortOrder?: number;
+  active?: boolean;
+}
+
+export interface AdminFeedbackCategoryUpdateRequest {
+  /** @minLength 1 */
+  name?: string;
+  sortOrder?: number;
+  active?: boolean;
+}
+
+export interface AdminFeedbackCategoryResponse {
+  category: FeedbackCategory;
+}
+
+export interface AdminAppSetting {
+  id: number;
+  key: string;
+  value: string;
+  updatedAt?: string | null;
+}
+
+export interface AdminSettingsListResponse {
+  settings: AdminAppSetting[];
+}
+
+export interface AdminSettingResponse {
+  setting: AdminAppSetting;
+}
+
+export interface AdminSettingUpsertRequest {
+  /** @minLength 1 */
+  key: string;
+  value: string;
+}
+
+/**
+ * Participant row. List endpoint also includes noteCount/unlockedCount; mutation endpoints return only the base participant fields.
+ */
+export interface AdminParticipantSummary {
+  id: number;
+  name: string;
+  email: string;
+  cohortId: number;
+  isActive: boolean;
+  createdAt?: string | null;
+  lastLoginAt?: string | null;
+  noteCount?: number;
+  unlockedCount?: number;
+}
+
+export interface AdminParticipantListResponse {
+  participants: AdminParticipantSummary[];
+}
+
+export interface AdminParticipantResponse {
+  participant: AdminParticipantSummary;
+}
+
+export interface AdminParticipantActiveRequest {
+  isActive: boolean;
+}
+
+export interface AdminFeedbackEntry {
+  id: number;
+  participantId: number;
+  cohortId: number;
+  category?: string | null;
+  content: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  participantName?: string | null;
+  participantEmail?: string | null;
+  cohortName?: string | null;
+}
+
+export interface AdminFeedbackListResponse {
+  feedback: AdminFeedbackEntry[];
+}
+
 /**
  * Invalid request
  */
@@ -250,3 +564,17 @@ export type UnauthorizedResponse = ErrorResponse;
  * Resource not found
  */
 export type NotFoundResponse = ErrorResponse;
+
+export type AdminListFeedbackParams = {
+  cohort_id?: string;
+  category?: string;
+  sort?: AdminListFeedbackSort;
+};
+
+export type AdminListFeedbackSort =
+  (typeof AdminListFeedbackSort)[keyof typeof AdminListFeedbackSort];
+
+export const AdminListFeedbackSort = {
+  date: "date",
+  id: "id",
+} as const;

@@ -1,0 +1,294 @@
+import { useState } from "react";
+import {
+  useAdminListCohorts,
+  useAdminCreateCohort,
+  useAdminUpdateCohort,
+  getAdminListCohortsQueryKey,
+  type AdminCohort,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Pencil } from "lucide-react";
+
+interface FormState {
+  name: string;
+  cohortCode: string;
+  audienceType: string;
+  facilitatorMessage: string;
+  tier1: boolean;
+  tier2: boolean;
+  tier3: boolean;
+}
+
+const EMPTY_FORM: FormState = {
+  name: "",
+  cohortCode: "",
+  audienceType: "general",
+  facilitatorMessage: "",
+  tier1: true,
+  tier2: false,
+  tier3: false,
+};
+
+function fromCohort(c: AdminCohort): FormState {
+  return {
+    name: c.name,
+    cohortCode: c.cohortCode,
+    audienceType: c.audienceType ?? "general",
+    facilitatorMessage: c.facilitatorMessage ?? "",
+    tier1: !!c.tierAccess?.["1"],
+    tier2: !!c.tierAccess?.["2"],
+    tier3: !!c.tierAccess?.["3"],
+  };
+}
+
+interface Props {
+  selectedCohortId: number | null;
+  onSelectCohort: (id: number) => void;
+}
+
+export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const { data, isLoading } = useAdminListCohorts();
+  const cohorts = data?.cohorts ?? [];
+
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<AdminCohort | null>(null);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+
+  const createMut = useAdminCreateCohort();
+  const updateMut = useAdminUpdateCohort();
+
+  const refresh = () =>
+    qc.invalidateQueries({ queryKey: getAdminListCohortsQueryKey() });
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm(EMPTY_FORM);
+    setOpen(true);
+  };
+  const openEdit = (c: AdminCohort) => {
+    setEditing(c);
+    setForm(fromCohort(c));
+    setOpen(true);
+  };
+
+  const submit = () => {
+    const payload = {
+      name: form.name.trim(),
+      cohortCode: form.cohortCode.trim(),
+      audienceType: form.audienceType.trim() || "general",
+      facilitatorMessage: form.facilitatorMessage,
+      tierAccess: { "1": form.tier1, "2": form.tier2, "3": form.tier3 },
+    };
+    if (!payload.name || !payload.cohortCode) {
+      toast({ title: "Name and cohort code are required", variant: "destructive" });
+      return;
+    }
+    if (editing) {
+      updateMut.mutate(
+        { id: editing.id, data: payload },
+        {
+          onSuccess: () => {
+            toast({ title: "Cohort updated" });
+            setOpen(false);
+            refresh();
+          },
+          onError: (err: unknown) => {
+            const message = err instanceof Error ? err.message : "Failed to update cohort";
+            toast({ title: message, variant: "destructive" });
+          },
+        },
+      );
+    } else {
+      createMut.mutate(
+        { data: payload },
+        {
+          onSuccess: (res) => {
+            toast({ title: "Cohort created" });
+            setOpen(false);
+            refresh();
+            if (res?.cohort?.id) onSelectCohort(res.cohort.id);
+          },
+          onError: (err: unknown) => {
+            const message = err instanceof Error ? err.message : "Failed to create cohort";
+            toast({ title: message, variant: "destructive" });
+          },
+        },
+      );
+    }
+  };
+
+  const tierLabel = (tier: Record<string, boolean>) => {
+    const on = (["1", "2", "3"] as const).filter((k) => tier?.[k]);
+    return on.length ? on.map((k) => `L${k}`).join(", ") : "None";
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Cohorts</CardTitle>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={openCreate} data-testid="button-new-cohort">
+              <Plus className="w-4 h-4 mr-2" />
+              New cohort
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{editing ? "Edit cohort" : "New cohort"}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="cohort-name">Name</Label>
+                <Input
+                  id="cohort-name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  data-testid="input-cohort-name"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="cohort-code">Cohort code</Label>
+                  <Input
+                    id="cohort-code"
+                    value={form.cohortCode}
+                    onChange={(e) => setForm({ ...form, cohortCode: e.target.value })}
+                    data-testid="input-cohort-code"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cohort-audience">Audience type</Label>
+                  <Input
+                    id="cohort-audience"
+                    value={form.audienceType}
+                    onChange={(e) => setForm({ ...form, audienceType: e.target.value })}
+                    placeholder="general"
+                    data-testid="input-cohort-audience"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="cohort-msg">Facilitator message</Label>
+                <Textarea
+                  id="cohort-msg"
+                  rows={3}
+                  value={form.facilitatorMessage}
+                  onChange={(e) => setForm({ ...form, facilitatorMessage: e.target.value })}
+                  data-testid="input-cohort-message"
+                />
+              </div>
+              <div>
+                <Label className="block mb-2">Default-unlocked levels</Label>
+                <div className="flex gap-4">
+                  {([1, 2, 3] as const).map((n) => {
+                    const k = `tier${n}` as const;
+                    return (
+                      <label key={n} className="flex items-center gap-2 text-sm">
+                        <Switch
+                          checked={form[k]}
+                          onCheckedChange={(v) => setForm({ ...form, [k]: v })}
+                          data-testid={`switch-tier-${n}`}
+                        />
+                        Level {n}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={submit}
+                disabled={createMut.isPending || updateMut.isPending}
+                data-testid="button-save-cohort"
+              >
+                {editing ? "Save changes" : "Create cohort"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="text-sm text-muted-foreground">Loading…</div>
+        ) : cohorts.length === 0 ? (
+          <div className="text-sm text-muted-foreground">
+            No cohorts yet. Create one to get started.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {cohorts.map((c) => (
+              <div
+                key={c.id}
+                className={`flex items-center justify-between p-3 rounded-md border ${
+                  selectedCohortId === c.id ? "border-primary bg-primary/5" : "border-border"
+                }`}
+                data-testid={`row-cohort-${c.id}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{c.name}</span>
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {c.cohortCode}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {c.audienceType}
+                    </Badge>
+                    {selectedCohortId === c.id && (
+                      <Badge className="text-xs">Active</Badge>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Levels open by default: {tierLabel(c.tierAccess ?? {})}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {selectedCohortId !== c.id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onSelectCohort(c.id)}
+                      data-testid={`button-select-cohort-${c.id}`}
+                    >
+                      Use
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openEdit(c)}
+                    data-testid={`button-edit-cohort-${c.id}`}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

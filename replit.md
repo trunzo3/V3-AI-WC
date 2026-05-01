@@ -28,7 +28,8 @@ front-end will be added later and will consume the generated API client.
 
 ```
 artifacts/
-  api-server/          Express 5 API server (this is the v2.1 backend)
+  api-server/          Express 5 API server (the v2.1 backend)
+  workshop/            React + Vite participant + admin frontend
   mockup-sandbox/      Vite component preview (used for canvas mockups)
 lib/
   api-spec/            OpenAPI 3.1 source-of-truth (openapi.yaml + orval config)
@@ -36,6 +37,23 @@ lib/
   api-zod/             Generated Zod schemas (do not edit directly)
   db/                  Drizzle schema, migrations, db client (composite lib)
 ```
+
+## Frontend (`artifacts/workshop`)
+
+Two surface areas:
+
+- **Participant app** (`/`): login → cohort code entry → workshop sections.
+- **Admin panel** (`/admin/login`, `/admin`): two-tier layout.
+  - **Global tabs**: Cohorts, Safari Library, LLM Tools, Feedback, Settings.
+  - **Per-cohort tabs**: Sections, Content Variants, Safari Lineup, Participants.
+  - The header has a cohort switcher (selection persisted in
+    `localStorage["workshop-admin-cohort-id"]`) plus stats cards scoped to the
+    selected cohort.
+
+Admin UI consumes the generated client from `@workspace/api-client-react`. Only
+the bulk endpoints `PUT /admin/cohorts/:id/sections` and
+`PUT /admin/cohorts/:id/safari-tabs` accept **raw arrays** (no wrapper
+object). All others use the documented OpenAPI shapes.
 
 ## Key Commands
 
