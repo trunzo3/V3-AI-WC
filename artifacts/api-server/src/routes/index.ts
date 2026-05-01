@@ -9,6 +9,7 @@ import contentVariantsRouter from "./content-variants";
 import llmToolsRouter from "./llm-tools";
 import appSettingsRouter from "./app-settings";
 import safariTabsRouter from "./safari-tabs";
+import filesRouter from "./files";
 import adminRouter from "./admin";
 
 const router: IRouter = Router();
@@ -23,6 +24,7 @@ router.use(contentVariantsRouter);
 router.use(llmToolsRouter);
 router.use(appSettingsRouter);
 router.use(safariTabsRouter);
+router.use(filesRouter);
 router.use(adminRouter);
 
 export default router;

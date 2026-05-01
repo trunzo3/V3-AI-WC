@@ -143,6 +143,10 @@ Participant endpoints (require session unless noted):
   by `(email, cohortId)`. Without a code, resolves by email alone (most recent
   cohort by `lastLoginAt DESC`); returns 404 if the email is unknown.
 - `POST /api/auth/logout`, `GET /api/auth/me`
+- `GET /api/files/by-section/:sectionId` — list files for a section. Returns
+  `{ files: [{ id, safariLibraryId, filename, mimeType, sizeBytes }] }`.
+- `GET /api/files/:id/download` — streams the file with the stored mime type
+  and a `Content-Disposition: attachment` header.
 - `GET /api/sections`, `POST /api/sections/unlock`
 - `GET|PUT /api/notes/:sectionId`
 - `GET|PUT /api/workflow-map`
@@ -164,6 +168,9 @@ Admin endpoints (require admin session, prefix `/api/admin`):
 - `GET|PUT /admin/settings`
 - `GET /admin/cohorts/:cohortId/participants`
 - `GET /admin/feedback`
+- `GET /admin/files/by-section/:sectionId?safariLibraryId=N` — list files
+- `POST /admin/files` — body `{ sectionId, safariLibraryId?, filename, mimeType, dataBase64 }`. Max 20 MB raw bytes. Files are stored as base64 in the existing `section_files.storage_path` column (no object storage required).
+- `DELETE /admin/files/:id`
 
 The OpenAPI spec at `lib/api-spec/openapi.yaml` documents all participant
 endpoints in full and is used to generate React Query hooks + Zod schemas for

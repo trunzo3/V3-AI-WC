@@ -33,7 +33,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText } from "lucide-react";
+import { SafariFilesDialog } from "@/components/admin/SafariFilesDialog";
 
 export function SafariLibraryTab() {
   const qc = useQueryClient();
@@ -46,6 +47,7 @@ export function SafariLibraryTab() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminSafariLibraryItem | null>(null);
   const [form, setForm] = useState({ name: "", sortOrder: 0, active: true });
+  const [filesFor, setFilesFor] = useState<AdminSafariLibraryItem | null>(null);
 
   const createMut = useAdminCreateSafariLibraryItem();
   const updateMut = useAdminUpdateSafariLibraryItem();
@@ -207,6 +209,15 @@ export function SafariLibraryTab() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    onClick={() => setFilesFor(it)}
+                    title="Manage files"
+                    data-testid={`button-safari-files-${it.id}`}
+                  >
+                    <FileText className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => openEdit(it)}
                   >
                     <Pencil className="w-4 h-4" />
@@ -239,6 +250,16 @@ export function SafariLibraryTab() {
           </div>
         )}
       </CardContent>
+      {filesFor ? (
+        <SafariFilesDialog
+          open={filesFor != null}
+          onOpenChange={(o) => {
+            if (!o) setFilesFor(null);
+          }}
+          toolId={filesFor.id}
+          toolName={filesFor.name}
+        />
+      ) : null}
     </Card>
   );
 }

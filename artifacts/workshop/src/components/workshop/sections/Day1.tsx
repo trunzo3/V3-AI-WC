@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { SectionHeader, GoalBox, InsightBox, DepthQuote } from "../SectionHeader";
 import { NotesField } from "../NotesField";
 import {
@@ -8,7 +8,9 @@ import {
 } from "@workspace/api-client-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+// Note: do NOT prefix with import.meta.env.BASE_URL here. The shared proxy
+// routes root-relative /api/* directly to the api-server; prefixing with
+// /workshop would route the call back to the workshop dev server and 404.
 
 const FALLBACK_VERIFY_PROMPT = `For each statistic, verify against primary sources. Output: Claim | Correct? | Actual Figure | Source Link.
 
@@ -179,29 +181,36 @@ export function VerificationTest({ sectionId, title }: SectionProps) {
 
 export function ToolSafari({ sectionId, title }: SectionProps) {
   const { data: tabsResp } = useListSafariTabs();
-  const tabs = (tabsResp?.tabs ?? []).filter((t) => t.active);
-  const [tabFiles, setTabFiles] = useState<Record<string, { id: number; displayName: string } | null>>({});
+  const tabs = useMemo(
+    () => (tabsResp?.tabs ?? []).filter((t) => t.active),
+    [tabsResp],
+  );
+  type SafariFile = { id: number; safariLibraryId: number | null; filename: string };
+  const [filesByLib, setFilesByLib] = useState<Record<number, SafariFile | undefined>>({});
 
-  const loadFileForTab = async (tabName: string) => {
-    if (tabName in tabFiles) return;
-    try {
-      const res = await fetch(`${BASE}/api/files/by-section/tool-safari`, { credentials: "include" });
-      if (res.ok) {
-        const files: { id: number; displayName: string; toolTab: string | null }[] = await res.json();
-        const updated: Record<string, { id: number; displayName: string } | null> = {};
-        for (const w of tabs) {
-          const match = files.find((f) => f.toolTab === w.name);
-          updated[w.name] = match ? { id: match.id, displayName: match.displayName } : null;
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/files/by-section/tool-safari`, {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const body = (await res.json()) as { files: SafariFile[] };
+        if (cancelled) return;
+        const map: Record<number, SafariFile> = {};
+        for (const f of body.files) {
+          if (f.safariLibraryId != null && map[f.safariLibraryId] == null) {
+            map[f.safariLibraryId] = f;
+          }
         }
-        setTabFiles(updated);
-      }
-    } catch {}
-  };
-
-  const handleTabChange = (tabVal: string) => {
-    const w = tabs.find((w) => w.id.toString() === tabVal);
-    if (w) loadFileForTab(w.name);
-  };
+        setFilesByLib(map);
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tabs]);
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -216,7 +225,7 @@ export function ToolSafari({ sectionId, title }: SectionProps) {
       </div>
 
       {tabs.length > 0 ? (
-        <Tabs defaultValue={tabs[0]?.id.toString()} className="w-full" onValueChange={handleTabChange}>
+        <Tabs defaultValue={tabs[0]?.id.toString()} className="w-full">
           <TabsList className="flex flex-wrap h-auto justify-start mb-0 bg-secondary/50 rounded-b-none">
             {tabs.map((w) => (
               <TabsTrigger
@@ -230,7 +239,7 @@ export function ToolSafari({ sectionId, title }: SectionProps) {
             ))}
           </TabsList>
           {tabs.map((w) => {
-            const file = tabFiles[w.name];
+            const file = filesByLib[w.safariLibraryId];
             return (
               <TabsContent
                 key={w.id}
@@ -239,12 +248,13 @@ export function ToolSafari({ sectionId, title }: SectionProps) {
               >
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-bold text-primary">{w.name} Exploration</h3>
-                  {file === undefined ? null : file ? (
+                  {file ? (
                     <a
-                      href={`${BASE}/api/files/${file.id}/download`}
+                      href={`/api/files/${file.id}/download`}
                       className="inline-flex items-center gap-2 bg-primary text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-primary/90 transition-colors"
+                      data-testid={`button-safari-download-${w.safariLibraryId}`}
                     >
-                      ⬇ Download Safari Guide (PDF)
+                      ⬇ Download Safari Guide
                     </a>
                   ) : (
                     <button
