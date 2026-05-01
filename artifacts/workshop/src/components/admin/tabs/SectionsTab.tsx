@@ -98,10 +98,10 @@ export function SectionsTab({ cohortId }: Props) {
 
   const generics = genericsQ.data?.sections ?? [];
   const grouped = useMemo(() => {
-    const m: Record<number, Row[]> = { 1: [], 2: [], 3: [] };
+    const m: Record<number, Row[]> = { 1: [], 2: [], 3: [], 4: [] };
     for (const r of rows) (m[r.level] ??= []).push(r);
     for (const k of Object.keys(m))
-      m[Number(k)] = m[Number(k)].sort((a, b) => a.sortOrder - b.sortOrder);
+      m[Number(k)] = m[Number(k)]!.sort((a, b) => a.sortOrder - b.sortOrder);
     return m;
   }, [rows]);
 
