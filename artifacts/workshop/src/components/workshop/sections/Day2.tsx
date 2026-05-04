@@ -1,6 +1,7 @@
 import { SectionHeader, GoalBox, InsightBox, DepthQuote } from "../SectionHeader";
 import { NotesField } from "../NotesField";
 import { Button } from "@/components/ui/button";
+import { useGetContentVariants } from "@workspace/api-client-react";
 
 interface SectionProps {
   sectionId: string;
@@ -140,20 +141,32 @@ export function CountyChangeMessage({ sectionId, title }: SectionProps) {
   );
 }
 
+const FALLBACK_CLOSING_QUOTE = `"Small things.\nUnlikely places.\nExtraordinary work."`;
+const FALLBACK_CLOSING_SUBTEXT = "You don't have to be first, but you have to be ready.";
+const FALLBACK_SURVEY_URL = "https://headandheartca.com/close";
+const FALLBACK_SURVEY_LABEL = "Complete Workshop Survey";
+
 export function Closing({ sectionId, title }: SectionProps) {
+  const { data: variantsResp } = useGetContentVariants(sectionId);
+  const variants = variantsResp?.variants ?? [];
+  const byKey = (k: string) => variants.find((v) => v.blockKey === k)?.content;
+
+  const quoteText = byKey("closing_quote") ?? FALLBACK_CLOSING_QUOTE;
+  const subtextText = byKey("closing_subtext") ?? FALLBACK_CLOSING_SUBTEXT;
+  const surveyUrl = byKey("closing_survey_url") ?? FALLBACK_SURVEY_URL;
+  const surveyLabel = byKey("closing_survey_label") ?? FALLBACK_SURVEY_LABEL;
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <SectionHeader title={title} type="reference" />
 
       <div className="py-12 px-6 bg-primary text-white rounded-lg text-center shadow-lg my-12 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-accent"></div>
-        <p className="font-serif text-2xl md:text-3xl leading-relaxed font-bold">
-          "Small things.<br />
-          Unlikely places.<br />
-          Extraordinary work."
+        <p className="font-serif text-2xl md:text-3xl leading-relaxed font-bold whitespace-pre-line">
+          {quoteText}
         </p>
         <div className="mt-8 text-primary-foreground/80 italic font-medium">
-          You don't have to be first, but you have to be ready.
+          {subtextText}
         </div>
       </div>
 
@@ -165,8 +178,8 @@ export function Closing({ sectionId, title }: SectionProps) {
           className="h-14 px-8 text-lg font-bold shadow-md hover:shadow-lg transition-shadow"
           asChild
         >
-          <a href="https://headandheartca.com/close" target="_blank" rel="noopener noreferrer">
-            Complete Workshop Survey
+          <a href={surveyUrl} target="_blank" rel="noopener noreferrer">
+            {surveyLabel}
           </a>
         </Button>
       </div>

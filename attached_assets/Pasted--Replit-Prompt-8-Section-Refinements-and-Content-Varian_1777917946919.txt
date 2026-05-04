@@ -1,0 +1,181 @@
+# Replit Prompt 8 — Section Refinements and Content Variant Additions
+
+## Context
+
+This prompt covers 8 changes to section components, seed behavior, and content variant support. Do NOT touch the admin panel layout, login flow, sidebar, home screen, or any infrastructure. These are all participant-facing section refinements and one backend seed change.
+
+CRITICAL: The seed script must NOT reset existing cohorts. See item 1.
+
+---
+
+## 1. Seed Script Protection
+
+The seed script currently calls resetCohortSectionsToDefaults for existing cohorts, which overwrites any custom display names, codes, ordering, and visibility settings the admin has configured.
+
+Fix: Change the seed behavior so that resetCohortSectionsToDefaults is ONLY called for newly created cohorts (when the seed creates a default cohort because none exist). For existing cohorts, the seed should only ADD new sections that don't already exist in cohort_sections — it should never delete, reorder, or modify existing cohort_sections rows.
+
+Logic:
+- If a section ID exists in ALL_SECTIONS but NOT in a cohort's cohort_sections: insert it with default values at the end of its level
+- If a section ID exists in both ALL_SECTIONS and cohort_sections: do not touch it
+- If a section ID exists in cohort_sections but NOT in ALL_SECTIONS: leave it alone (it may be a generic section)
+- Never delete cohort_sections rows during seed
+- Never overwrite display_name, code, sort_order, visible, or code_active for existing rows
+
+---
+
+## 2. Draft with RICECO — Restyle Drafting Fields
+
+The "Draft with RICECO" section has a "DRAFTING WORKSPACE" with six plain text fields (R: ROLE, I: INSTRUCTION, etc.) that look like basic form inputs. Restyle them to match the visual treatment of the RICECO Framework teaching section.
+
+For each of the six RICECO fields, render:
+
+One line containing: gold circle (40px, background #C8963E, white letter inside, border-radius 50%) + bold label + helper subtitle in muted text. All on the same line, vertically centered.
+
+Directly below that line: the textarea input field with auto-save.
+
+The six fields with their labels and helper text:
+
+- R circle | Role — Who is the AI acting as? | [textarea]
+- I circle | Instruction — What exactly do you want it to do? | [textarea]
+- C circle | Context — What background information is needed? | [textarea]
+- E circle | Examples — What does good look like? | [textarea]
+- C circle | Constraints — What rules must it follow? | [textarea]
+- O circle | Output — How should the final result be formatted? | [textarea]
+
+The label (e.g., "Role") should be bold, 15px, navy. The helper text (e.g., "Who is the AI acting as?") should be regular weight, 13px, muted gray color, separated from the label by an em dash or a pipe character.
+
+Keep the "DRAFTING WORKSPACE" header above all six fields.
+
+### Add "Copy Full Prompt" Button
+
+Below the sixth textarea (Output), add a prominent button: "Copy Full Prompt"
+
+When clicked, concatenate all six fields into a single formatted prompt string:
+
+Role: [content of R field]
+Instructions: [content of I field]
+Context: [content of C field]
+Examples: [content of E field]
+Constraints: [content of C field]
+Output Format: [content of O field]
+
+Copy the concatenated string to the clipboard. Show "Copied!" feedback (same pattern as the CopyButton component used elsewhere). Skip any empty fields from the concatenation (don't include "Role: " with nothing after it).
+
+Style the button: navy background, white text, 14px font-weight 600, padding 12px 32px, border-radius 8px. Centered below the fields. Use a clipboard icon next to the text.
+
+---
+
+## 3. RICECO Framework — Add "Copy Full Prompt" Button
+
+The RICECO Framework teaching section already has the pretty gold-circle styling with input fields for each letter. Add the same "Copy Full Prompt" button described in item 2, below the Output field. Same concatenation logic, same styling, same behavior.
+
+If the RICECO Framework section does NOT currently have editable input fields (only static descriptions), then add textarea inputs below each RICECO letter description, plus the Copy Full Prompt button. The teaching descriptions ("Who is the AI acting as?") stay as read-only labels above each textarea.
+
+---
+
+## 4. Red / Yellow / Green — Verify and Fix Structured Fields
+
+The Red/Yellow/Green section should have four input fields, NOT a single "Your Notes" box. Check if these exist in the v2.0 component:
+
+1. A textarea labeled "RED" with a red (#dc2626) top border or header accent
+2. A textarea labeled "YELLOW" with a yellow/gold (#C8963E) top border or header accent
+3. A textarea labeled "GREEN" with a green (#16a34a) top border or header accent
+4. A textarea labeled "THE CONDITION THAT MOVES SOMETHING FROM YELLOW TO GREEN FOR ME"
+5. A general "YOUR NOTES" textarea at the bottom
+
+The three category textareas should be displayed in a 3-column grid layout (same as v1.0). Each column has a colored header label and a textarea below it.
+
+Field keys for auto-save notes:
+- red-yellow-green section, fieldKey "red" for the red column
+- red-yellow-green section, fieldKey "yellow" for the yellow column  
+- red-yellow-green section, fieldKey "green" for the green column
+- red-yellow-green section, fieldKey "condition" for the condition field
+- red-yellow-green section, fieldKey "notes" for general notes
+
+If the v2.0 component collapsed these into a single "Your Notes" field, restore the structured fields. Do NOT remove the general notes field — it stays at the bottom in addition to the three category fields and the condition field.
+
+IMPORTANT: The labels should be "RED", "YELLOW", "GREEN" — not "Relatively Safe", "It Depends", "Risky". Keep the labels simple.
+
+---
+
+## 5. Capstone 6 Ways — Verify and Fix Per-Way Note Fields
+
+The Capstone section should have individual note fields for each of the 6 Ways, NOT a single "Your Notes" box. Check if these exist:
+
+1. A textarea for DRAFT
+2. A textarea for BRAINSTORM
+3. A textarea for PREPARE
+4. A textarea for SYNTHESIZE
+5. A textarea for DISTILL
+6. A textarea for CRITIQUE
+
+These should be displayed in a table or structured layout with the Way name as a label and a textarea next to or below it. Field keys: "6ways-draft", "6ways-brainstorm", "6ways-prepare", "6ways-synthesize", "6ways-distill", "6ways-critique".
+
+The Capstone section also has build workspace fields ("my-task", "ways-checked", "context-tool", "verified", "built", "surprised") — verify those exist too.
+
+A general "YOUR NOTES" field should appear at the very bottom.
+
+If the v2.0 component collapsed the per-way fields into a single notes box, restore them.
+
+---
+
+## 6. Copy Buttons on Static Prompt Scaffolds
+
+Several sections display a static RICECO prompt scaffold in a styled box (monospace text showing I:, C:, C:, O: lines). These need a copy button so participants can copy the scaffold, modify it, and paste it into their LLM.
+
+Add a CopyButton (same component used in the Verification Test) to the prompt scaffold boxes in these sections:
+
+- Distill (the RICECO Scaffold box)
+- Prepare (if it has a prompt scaffold)
+- Synthesize (if it has a prompt scaffold)
+
+The copy button should appear in the top-right corner of the scaffold box, same positioning as the Verification Test's "Copy Prompt" button. It copies the full scaffold text.
+
+Check each section to see if it has a prompt scaffold box — if it does, add the copy button. If it doesn't have one, skip it.
+
+---
+
+## 7. Closing Section — Content Variant Slots
+
+The Closing section has two pieces of content that should be editable per cohort from the Content Variants tab in admin:
+
+1. The quote text ("Small things. Unlikely places. Extraordinary work." and "You don't have to be first, but you have to be ready.")
+2. The survey button — both the button label ("Complete Workshop Survey") and the URL it links to
+
+Add three content variant slots for the closing section:
+
+- block_key: "closing_quote" — The full quote text (default: the current hardcoded quote)
+- block_key: "closing_survey_url" — The survey URL (default: the current hardcoded URL)
+- block_key: "closing_survey_label" — The button text (default: "Complete Workshop Survey")
+
+Update the Closing component to check for content variant overrides (same pattern as the Verification Test): fetch from GET /content-variants/closing, use override if present, fall back to hardcoded default if not.
+
+Update the variant slot registry (the VARIANT_SLOTS constant used by the Content Variants admin tab) to include the closing section with these three slots.
+
+---
+
+## 8. Persistent Context — Remove Level Labels
+
+The Persistent Context section has a table with a "Level" column showing "L1", "L2", "L3", "RAG" labels. Remove the Level column entirely. The table should only have two columns: "Tool Type" and "Description".
+
+The table content becomes:
+
+| Tool Type | Description |
+|---|---|
+| Custom Instructions | Basic rules applied to every chat. |
+| Projects / Spaces | Scoped context for specific workflows. |
+| Custom GPTs | Shareable, specialized bots with specific knowledge. |
+| NotebookLM | Retrieval-Augmented Generation. Highest accuracy on specific docs. |
+
+Keep all other content on the Persistent Context page unchanged.
+
+---
+
+## DO NOT in this prompt:
+- Touch the admin panel layout, tabs, or cohort management
+- Modify the login page or auth flow
+- Change the sidebar or home screen
+- Modify the database schema (use existing notes table with field keys)
+- Touch the PDF export
+- Reset or modify existing cohort configurations in the seed script
+- Delete any sections from ALL_SECTIONS (visibility is controlled from admin, not code)

@@ -132,9 +132,15 @@ Sections come from two sources:
    among prompts only) and a CopyButton. The legacy `content` and
    `prompt_block` columns have been dropped.
 
-Running the seed (`pnpm --filter @workspace/api-server run seed`) resets
-**every** cohort's `cohort_sections` to match `ALL_SECTIONS` exactly, so edits
-to the canonical list propagate to all existing cohorts.
+Running the seed (`pnpm --filter @workspace/api-server run seed`) performs an
+**additive-only** sync: it inserts any sections from `ALL_SECTIONS` that are
+missing from each cohort's `cohort_sections`, but never deletes, reorders, or
+modifies existing rows. This preserves admin-configured display names, codes,
+ordering, and visibility. If a cohort has zero sections (empty), the seed falls
+back to `seedCohortSections` which inserts the full canonical set with default
+sort orders. The destructive `resetCohortSectionsToDefaults` function still
+exists for the admin "reset sections" action but is no longer called by the
+seed script.
 
 A participant sees a section when ANY of these are true:
 - The cohort's tier (level) is unlocked by default in `cohorts.tier_access`, or

@@ -48,4 +48,37 @@ export const VARIANT_SECTIONS: VariantSection[] = [
       },
     ],
   },
+  {
+    sectionId: "closing",
+    title: "Closing",
+    slots: [
+      {
+        blockKey: "closing_quote",
+        label: "Closing quote",
+        description:
+          "The headline quote displayed in the closing banner. Line breaks are preserved.",
+        defaultContent: `"Small things.\nUnlikely places.\nExtraordinary work."`,
+        multiline: true,
+      },
+      {
+        blockKey: "closing_subtext",
+        label: "Closing subtext",
+        description:
+          "The italic line shown below the closing quote.",
+        defaultContent: "You don't have to be first, but you have to be ready.",
+      },
+      {
+        blockKey: "closing_survey_url",
+        label: "Survey URL",
+        description: "The URL the survey button links to.",
+        defaultContent: "https://headandheartca.com/close",
+      },
+      {
+        blockKey: "closing_survey_label",
+        label: "Survey button label",
+        description: "Text shown on the survey button.",
+        defaultContent: "Complete Workshop Survey",
+      },
+    ],
+  },
 ];

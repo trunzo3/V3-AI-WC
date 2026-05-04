@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { SectionHeader, GoalBox, InsightBox, DepthQuote } from "../SectionHeader";
 import { NotesField } from "../NotesField";
 import { CopyButton } from "../CopyButton";
+import { useAutoSave } from "@/hooks/use-auto-save";
+import { Textarea } from "@/components/ui/textarea";
 import {
   useListSafariTabs,
   useListLlmTools,
@@ -254,33 +256,129 @@ export function ToolSafari({ sectionId, title }: SectionProps) {
   );
 }
 
-export function RicecoFramework({ sectionId, title }: SectionProps) {
-  const rows = [
-    { l: "R", name: "Role", desc: "Who is the AI acting as?" },
-    { l: "I", name: "Instruction", desc: "What exactly do you want it to do?" },
-    { l: "C", name: "Context", desc: "What background information is needed?" },
-    { l: "E", name: "Examples", desc: "What does good look like?" },
-    { l: "C", name: "Constraints", desc: "What rules must it follow?" },
-    { l: "O", name: "Output", desc: "How should the final result be formatted?" },
-  ];
+const RICECO_FIELDS = [
+  { l: "R", name: "Role", desc: "Who is the AI acting as?", key: "role", copyLabel: "Role" },
+  { l: "I", name: "Instruction", desc: "What exactly do you want it to do?", key: "instruction", copyLabel: "Instructions" },
+  { l: "C", name: "Context", desc: "What background information is needed?", key: "context", copyLabel: "Context" },
+  { l: "E", name: "Examples", desc: "What does good look like?", key: "examples", copyLabel: "Examples" },
+  { l: "C", name: "Constraints", desc: "What rules must it follow?", key: "constraints", copyLabel: "Constraints" },
+  { l: "O", name: "Output", desc: "How should the final result be formatted?", key: "output", copyLabel: "Output Format" },
+] as const;
 
+function RicecoField({
+  sectionId,
+  fieldKey,
+  letter,
+  name,
+  desc,
+  onValueChange,
+}: {
+  sectionId: string;
+  fieldKey: string;
+  letter: string;
+  name: string;
+  desc: string;
+  onValueChange: (key: string, value: string) => void;
+}) {
+  const [value, setValue, flushSave] = useAutoSave(sectionId, fieldKey, "");
+
+  useEffect(() => {
+    onValueChange(fieldKey, value);
+  }, [value, fieldKey, onValueChange]);
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold text-lg" style={{ backgroundColor: "#C8963E" }}>
+          {letter}
+        </div>
+        <div className="flex items-baseline gap-2 min-w-0">
+          <span className="font-bold text-[15px]" style={{ color: "#1e293b" }}>{name}</span>
+          <span className="text-[13px] text-muted-foreground">— {desc}</span>
+        </div>
+      </div>
+      <Textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={flushSave}
+        placeholder={desc}
+        className="min-h-[80px] resize-y bg-white border-border focus:border-ring"
+        data-testid={`notes-${sectionId}-${fieldKey}`}
+      />
+    </div>
+  );
+}
+
+function RicecoInputFields({ sectionId, prefix }: { sectionId: string; prefix: string }) {
+  const [copied, setCopied] = useState(false);
+  const valuesRef = useMemo(() => new Map<string, string>(), []);
+
+  const handleValueChange = useMemo(
+    () => (key: string, value: string) => {
+      valuesRef.set(key, value);
+    },
+    [valuesRef],
+  );
+
+  const handleCopyAll = async () => {
+    const lines: string[] = [];
+    for (const f of RICECO_FIELDS) {
+      const v = valuesRef.get(`${prefix}-${f.key}`) ?? "";
+      if (v.trim().length > 0) {
+        lines.push(`${f.copyLabel}: ${v.trim()}`);
+      }
+    }
+    if (lines.length === 0) return;
+    const text = lines.join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const el = document.createElement("textarea");
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="space-y-5">
+      {RICECO_FIELDS.map((f) => (
+        <RicecoField
+          key={f.key}
+          sectionId={sectionId}
+          fieldKey={`${prefix}-${f.key}`}
+          letter={f.l}
+          name={f.name}
+          desc={f.desc}
+          onValueChange={handleValueChange}
+        />
+      ))}
+      <div className="flex justify-center pt-2">
+        <button
+          onClick={handleCopyAll}
+          className="inline-flex items-center gap-2 text-white font-semibold text-sm px-8 py-3 rounded-lg hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: "#1e293b" }}
+          data-testid={`copy-full-prompt-${sectionId}`}
+        >
+          📋 {copied ? "Copied!" : "Copy Full Prompt"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function RicecoFramework({ sectionId, title }: SectionProps) {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <SectionHeader title={title} type="reference" />
       <GoalBox text="Six ingredients for prompts that produce usable output the first time." />
 
-      <div className="grid gap-4 mb-8">
-        {rows.map((r) => (
-          <div key={r.name} className="flex gap-4 p-4 border rounded-lg bg-card items-start">
-            <div className="w-10 h-10 rounded-full bg-accent text-primary font-bold flex items-center justify-center flex-shrink-0 text-lg">
-              {r.l}
-            </div>
-            <div>
-              <h4 className="font-bold text-primary text-lg">{r.name}</h4>
-              <p className="text-foreground mt-1">{r.desc}</p>
-            </div>
-          </div>
-        ))}
+      <div className="mb-8">
+        <RicecoInputFields sectionId={sectionId} prefix="riceco" />
       </div>
 
       <div className="border-l-4 border-accent pl-6 py-2 my-8 bg-secondary/30 rounded-r-lg p-4">
@@ -310,6 +408,13 @@ export function DraftWithRiceco({ sectionId, title }: SectionProps) {
           <li>Build your RICECO prompt — start with I+C+C minimum</li>
           <li>Run it and note what you got</li>
         </ol>
+      </div>
+
+      <div className="mb-8">
+        <div className="text-center py-2 text-xs font-bold tracking-widest uppercase text-muted-foreground mb-4">
+          Drafting Workspace
+        </div>
+        <RicecoInputFields sectionId={sectionId} prefix="draft" />
       </div>
 
       <NotesField sectionId={sectionId} fieldKey="notes" label="Your Notes" />
@@ -358,13 +463,18 @@ export function LlmPeerReview({ sectionId, title }: SectionProps) {
 }
 
 export function Distill({ sectionId, title }: SectionProps) {
+  const scaffoldText = `I: Summarize the attached document.\nC: The audience is busy executives who need the bottom line.\nC: Keep it under 300 words. No jargon.\nO: 3 bullet points of key takeaways, 1 paragraph summary.`;
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <SectionHeader title={title} type="exercise" />
       <GoalBox text="Turn something complex into something clear." />
 
-      <div className="bg-card p-6 border rounded-lg mb-8 shadow-sm">
-        <h3 className="font-bold text-primary mb-3">RICECO Scaffold</h3>
+      <div className="bg-card p-6 border rounded-lg mb-8 shadow-sm relative">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-primary">RICECO Scaffold</h3>
+          <CopyButton text={scaffoldText} label="Copy Scaffold" />
+        </div>
         <p className="text-foreground font-mono text-sm bg-secondary/50 p-4 rounded">
           <strong className="text-primary">I:</strong> Summarize the attached document.<br />
           <strong className="text-primary">C:</strong> The audience is busy executives who need the bottom line.<br />
@@ -379,13 +489,18 @@ export function Distill({ sectionId, title }: SectionProps) {
 }
 
 export function Prepare({ sectionId, title }: SectionProps) {
+  const scaffoldText = `R: You are a skeptical community member.\nI: Roleplay a conversation with me about [Topic].\nC: We are at a town hall. I am presenting a new policy.\nC: Push back on my points. Ask one question at a time.\nO: Dialogue format. Wait for my response before replying.`;
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <SectionHeader title={title} type="exercise" />
       <GoalBox text="Get ready for a high-stakes conversation before it happens." />
 
-      <div className="bg-card p-6 border rounded-lg mb-6 shadow-sm">
-        <h3 className="font-bold text-primary mb-3">RICECO Scaffold</h3>
+      <div className="bg-card p-6 border rounded-lg mb-6 shadow-sm relative">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-primary">RICECO Scaffold</h3>
+          <CopyButton text={scaffoldText} label="Copy Scaffold" />
+        </div>
         <p className="text-foreground font-mono text-sm bg-secondary/50 p-4 rounded">
           <strong className="text-primary">R:</strong> You are a skeptical community member.<br />
           <strong className="text-primary">I:</strong> Roleplay a conversation with me about [Topic].<br />
@@ -408,13 +523,18 @@ export function Prepare({ sectionId, title }: SectionProps) {
 }
 
 export function Synthesize({ sectionId, title }: SectionProps) {
+  const scaffoldText = `I: Review the attached reports and identify common themes.\nC: Focus on recurring challenges and proposed solutions.\nC: Cite which document each point comes from.\nO: A thematic summary table.`;
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <SectionHeader title={title} type="exercise" />
       <GoalBox text="Find patterns across multiple documents." />
 
-      <div className="bg-card p-6 border rounded-lg mb-8 shadow-sm">
-        <h3 className="font-bold text-primary mb-3">Steps & Scaffold</h3>
+      <div className="bg-card p-6 border rounded-lg mb-8 shadow-sm relative">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-primary">Steps & Scaffold</h3>
+          <CopyButton text={scaffoldText} label="Copy Scaffold" />
+        </div>
         <p className="text-foreground font-mono text-sm bg-secondary/50 p-4 rounded">
           <strong className="text-primary">I:</strong> Review the attached reports and identify common themes.<br />
           <strong className="text-primary">C:</strong> Focus on recurring challenges and proposed solutions.<br />
@@ -527,11 +647,11 @@ export function WhatAiIs({ sectionId, title }: SectionProps) {
 }
 
 export function PersistentContext({ sectionId, title }: SectionProps) {
-  const levels = [
-    { l: "L1", name: "Custom Instructions", desc: "Basic rules applied to every chat." },
-    { l: "L2", name: "Projects / Spaces", desc: "Scoped context for specific workflows." },
-    { l: "L3", name: "Custom GPTs", desc: "Shareable, specialized bots with specific knowledge." },
-    { l: "RAG", name: "NotebookLM", desc: "Retrieval-Augmented Generation. Highest accuracy on specific docs." },
+  const tools = [
+    { name: "Custom Instructions", desc: "Basic rules applied to every chat." },
+    { name: "Projects / Spaces", desc: "Scoped context for specific workflows." },
+    { name: "Custom GPTs", desc: "Shareable, specialized bots with specific knowledge." },
+    { name: "NotebookLM", desc: "Retrieval-Augmented Generation. Highest accuracy on specific docs." },
   ];
 
   return (
@@ -547,17 +667,15 @@ export function PersistentContext({ sectionId, title }: SectionProps) {
         <table className="w-full border-collapse bg-card rounded-lg overflow-hidden shadow-sm">
           <thead>
             <tr className="bg-primary text-white text-left">
-              <th className="p-4 font-semibold w-24">Level</th>
               <th className="p-4 font-semibold">Tool Type</th>
               <th className="p-4 font-semibold">Description</th>
             </tr>
           </thead>
           <tbody>
-            {levels.map((lvl, i) => (
-              <tr key={lvl.l} className={i % 2 === 0 ? "bg-card" : "bg-secondary/30"}>
-                <td className="p-4 border-b font-bold text-accent">{lvl.l}</td>
-                <td className="p-4 border-b font-semibold text-primary">{lvl.name}</td>
-                <td className="p-4 border-b text-foreground">{lvl.desc}</td>
+            {tools.map((t, i) => (
+              <tr key={t.name} className={i % 2 === 0 ? "bg-card" : "bg-secondary/30"}>
+                <td className="p-4 border-b font-semibold text-primary">{t.name}</td>
+                <td className="p-4 border-b text-foreground">{t.desc}</td>
               </tr>
             ))}
           </tbody>
@@ -575,11 +693,36 @@ export function RedYellowGreen({ sectionId, title }: SectionProps) {
       <SectionHeader title={title} type="exercise" />
       <GoalBox text="Build shared judgment about what's safe." />
 
-      <div className="bg-card p-6 border rounded-lg mb-8 shadow-sm">
+      <div className="bg-card p-6 border rounded-lg mb-6 shadow-sm">
         <ol className="list-decimal list-inside space-y-2 text-foreground font-medium">
           <li>Hold your cards</li>
           <li>Discuss disagreements</li>
         </ol>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="rounded-lg border overflow-hidden">
+          <div className="px-4 py-2 font-bold text-white text-sm uppercase tracking-wider" style={{ backgroundColor: "#dc2626" }}>Red</div>
+          <div className="p-3">
+            <NotesField sectionId={sectionId} fieldKey="red" label="" placeholder="What's clearly risky?" minHeight="min-h-[120px]" />
+          </div>
+        </div>
+        <div className="rounded-lg border overflow-hidden">
+          <div className="px-4 py-2 font-bold text-white text-sm uppercase tracking-wider" style={{ backgroundColor: "#C8963E" }}>Yellow</div>
+          <div className="p-3">
+            <NotesField sectionId={sectionId} fieldKey="yellow" label="" placeholder="What depends on context?" minHeight="min-h-[120px]" />
+          </div>
+        </div>
+        <div className="rounded-lg border overflow-hidden">
+          <div className="px-4 py-2 font-bold text-white text-sm uppercase tracking-wider" style={{ backgroundColor: "#16a34a" }}>Green</div>
+          <div className="p-3">
+            <NotesField sectionId={sectionId} fieldKey="green" label="" placeholder="What's relatively safe?" minHeight="min-h-[120px]" />
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <NotesField sectionId={sectionId} fieldKey="condition" label="The condition that moves something from Yellow to Green for me" placeholder="What would need to be true?" />
       </div>
 
       <DepthQuote>Context dictates risk. What is safe internally may be dangerous externally.</DepthQuote>
@@ -591,12 +734,12 @@ export function RedYellowGreen({ sectionId, title }: SectionProps) {
 
 export function Capstone({ sectionId, title }: SectionProps) {
   const sixWaysRows = [
-    { name: "Draft", def: "Create something new — email, report, talking points, agenda" },
-    { name: "Brainstorm", def: "Generate options or ideas (approaches, solutions, alternatives)" },
-    { name: "Prepare", def: "Get ready for a conversation (anticipate objections, plan questions)" },
-    { name: "Synthesize", def: "Find patterns across sources (themes in feedback, documents)" },
-    { name: "Distill", def: "Make complex things clear (policy to plain language, long to short)" },
-    { name: "Critique", def: "Evaluate and find weaknesses (check a draft, identify gaps)" },
+    { name: "Draft", def: "Create something new — email, report, talking points, agenda", key: "6ways-draft" },
+    { name: "Brainstorm", def: "Generate options or ideas (approaches, solutions, alternatives)", key: "6ways-brainstorm" },
+    { name: "Prepare", def: "Get ready for a conversation (anticipate objections, plan questions)", key: "6ways-prepare" },
+    { name: "Synthesize", def: "Find patterns across sources (themes in feedback, documents)", key: "6ways-synthesize" },
+    { name: "Distill", def: "Make complex things clear (policy to plain language, long to short)", key: "6ways-distill" },
+    { name: "Critique", def: "Evaluate and find weaknesses (check a draft, identify gaps)", key: "6ways-critique" },
   ];
 
   return (
@@ -606,23 +749,28 @@ export function Capstone({ sectionId, title }: SectionProps) {
 
       <div className="mb-2 text-xs font-bold tracking-widest uppercase text-muted-foreground">The 6 Ways to Use AI</div>
 
-      <div className="overflow-x-auto mb-6">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-primary text-white">
-              <th className="text-left p-3 text-xs font-bold tracking-wider uppercase w-32">Use Case</th>
-              <th className="text-left p-3 text-xs font-bold tracking-wider uppercase">Definition</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sixWaysRows.map((row, i) => (
-              <tr key={row.name} className={i % 2 === 0 ? "bg-card" : "bg-secondary/20"}>
-                <td className="p-3 font-bold text-accent align-top">{row.name}</td>
-                <td className="p-3 text-muted-foreground align-top">{row.def}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="space-y-4 mb-6">
+        {sixWaysRows.map((row) => (
+          <div key={row.key} className="border rounded-lg overflow-hidden bg-card">
+            <div className="flex items-baseline gap-3 px-4 py-3 bg-secondary/30 border-b">
+              <span className="font-bold text-accent uppercase text-sm tracking-wider">{row.name}</span>
+              <span className="text-muted-foreground text-sm">{row.def}</span>
+            </div>
+            <div className="p-3">
+              <NotesField sectionId={sectionId} fieldKey={row.key} label="" placeholder={`Your ${row.name.toLowerCase()} notes...`} minHeight="min-h-[80px]" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-card p-6 border rounded-lg mb-6 shadow-sm">
+        <div className="text-xs font-bold tracking-widest uppercase text-muted-foreground mb-4">Build Workspace</div>
+        <NotesField sectionId={sectionId} fieldKey="my-task" label="My Task" placeholder="What real task are you working on?" className="mb-4" />
+        <NotesField sectionId={sectionId} fieldKey="ways-checked" label="Ways Checked" placeholder="Which of the 6 Ways did you use?" className="mb-4" />
+        <NotesField sectionId={sectionId} fieldKey="context-tool" label="Context Tool" placeholder="What persistent context did you set up?" className="mb-4" />
+        <NotesField sectionId={sectionId} fieldKey="verified" label="Verified" placeholder="What did you verify?" className="mb-4" />
+        <NotesField sectionId={sectionId} fieldKey="built" label="Built" placeholder="What did you build?" className="mb-4" />
+        <NotesField sectionId={sectionId} fieldKey="surprised" label="Surprised" placeholder="What surprised you?" />
       </div>
 
       <div className="bg-card p-6 border rounded-lg mb-8 shadow-sm">

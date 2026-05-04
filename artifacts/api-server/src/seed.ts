@@ -21,7 +21,7 @@ import {
 } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { logger } from "./lib/logger";
-import { resetCohortSectionsToDefaults } from "./lib/cohort-sections";
+import { seedCohortSections, addMissingSectionsForCohort } from "./lib/cohort-sections";
 
 const DEFAULT_COHORT_CODE = "WORKSHOP";
 
@@ -112,18 +112,20 @@ async function backfillTierAccess(): Promise<void> {
 }
 
 /**
- * Re-sync cohort_sections for every cohort to the canonical ALL_SECTIONS list.
- * Wipes existing rows and re-inserts so changes (added/removed sections, level
- * shifts, default code edits) take effect across the whole app.
+ * For every cohort, add any sections from ALL_SECTIONS that don't already exist
+ * in cohort_sections. Never deletes, reorders, or modifies existing rows — this
+ * preserves admin-configured display names, codes, ordering, and visibility.
  */
-async function resyncAllCohortSections(): Promise<void> {
+async function addMissingSectionsAllCohorts(): Promise<void> {
   const cohorts = await db.select({ id: cohortsTable.id }).from(cohortsTable);
+  let totalAdded = 0;
   for (const c of cohorts) {
-    await resetCohortSectionsToDefaults(c.id);
+    const added = await addMissingSectionsForCohort(c.id);
+    totalAdded += added;
   }
   logger.info(
-    { cohortCount: cohorts.length },
-    "Re-synced cohort_sections for all cohorts to ALL_SECTIONS defaults.",
+    { cohortCount: cohorts.length, totalAdded },
+    "Additive sync: inserted missing sections for all cohorts.",
   );
 }
 
@@ -192,7 +194,7 @@ async function main(): Promise<void> {
   logger.info("Running seed...");
   await ensureDefaultCohort();
   await backfillTierAccess();
-  await resyncAllCohortSections();
+  await addMissingSectionsAllCohorts();
   await ensureLlmTools();
   await ensureSafariLibrary();
   await ensureFeedbackCategories();
