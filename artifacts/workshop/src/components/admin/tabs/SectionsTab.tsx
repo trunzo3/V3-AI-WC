@@ -55,29 +55,12 @@ interface Props {
   cohortId: number;
 }
 
-const HARDCODED_TITLES: Record<string, string> = {
-  welcome: "Welcome",
-  "verification-test": "Verification Test",
-  "iq-meets-eq": "IQ Meets EQ",
-  "prompt-craft": "Prompt Craft",
-  "case-study-deep-dive": "Case Study Deep Dive",
-  "facilitator-toolkit": "Facilitator Toolkit",
-};
-
 type Row = AdminCohortSection & { __title?: string };
 
-function titleFor(
-  row: AdminCohortSection,
-  generics: AdminGenericSection[],
-): string {
+function titleFor(row: AdminCohortSection): string {
   if (row.displayName) return row.displayName;
-  if (row.sectionId.startsWith("generic_")) {
-    const id = Number(row.sectionId.slice("generic_".length));
-    const g = generics.find((x) => x.id === id);
-    if (g) return g.title;
-    return row.sectionId;
-  }
-  return HARDCODED_TITLES[row.sectionId] ?? row.sectionId;
+  if (row.title) return row.title;
+  return row.sectionId;
 }
 
 export function SectionsTab({ cohortId }: Props) {
@@ -233,6 +216,8 @@ export function SectionsTab({ cohortId }: Props) {
       visible: true,
       code: null,
       codeActive: true,
+      title: g.title,
+      type: g.sectionType,
     };
     setRows((prev) => [...prev, newRow]);
     setDirty(true);
@@ -364,6 +349,8 @@ export function SectionsTab({ cohortId }: Props) {
                 visible: true,
                 code: null,
                 codeActive: true,
+                title: newGen.title,
+                type: newGen.sectionType,
               };
               setRows((prev) => [...prev, newRow]);
               setDirty(true);
@@ -653,7 +640,7 @@ export function SectionsTab({ cohortId }: Props) {
                   <div className="space-y-2">
                     {grouped[lvl].map((r) => {
                       const idx = rows.findIndex((x) => x.id === r.id);
-                      const title = titleFor(r, generics);
+                      const title = titleFor(r);
                       const isGeneric = r.sectionId.startsWith("generic_");
                       return (
                         <div

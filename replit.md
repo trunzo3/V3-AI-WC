@@ -43,8 +43,12 @@ lib/
 Two surface areas:
 
 - **Participant app** (`/`): login → cohort code entry → workshop sections.
-  - Email-first returning flow: typing a known email auto-fills name and hides
-    the workshop-code field, with a "Switch workshop" button to reveal it.
+  - Email-first returning flow: a debounced onChange check (400ms) calls
+    `POST /api/auth/check-email` while the user types. If the email exists,
+    the workshop-code field hides, the name pre-fills, and the button text
+    changes to "Continue". On blur the check fires immediately (cancels
+    debounce). On successful login the stale `/auth/me` query cache is
+    removed before SPA navigation to prevent redirect loops.
   - Driven by `POST /api/auth/check-email` (unauthenticated, returns
     `{ exists, name }`).
   - The gear icon (bottom-left) is a wouter `<Link to="/admin/login">`, no

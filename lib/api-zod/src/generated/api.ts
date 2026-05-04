@@ -483,6 +483,8 @@ export const AdminListCohortSectionsResponse = zod.object({
       visible: zod.boolean(),
       code: zod.string().nullish(),
       codeActive: zod.boolean(),
+      title: zod.string(),
+      type: zod.string(),
     }),
   ),
 });

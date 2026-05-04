@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useParticipantLogin,
   useParticipantCheckEmail,
@@ -37,12 +38,16 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const loginMutation = useParticipantLogin();
   const checkEmail = useParticipantCheckEmail();
 
   // Returning-participant state
   const [isReturning, setIsReturning] = useState(false);
   const [showCohortField, setShowCohortField] = useState(true);
+
+  const lastCheckedEmail = useRef("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // If already authenticated, jump straight to /home.
   const meQuery = useGetCurrentParticipant({
@@ -72,19 +77,17 @@ export default function Login() {
     defaultValues: { cohortCode: "", email: "", name: "" },
   });
 
-  // Email blur → look up participant. If known, prefill name and
-  // collapse the workshop-code field (returning user); otherwise stay
-  // in new-user mode and require the code.
-  const handleEmailBlur = useCallback(
-    (value: string) => {
-      const email = value.trim().toLowerCase();
-      if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-        return;
-      }
+  const fireCheckEmail = useCallback(
+    (raw: string) => {
+      const email = raw.trim().toLowerCase();
+      if (!email || !/^\S+@\S+\.\S+$/.test(email)) return;
+      if (email === lastCheckedEmail.current) return;
+      lastCheckedEmail.current = email;
       checkEmail.mutate(
         { data: { email } },
         {
           onSuccess: (data) => {
+            if (email !== lastCheckedEmail.current) return;
             if (data.exists) {
               if (data.name) form.setValue("name", data.name);
               setIsReturning(true);
@@ -98,6 +101,22 @@ export default function Login() {
       );
     },
     [checkEmail, form],
+  );
+
+  const handleEmailChange = useCallback(
+    (value: string) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => fireCheckEmail(value), 400);
+    },
+    [fireCheckEmail],
+  );
+
+  const handleEmailBlur = useCallback(
+    (value: string) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      fireCheckEmail(value);
+    },
+    [fireCheckEmail],
   );
 
   const onSubmit = (values: LoginFormValues) => {
@@ -135,6 +154,9 @@ export default function Login() {
             cohortId: p.cohortId,
             cohortCode,
             name: p.name ?? undefined,
+          });
+          queryClient.removeQueries({
+            queryKey: getGetCurrentParticipantQueryKey(),
           });
           setLocation("/home");
         },
@@ -186,6 +208,10 @@ export default function Login() {
                         autoComplete="email"
                         data-testid="input-email"
                         {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handleEmailChange(e.target.value);
+                        }}
                         onBlur={(e) => {
                           field.onBlur();
                           handleEmailBlur(e.target.value);

@@ -1405,7 +1405,7 @@ components:
 
     AdminCohortSection:
       type: object
-      required: [id, cohortId, sectionId, level, sortOrder, visible, codeActive]
+      required: [id, cohortId, sectionId, level, sortOrder, visible, codeActive, title, type]
       properties:
         id: { type: integer }
         cohortId: { type: integer }
@@ -1420,6 +1420,8 @@ components:
           type: string
           nullable: true
         codeActive: { type: boolean }
+        title: { type: string }
+        type: { type: string }
 
     AdminCohortSectionsResponse:
       type: object

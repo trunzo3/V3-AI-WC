@@ -22,6 +22,7 @@ import {
 } from "@workspace/db";
 import { requireAdmin } from "../middlewares/auth";
 import { seedCohortSections } from "../lib/cohort-sections";
+import { getHardcodedSection } from "../lib/sections";
 import { sanitizeRichHtml, sanitizeRichHtmlNullable } from "../lib/sanitize";
 
 const router: IRouter = Router();
@@ -267,8 +268,11 @@ router.get(
           type = g.sectionType;
         }
       } else {
-        // hardcoded — title/type filled in client-side from ALL_SECTIONS,
-        // but we still include the cohort row here.
+        const hs = getHardcodedSection(r.sectionId);
+        if (hs) {
+          if (!title) title = hs.title;
+          type = hs.type;
+        }
       }
       return { ...r, title, type };
     });

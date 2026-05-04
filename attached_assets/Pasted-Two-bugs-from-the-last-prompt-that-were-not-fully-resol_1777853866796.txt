@@ -1,0 +1,19 @@
+Two bugs from the last prompt that were not fully resolved:
+
+1. RETURNING PARTICIPANT LOGIN — STILL REQUIRES DOUBLE CLICK
+The login page still shows the workshop code field for returning participants. The expected behavior: when a returning participant enters their email and the field loses focus (blur), the frontend calls POST /auth/check-email. If the email exists, the workshop code field should immediately hide and be replaced with a "Switch workshop" link. The name field should pre-fill. The "Enter Workshop" button should work on a single click.
+
+What's actually happening: the code field stays visible, and the user has to either click into the code field or click the login button once before the field disappears. Then they have to click login again to actually log in.
+
+Debug this by checking:
+- Is the handleEmailBlur function actually calling POST /auth/check-email on blur?
+- Is the response being handled to set the "returning user" state that hides the code field?
+- Is there a race condition where the form submits before the blur handler completes?
+- Is the login button's onClick handler requiring cohortCode even when the user is returning?
+
+The fix must result in: email entered → blur fires → check-email API called → code field hides immediately → name pre-fills → one click on "Enter Workshop" logs them in.
+
+2. ADMIN PANEL — SECTION DISPLAY NAME NOT SHOWING RENAMED TITLE
+The section "county-change-framework" shows "county-change-frame" in the Display Name field in the admin Sections tab. It should show "Change Message Framework" as the display name. The title was updated in ALL_SECTIONS, and the participant-side correctly shows "Change Message Framework", but the admin panel's display name input still shows the old slug-style text.
+
+Check how the Sections tab populates the display_name field. If display_name is null in cohort_sections, the admin UI should show the section's title from ALL_SECTIONS as the placeholder/default value in the display name input — not the section ID. The field currently appears to be falling back to the section ID (county-change-framework) instead of the title (Change Message Framework).

@@ -323,6 +323,8 @@ export interface AdminCohortSection {
   visible: boolean;
   code?: string | null;
   codeActive: boolean;
+  title: string;
+  type: string;
 }
 
 export interface AdminCohortSectionsResponse {
