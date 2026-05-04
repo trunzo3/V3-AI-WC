@@ -107,17 +107,15 @@ export default function Login() {
         ? trimmedName
         : values.email.trim().split("@")[0] || "Participant";
     const cohortCode = (values.cohortCode ?? "").trim().toUpperCase();
-    // New users (cohort code field visible) must enter a code — but only
-    // require it if the email has actually been confirmed as new. If the
-    // user pressed Enter before the email field blurred, isReturning may
-    // still be false even for a known email; the backend resolves that
-    // correctly via email-only fallback when we omit the code, so we
-    // only block here when the field is on-screen *and* the user left
-    // it blank.
-    if (showCohortField && cohortCode.length === 0) {
-      form.setError("cohortCode", { message: "Workshop code is required" });
-      return;
-    }
+    // No client-side block when the cohort code is missing. Two reasons:
+    //   1. Returning users may submit before the email-blur check has
+    //      finished (single-click bug). For them the backend resolves the
+    //      cohort from the email alone — no code required.
+    //   2. New users who genuinely forget the code get a clearer 404
+    //      message from the server: "We don't recognize this email yet.
+    //      Enter your workshop code to join."
+    // Either way, deferring to the backend keeps Login a one-click action
+    // and avoids racing the in-flight check-email request.
     loginMutation.mutate(
       {
         data: {

@@ -12,11 +12,14 @@ interface SidebarProps {
   onNavigateHome?: () => void;
 }
 
+// Sidebar level group headers. Level 4 intentionally omits the "Level 4 — "
+// prefix because it is positioned as a cross-cutting leadership track, not a
+// sequential next step. Edit here to adjust labels.
 const LEVEL_LABELS: Record<number, string> = {
-  1: "Level 1 — Core Workshop",
-  2: "Level 2 — Deeper Practice",
-  3: "Level 3 — Advanced Track",
-  4: "Level 4 — Change Leadership",
+  1: "LEVEL 1 — CORE WORKSHOP",
+  2: "LEVEL 2 — APPLIED MASTERY",
+  3: "LEVEL 3 — AI BUILDER",
+  4: "AI CHANGE LEADERSHIP",
 };
 
 export function Sidebar({
@@ -161,9 +164,17 @@ export function Sidebar({
                             <span
                               className="w-2 h-2 rounded-full bg-accent flex-shrink-0"
                               aria-label="Has notes"
+                              data-testid={`sidebar-status-notes-${section.id}`}
                             />
                           ) : (
-                            <span className="w-3 h-3 flex-shrink-0" aria-hidden />
+                            // Unlocked but no notes yet: thin gold outline
+                            // circle so participants always see *something*
+                            // next to an accessible section.
+                            <span
+                              className="w-2 h-2 rounded-full border border-accent flex-shrink-0"
+                              aria-label="Unlocked, no notes yet"
+                              data-testid={`sidebar-status-unlocked-${section.id}`}
+                            />
                           )}
                           <span className="truncate">{section.title}</span>
                         </button>

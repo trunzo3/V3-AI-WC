@@ -15,6 +15,7 @@ export interface SectionCodeEntry {
 }
 
 export const SECTION_CODE_CONFIG: SectionCodeEntry[] = [
+  // Level 1
   { code: "VERIFY",     sectionIds: ["verification-test"] },
   { code: "SAFARI",     sectionIds: ["tool-safari"] },
   { code: "RICECO",     sectionIds: ["riceco-framework", "draft-with-riceco"] },
@@ -30,7 +31,41 @@ export const SECTION_CODE_CONFIG: SectionCodeEntry[] = [
   { code: "TONIGHT",    sectionIds: ["overnight-assignment", "six-ways-worksheet"] },
   { code: "HARVEST",    sectionIds: ["overnight-harvest"] },
   { code: "WORKFLOW",   sectionIds: ["workflow-configurator"] },
-  { code: "CHANGE",     sectionIds: ["closing"] },
+  // CLOSING gets its own code; "CHANGE" is reused below for the L4
+  // change-message framework section. Keep ids unique per code per the
+  // first-match rule in `buildSectionIdToCodeMap`.
+  { code: "CLOSING",    sectionIds: ["closing"] },
+
+  // Level 2
+  { code: "PROMPT",      sectionIds: ["advanced-prompt-engineering"] },
+  { code: "VOICE",       sectionIds: ["voice-management"] },
+  { code: "CONTEXT2.1",  sectionIds: ["context-architecture"] },
+  { code: "TOOL",        sectionIds: ["tool-configuration"] },
+  { code: "WORKFLOW2.1", sectionIds: ["workflow-optimization"] },
+  { code: "OUTPUT",      sectionIds: ["output-quality"] },
+  { code: "LIBRARY",     sectionIds: ["prompt-library"] },
+  { code: "BIAS",        sectionIds: ["cognitive-bias"] },
+  { code: "SKEPTIC",     sectionIds: ["navigating-skepticism"] },
+
+  // Level 3
+  { code: "VIBE",        sectionIds: ["vibe-coding"] },
+  { code: "AGENTIC",     sectionIds: ["agentic-workflows"] },
+  { code: "BUILD",       sectionIds: ["build-first-tool"] },
+  { code: "TRAIN",       sectionIds: ["training-others"] },
+  { code: "KNOWLEDGE",   sectionIds: ["knowledge-base"] },
+  { code: "DATA",        sectionIds: ["data-visualization"] },
+  { code: "GOVERN",      sectionIds: ["ai-governance"] },
+
+  // Level 4
+  { code: "ADVOCATE",    sectionIds: ["advocating-adoption"] },
+  { code: "RESIST",      sectionIds: ["addressing-resistance"] },
+  { code: "RISK",        sectionIds: ["navigating-risk"] },
+  { code: "EROSION",     sectionIds: ["cognitive-erosion"] },
+  { code: "TEAM",        sectionIds: ["team-prompt-libraries"] },
+  { code: "REPORT",      sectionIds: ["reporting-ai-failures"] },
+  { code: "SQ",          sectionIds: ["status-quo-bias"] },
+  { code: "CHANGE",      sectionIds: ["county-change-framework"] },
+  { code: "MESSAGE",     sectionIds: ["county-change-message"] },
 ];
 
 /**

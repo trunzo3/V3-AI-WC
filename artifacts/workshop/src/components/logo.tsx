@@ -13,7 +13,7 @@ export function Logo({
         src={brandMarkUrl}
         alt=""
         aria-hidden
-        className="h-9 w-9 rounded-sm flex-shrink-0 object-cover"
+        className="h-9 w-9 rounded-sm flex-shrink-0 object-contain"
       />
       <span
         className={`font-serif font-bold text-xl tracking-tight ${

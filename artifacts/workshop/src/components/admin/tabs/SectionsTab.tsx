@@ -49,7 +49,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X } from "lucide-react";
+import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X, Eye } from "lucide-react";
 
 interface Props {
   cohortId: number;
@@ -203,6 +203,44 @@ export function SectionsTab({ cohortId }: Props) {
   const [editingGeneric, setEditingGeneric] = useState<AdminGenericSection | null>(
     null,
   );
+  // Read-only preview dialog for the library list (item 3 of Prompt 7).
+  const [viewingGeneric, setViewingGeneric] = useState<AdminGenericSection | null>(
+    null,
+  );
+
+  // Insert a generic section into the current cohort's section list at the
+  // bottom of the chosen level. Reused by the library "Add to level" picker.
+  const addGenericToLevel = (g: AdminGenericSection, lvl: number) => {
+    const sectionId = `generic_${g.id}`;
+    if (rows.some((r) => r.sectionId === sectionId)) {
+      toast({
+        title: "Already added",
+        description: `"${g.title}" is already in this cohort.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const inLvl = rows.filter((r) => r.level === lvl);
+    const nextSort =
+      inLvl.reduce((m, r) => Math.max(m, r.sortOrder), 0) + 1;
+    const newRow: Row = {
+      id: -Date.now(),
+      cohortId,
+      sectionId,
+      level: lvl,
+      sortOrder: nextSort,
+      displayName: null,
+      visible: true,
+      code: null,
+      codeActive: true,
+    };
+    setRows((prev) => [...prev, newRow]);
+    setDirty(true);
+    toast({
+      title: "Added to level",
+      description: `"${g.title}" added to Level ${lvl}. Click Save to persist.`,
+    });
+  };
   interface GenForm {
     title: string;
     contentBlocks: GenericContentBlock[];
@@ -752,54 +790,192 @@ export function SectionsTab({ cohortId }: Props) {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {generics.map((g) => (
-                <div
-                  key={g.id}
-                  className="flex items-center justify-between p-2 border rounded-md"
-                >
-                  <div className="min-w-0">
-                    <div className="font-medium">{g.title}</div>
-                    <div className="text-xs text-muted-foreground font-mono">
-                      generic_{g.id} · {g.sectionType}
+              {generics.map((g) => {
+                const sectionId = `generic_${g.id}`;
+                const alreadyInCohort = rows.some(
+                  (r) => r.sectionId === sectionId,
+                );
+                return (
+                  <div
+                    key={g.id}
+                    className="flex items-center justify-between p-2 border rounded-md"
+                    data-testid={`generic-library-row-${g.id}`}
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium">{g.title}</div>
+                      <div className="text-xs text-muted-foreground font-mono">
+                        generic_{g.id} · {g.sectionType}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setViewingGeneric(g)}
+                        data-testid={`button-view-generic-${g.id}`}
+                      >
+                        <Eye className="w-4 h-4 mr-1.5" />
+                        View
+                      </Button>
+                      {alreadyInCohort ? (
+                        <Badge
+                          variant="secondary"
+                          className="text-xs"
+                          data-testid={`badge-already-added-${g.id}`}
+                        >
+                          Already added
+                        </Badge>
+                      ) : (
+                        <Select
+                          value=""
+                          onValueChange={(v) =>
+                            addGenericToLevel(g, Number(v))
+                          }
+                        >
+                          <SelectTrigger
+                            className="w-[150px] h-9"
+                            data-testid={`select-add-to-level-${g.id}`}
+                          >
+                            <SelectValue placeholder="Add to level…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">Level 1</SelectItem>
+                            <SelectItem value="2">Level 2</SelectItem>
+                            <SelectItem value="3">Level 3</SelectItem>
+                            <SelectItem value="4">Level 4</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            data-testid={`button-delete-generic-${g.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Delete generic section?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will remove "{g.title}" from every cohort
+                              that uses it. This cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteGeneric(g)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEditGeneric(g)}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete generic section?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will remove "{g.title}" from every cohort that
-                            uses it. This cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => deleteGeneric(g)}>
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Read-only preview dialog. Editing happens from the main section
+          list (each level row has its own Edit pencil), so this is just a
+          quick "what's in this section?" peek. */}
+      <Dialog
+        open={viewingGeneric !== null}
+        onOpenChange={(open) => !open && setViewingGeneric(null)}
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
+            <DialogTitle data-testid="dialog-view-generic-title">
+              {viewingGeneric?.title ?? "Generic section preview"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto px-6 py-2 flex-1 min-h-0 space-y-4">
+            {viewingGeneric && (
+              <>
+                <div className="text-xs text-muted-foreground font-mono">
+                  generic_{viewingGeneric.id} · {viewingGeneric.sectionType}
+                </div>
+                {viewingGeneric.goalText && (
+                  <div className="bg-muted/40 border rounded-md p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
+                      Goal
+                    </div>
+                    <div className="text-sm">{viewingGeneric.goalText}</div>
+                  </div>
+                )}
+                {(() => {
+                  const blocks = Array.isArray(viewingGeneric.contentBlocks)
+                    ? (viewingGeneric.contentBlocks as GenericContentBlock[])
+                    : [];
+                  if (blocks.length === 0) {
+                    return (
+                      <div className="text-sm text-muted-foreground italic">
+                        No content blocks.
+                      </div>
+                    );
+                  }
+                  let promptIdx = 0;
+                  return blocks.map((b, i) => {
+                    if (b.type === "prompt") {
+                      promptIdx += 1;
+                      return (
+                        <div
+                          key={i}
+                          className="border rounded-md p-3 bg-primary/5"
+                        >
+                          <Badge
+                            className="text-[10px] uppercase tracking-widest mb-2"
+                            variant="default"
+                          >
+                            Prompt {promptIdx}
+                          </Badge>
+                          <pre className="font-mono text-xs whitespace-pre-wrap text-foreground">
+                            {b.content}
+                          </pre>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={i} className="border rounded-md p-3">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] uppercase tracking-widest mb-2"
+                        >
+                          Text
+                        </Badge>
+                        <div
+                          className="prose prose-sm max-w-none"
+                          // Server-side sanitized via sanitizeRichHtml on
+                          // admin write.
+                          dangerouslySetInnerHTML={{ __html: b.content }}
+                        />
+                      </div>
+                    );
+                  });
+                })()}
+              </>
+            )}
+          </div>
+          <DialogFooter className="px-6 pb-6 pt-2 shrink-0 border-t bg-background">
+            <Button
+              variant="ghost"
+              onClick={() => setViewingGeneric(null)}
+              data-testid="button-close-view-generic"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

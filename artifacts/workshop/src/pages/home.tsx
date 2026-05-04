@@ -36,10 +36,15 @@ export default function Home() {
   const talkUrl = (settings as Record<string, string> | undefined)?.["talk_with_anthony_url"] || "https://talkwithanthony.com";
 
   const handleLogout = () => {
+    // Match the sidebar behaviour: hard-reload to "/" after the API call so
+    // the React Query cache (esp. the cached `useGetCurrentParticipant`
+    // payload) is fully discarded. SPA navigation kept the cached `me` data
+    // alive, which the login page then used to auto-redirect back to /home,
+    // forcing the user to click "Log out" twice.
     logoutMutation.mutate(undefined as any, {
       onSettled: () => {
         clearSession();
-        setLocation("/");
+        window.location.href = import.meta.env.BASE_URL || "/";
       },
     });
   };

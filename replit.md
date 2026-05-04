@@ -60,6 +60,12 @@ Two surface areas:
   - Generic-section bodies use a block editor (text/prompt blocks, reorderable);
     cohort facilitator + home-screen messages use a Tiptap WYSIWYG
     (`components/admin/RichTextEditor.tsx`, with bold/italic/underline).
+  - The "Generic section library" card on the Sections tab exposes per-row
+    **View** (read-only preview dialog) and **Add to level…** (Select L1-L4 →
+    appends a new cohort_section row) actions; rows already present in the
+    cohort show an "Already added" badge instead of the Select. There is no
+    inline edit pencil on the library list (edit happens in the dedicated
+    create/edit dialog).
   - Cohorts have a `home_message` HTML field rendered above the action cards
     on the participant home page (`data-testid="home-message"`).
   - The participant home header shows the cohort name (from `/api/auth/me`)

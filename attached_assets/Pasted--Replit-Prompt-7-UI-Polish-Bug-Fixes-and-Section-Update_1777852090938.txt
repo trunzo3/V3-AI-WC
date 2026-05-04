@@ -1,0 +1,153 @@
+# Replit Prompt 7 — UI Polish, Bug Fixes, and Section Updates
+
+## Context
+
+Prompts 1–6 are complete. This prompt covers remaining UI bugs, visual polish, and section configuration changes. All changes use existing infrastructure.
+
+---
+
+## 1. Brand Mark — Fix Image Clipping
+
+The logo/brand mark in the nav bar is being clipped on the top and bottom. The image has white padding baked in, but the component is cropping it. Fix: change the logo image element to use object-fit: contain (not cover or fill) so the full image including its padding renders without clipping. Do not crop, stretch, or alter the aspect ratio.
+
+---
+
+## 2. Sidebar — Unlocked Section Icons
+
+Currently unlocked sections show no icon. Fix the sidebar to show three states:
+
+- LOCKED: lock icon (this is already working correctly)
+- UNLOCKED, NO NOTES: thin gold (#C8963E) outline circle (no fill) — signals "accessible but not yet worked on"
+- UNLOCKED, HAS NOTES: filled gold (#C8963E) dot — signals "you've been here and worked on this"
+
+The distinction between outline circle and filled dot gives participants a visual progress map without requiring them to understand what the dot means — unlocked sections always have something visible next to them.
+
+---
+
+## 3. Generic Section Library — Admin Panel
+
+At the bottom of the Sections tab there is a "Generic section library" showing all generic sections. Currently each has an edit button. Change the behavior:
+
+- Remove the edit button from the library list (editing happens from wherever the section sits within a level)
+- Add a "View" button that opens a read-only preview of the section content
+- Add an "Add to level" dropdown button with options: Level 1, Level 2, Level 3, Level 4. When selected, the generic section is inserted into the current cohort's section list at the bottom of the chosen level. From there, the admin uses the normal up/down arrows to reorder it within the level.
+- If the generic section is already in the current cohort, show "Already added" instead of the dropdown (prevent duplicates)
+
+---
+
+## 4. Returning Participant Login — Fix Double-Click Bug
+
+When a returning participant enters their email, the workshop code field should NOT be visible at all. Currently it shows an empty text input that the user must click into (or click Login once) before it disappears and shows the "Switch workshop" link.
+
+Fix: When the email-blur check confirms the participant exists (via POST /auth/check-email), immediately:
+- Hide the workshop code field entirely
+- Show the "Switch workshop" link in its place
+- Pre-fill the name field with the stored name
+- The "Enter Workshop" / "Login" button should work on a single click — no double-click required
+
+The code field should only appear if: (a) it's a brand new participant, or (b) a returning participant clicks "Switch workshop."
+
+---
+
+## 5. Default Unlock Codes for Levels 2, 3, and 4
+
+Update SECTION_CODE_CONFIG in artifacts/api-server/src/section-codes-config.ts to add default codes for all Level 2, 3, and 4 sections:
+
+Level 2 codes:
+- advanced-prompt-engineering → PROMPT
+- voice-management → VOICE
+- context-architecture → CONTEXT2.1
+- tool-configuration → TOOL
+- workflow-optimization → WORKFLOW2.1
+- output-quality → OUTPUT
+- prompt-library → LIBRARY
+- cognitive-bias → BIAS
+- navigating-skepticism → SKEPTIC
+
+Level 3 codes:
+- vibe-coding → VIBE
+- agentic-workflows → AGENTIC
+- build-first-tool → BUILD
+- training-others → TRAIN
+- knowledge-base → KNOWLEDGE
+- data-visualization → DATA
+- ai-governance → GOVERN
+
+Level 4 codes:
+- advocating-adoption → ADVOCATE
+- addressing-resistance → RESIST
+- navigating-risk → RISK
+- cognitive-erosion → EROSION
+- team-prompt-libraries → TEAM
+- reporting-ai-failures → REPORT
+- status-quo-bias → SQ
+- county-change-framework → CHANGE
+- county-change-message → MESSAGE
+
+After updating SECTION_CODE_CONFIG, re-run the seed to apply these default codes to all existing cohorts' cohort_sections entries.
+
+---
+
+## 6. Rename "County Change Framework"
+
+In ALL_SECTIONS (artifacts/api-server/src/lib/sections.ts):
+- Change the title of "county-change-framework" from whatever it currently says to "Change Message Framework"
+- Change the title of "county-change-message" from whatever it currently says to "Build Your Change Message"
+
+These are title changes only — the section IDs stay the same. Also update any hardcoded title strings inside the CountyChangeFramework and CountyChangeMessage components to use the title prop instead of hardcoded text.
+
+---
+
+## 7. Sidebar Level Labels
+
+Change the sidebar level group headers to this exact format:
+
+- Level 1 sections: "LEVEL 1 — CORE WORKSHOP"
+- Level 2 sections: "LEVEL 2 — APPLIED MASTERY"
+- Level 3 sections: "LEVEL 3 — AI BUILDER"
+- Level 4 sections: "AI CHANGE LEADERSHIP" (no "Level 4" prefix — this is intentional, not a mistake)
+
+The first three levels show their number to signal sequential progression. Level 4 drops the number because it's a cross-cutting leadership track, not a sequential next step.
+
+These labels should come from a configuration or constants file so they can be adjusted later. The mapping is: level 1 = "LEVEL 1 — CORE WORKSHOP", level 2 = "LEVEL 2 — APPLIED MASTERY", level 3 = "LEVEL 3 — AI BUILDER", level 4 = "AI CHANGE LEADERSHIP".
+
+---
+
+## 8. Facilitator Message Card — Home Screen
+
+The facilitator message is saved in the cohort settings but does not appear on the participant home screen. Add a card between the "YOUR PROGRESS" bar and the "Self-Assessment / Talk with Anthony" cards.
+
+Card design:
+- White background
+- 1px border (#E8E4DC)
+- 12px border-radius
+- 28px padding
+- 4px gold (#C8963E) left border
+- "FROM YOUR FACILITATOR" label at top: gold color, 11px font size, 700 weight, 1.5px letter-spacing, uppercase
+- Below the label: the facilitator message content rendered as HTML (it comes from the WYSIWYG editor and may contain bold, italic, links, lists, etc.)
+- The facilitator message comes from the cohort data returned by GET /auth/me (the facilitator_message field on the cohort)
+- If facilitator_message is null or empty string, do not render the card at all
+
+---
+
+## 9. Home Screen Logout — Fix Double-Click Bug
+
+The "Log out" link on the home screen requires two clicks to fully log out. The first click changes the link color but does not redirect. The second click completes the logout.
+
+The sidebar logout works correctly with one click. Fix the home screen logout to match the sidebar behavior: call the logout API, await the response, clear the session/local state, and redirect to the login page — all in a single click. Ensure the onClick handler awaits the API call before navigating and that no component re-render interrupts the navigation.
+
+---
+
+## 10. Home Screen Header — Show Workshop Name
+
+The top-right corner of the nav bar on the home screen currently shows "COHORT0.6" or the cohort code. It should show the cohort's display name instead (e.g., "SWERT Fresno June 2026"). Pull the cohort name from the cohort data returned by GET /auth/me.
+
+---
+
+## DO NOT in this prompt:
+- Change the cohort system, auth flow logic, or section code unlock logic
+- Touch hardcoded section components (Day1.tsx, Day2.tsx) except to use title prop instead of hardcoded strings
+- Modify the block editor, WYSIWYG, or generic section rendering
+- Change the database schema beyond what is specified
+- Touch the PDF export
+- Add new npm dependencies
