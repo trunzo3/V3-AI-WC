@@ -11,9 +11,9 @@ import {
   unlockedSectionsTable,
   workflowMapsTable,
   genericSectionsTable,
+  contentVariantsTable,
 } from "@workspace/db";
 import {
-  ALL_SECTIONS,
   getHardcodedSection,
   isGenericSectionId,
   parseGenericSectionId,
@@ -76,6 +76,180 @@ interface SectionLite {
   generic: { contentBlocks: Array<{ type: string; content: string }>; goalText: string | null } | null;
 }
 
+const FALLBACK_CLOSING_QUOTE = `"Small things.\nUnlikely places.\nExtraordinary work."`;
+const FALLBACK_CLOSING_SUBTEXT = "You don't have to be first, but you have to be ready.";
+
+// Hardcoded reference content per section. Rendered between the goal box and
+// the participant's structured fields / notes. Keep styling minimal — body
+// copy with bold subheads. The gold-bordered block is reserved for the
+// participant's free-form notes.
+const SECTION_REFERENCE_CONTENT: Record<string, string> = {
+  "verification-test": `
+    <p><strong>The Exercise</strong></p>
+    <p>You were given a prompt containing statistics with deliberate errors. You pasted it into one or more AI tools and checked whether the AI caught the mistakes.</p>
+    <p><strong>Key Takeaway</strong></p>
+    <p>No single AI tool reliably catches every factual error. The verification habit — checking AI output against primary sources before sharing — is the most important skill from this workshop.</p>
+  `,
+  "tool-safari": `
+    <p><strong>The Exercise</strong></p>
+    <p>You explored multiple AI tools hands-on, using guided worksheets to compare how each tool handles the same types of tasks.</p>
+    <p>Each tool has strengths and limitations. Choosing the right tool for the job matters more than mastering one tool for everything.</p>
+  `,
+  "riceco-framework": `
+    <p><strong>The RICECO Framework</strong></p>
+    <table class="ref-table">
+      <thead>
+        <tr><th>Letter</th><th>Element</th><th>Question</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>R</td><td>Role</td><td>Who is the AI acting as?</td></tr>
+        <tr><td>I</td><td>Instruction</td><td>What exactly do you want it to do?</td></tr>
+        <tr><td>C</td><td>Context</td><td>What background information is needed?</td></tr>
+        <tr><td>E</td><td>Examples</td><td>What does good look like?</td></tr>
+        <tr><td>C</td><td>Constraints</td><td>What rules must it follow?</td></tr>
+        <tr><td>O</td><td>Output Format</td><td>How should the final result be formatted?</td></tr>
+      </tbody>
+    </table>
+    <p><strong>The 80% Shortcut</strong></p>
+    <p>You don't need all six every time. For most daily tasks, I + C + C — Instruction, Context, Constraints — gets you 80% of the way there.</p>
+  `,
+  "draft-with-riceco": `
+    <p><strong>The Exercise</strong></p>
+    <p>You picked a real task from your 6 Ways worksheet and built a complete RICECO prompt to draft it. The fields below show what you entered for each RICECO element.</p>
+  `,
+  "llm-peer-review": `
+    <p><strong>The Exercise</strong></p>
+    <p>You ran the same task through two different AI tools and compared their outputs. Then you used one model to critique the other's work.</p>
+    <p><strong>The Critique Scaffold</strong></p>
+    <p>"Here are the instructions I gave to [Model A]. Below is the response. Critique only. Do not redraft."</p>
+    <p><strong>Why This Matters</strong></p>
+    <p>AI models have different strengths and blind spots. Using a second model as a reviewer catches errors that a single model misses — especially factual claims, logical gaps, and tone issues.</p>
+  `,
+  "distill": `
+    <p><strong>The Exercise</strong></p>
+    <p>You took something complex and turned it into something clear — a long document into a summary, policy language into plain language, or dense data into key takeaways.</p>
+    <p><strong>RICECO Scaffold for Distillation</strong></p>
+    <p>I: Summarize the attached document.<br/>
+    C: The audience is busy executives who need the bottom line.<br/>
+    C: Keep it under 300 words. No jargon.<br/>
+    O: 3 bullet points of key takeaways, 1 paragraph summary.</p>
+  `,
+  "prepare": `
+    <p><strong>The Exercise</strong></p>
+    <p>You used AI to prepare for a high-stakes conversation — anticipating objections, practicing responses, and planning your approach before the real thing.</p>
+    <p><strong>RICECO Scaffold for Preparation</strong></p>
+    <p>R: You are a skeptical [stakeholder type].<br/>
+    I: Roleplay a conversation with me about [topic].<br/>
+    C: We are at [setting]. I am presenting [what].<br/>
+    C: Push back on my points. Ask one question at a time.<br/>
+    O: Dialogue format. Wait for my response before replying.</p>
+  `,
+  "synthesize": `
+    <p><strong>The Exercise</strong></p>
+    <p>You used AI to find patterns across multiple documents — identifying common themes, contradictions, and gaps that would take hours to spot manually.</p>
+    <p><strong>RICECO Scaffold for Synthesis</strong></p>
+    <p>I: Review the attached reports and identify common themes.<br/>
+    C: Focus on recurring challenges and proposed solutions.<br/>
+    C: Cite which document each point comes from.<br/>
+    O: A thematic summary table with source attribution.</p>
+  `,
+  "power-follow-ups": `
+    <p><strong>Nine Moves to Refine AI Output</strong></p>
+    <ol class="ref-list">
+      <li><strong>Go Deeper</strong> — "Expand on point 3 with specific examples."</li>
+      <li><strong>Change Format</strong> — "Rewrite this as a table / email / FAQ / one-pager."</li>
+      <li><strong>Shift Audience</strong> — "Rewrite for [board members / new staff / the public]."</li>
+      <li><strong>Challenge It</strong> — "What are the strongest counterarguments to this?"</li>
+      <li><strong>Simplify</strong> — "A smart 8th grader should understand this. Rewrite."</li>
+      <li><strong>Add Constraints</strong> — "Now do it in under 200 words / without jargon / in Spanish."</li>
+      <li><strong>Verify</strong> — "What sources support these claims? Flag anything you're uncertain about."</li>
+      <li><strong>Compare</strong> — "How does this compare to [alternative approach]?"</li>
+      <li><strong>Pressure-Test</strong> — "What's missing? What would a skeptic say?"</li>
+    </ol>
+    <p>These work with any AI tool, on any task. Use them after your first prompt to push the output from "okay" to "actually useful."</p>
+  `,
+  "what-ai-is": `
+    <p><strong>Core Concept</strong></p>
+    <p>AI is pattern matching, not thinking. The same process that produces correct answers also produces hallucinations. It doesn't know the difference.</p>
+    <p><strong>What This Means for Your Work</strong></p>
+    <p>AI can draft, brainstorm, summarize, and restructure. It cannot verify facts, exercise professional judgment, or understand the human stakes of your decisions. Every output needs a human checkpoint before it reaches a client, a colleague, or a decision-maker.</p>
+  `,
+  "persistent-context": `
+    <p><strong>Core Concept</strong></p>
+    <p>Stop re-explaining yourself. Move from one-off chats to persistent, reusable workflows.</p>
+    <p><strong>Persistent Context Tools</strong></p>
+    <table class="ref-table">
+      <thead>
+        <tr><th>Tool Type</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Custom Instructions</td><td>Basic rules applied to every chat.</td></tr>
+        <tr><td>Projects / Spaces</td><td>Scoped context for specific workflows.</td></tr>
+        <tr><td>Custom GPTs</td><td>Shareable, specialized bots with specific knowledge.</td></tr>
+        <tr><td>NotebookLM</td><td>Retrieval-Augmented Generation. Highest accuracy on specific docs.</td></tr>
+      </tbody>
+    </table>
+  `,
+  "red-yellow-green": `
+    <p><strong>The Exercise</strong></p>
+    <p>Your team sorted AI use cases into three categories based on risk level and built shared judgment about what's appropriate in your work context.</p>
+  `,
+  "capstone": `
+    <p><strong>The Exercise</strong></p>
+    <p>You picked real tasks from your work and matched each one to one of the 6 Ways to use AI. Then you built a complete AI-assisted work product: prompt, run, verify, revise.</p>
+    <p><strong>The 6 Ways to Use AI</strong></p>
+    <ol class="ref-list">
+      <li><strong>Draft</strong> — Create something new (email, report, talking points, agenda)</li>
+      <li><strong>Brainstorm</strong> — Generate options or ideas (approaches, solutions, alternatives)</li>
+      <li><strong>Prepare</strong> — Get ready for a conversation (anticipate objections, plan questions)</li>
+      <li><strong>Synthesize</strong> — Find patterns across sources (themes in feedback, documents)</li>
+      <li><strong>Distill</strong> — Make complex things clear (policy to plain language, long to short)</li>
+      <li><strong>Critique</strong> — Evaluate and find weaknesses (check a draft, identify gaps)</li>
+    </ol>
+  `,
+  "overnight-assignment": `
+    <p><strong>The Assignment</strong></p>
+    <p>Use what you learned today on one safe, low-stakes task before tomorrow. Come back ready to report what happened — what worked, what surprised you, and what you'd do differently.</p>
+  `,
+  "overnight-harvest": `
+    <p><strong>The Exercise</strong></p>
+    <p>You shared what you learned from your overnight task and surfaced the workflow worth mapping today. The goal: move from "I tried a prompt" to "I found a process worth redesigning."</p>
+  `,
+  "workflow-configurator": `
+    <p><strong>The Exercise</strong></p>
+    <p>You mapped a real workflow from your job — documenting how it works today, redesigning it with AI insertion points, and defining the human verification checkpoints and stop conditions that keep it safe.</p>
+  `,
+  "status-quo-bias": `
+    <p><strong>Core Concept</strong></p>
+    <p>Your director isn't being irrational. They're experiencing the same cognitive patterns that drive most decisions: loss aversion, status quo bias, and the endowment effect.</p>
+    <p><strong>Why This Matters for AI Adoption</strong></p>
+    <p>People overvalue what they already have (current processes) and overweight potential losses (what could go wrong) relative to potential gains (what AI could improve). Understanding this helps you pitch change in terms that work with these biases, not against them.</p>
+  `,
+  "county-change-framework": `
+    <p><strong>The 5-Step Change Narrative</strong></p>
+    <ol class="ref-list">
+      <li><strong>Acknowledge the Current State</strong> — Show you understand how things work today and why.</li>
+      <li><strong>Name the Tension</strong> — Identify the gap between what is and what could be.</li>
+      <li><strong>Introduce the Possibility</strong> — Present AI as a tool that addresses the tension.</li>
+      <li><strong>Address the Fear</strong> — Name the risks honestly and show your mitigation plan.</li>
+      <li><strong>Make the Ask</strong> — Propose a specific, low-risk pilot — not a transformation.</li>
+    </ol>
+  `,
+  "county-change-message": `
+    <p><strong>The Exercise</strong></p>
+    <p>You drafted a change narrative tailored to your county's context, using the 5-step framework to pitch AI adoption to risk-averse leadership.</p>
+  `,
+};
+
+function renderClosingQuoteBlock(quote: string, subtext: string | null): string {
+  return `
+    <div class="closing-quote">
+      <div class="closing-quote-text">${nl2br(quote)}</div>
+      ${subtext ? `<div class="closing-quote-subtext">${escapeHtml(subtext)}</div>` : ""}
+    </div>
+  `;
+}
+
 interface RenderedNote {
   fieldKey: string;
   label: string;
@@ -132,7 +306,7 @@ function labelForFieldKey(sectionId: string, fieldKey: string): string {
   // RICECO (draft-with-riceco uses "draft-<key>")
   if (fieldKey.startsWith("draft-")) {
     const k = fieldKey.slice("draft-".length);
-    if (RICECO_FIELD_LABELS[k]) return `Draft — ${RICECO_FIELD_LABELS[k]}`;
+    if (RICECO_FIELD_LABELS[k]) return RICECO_FIELD_LABELS[k];
   }
   // Capstone six-ways rows
   if (SIX_WAYS_LABELS[fieldKey]) return SIX_WAYS_LABELS[fieldKey];
@@ -268,17 +442,39 @@ function renderGenericBlocks(blocks: Array<{ type: string; content: string }>): 
     .join("");
 }
 
-function renderNotes(notes: RenderedNote[]): string {
+// Structured field blocks (RICECO fields, R/Y/G categories, 6 Ways rows, etc.).
+// Visually distinct from the gold-bordered "Your Notes" block.
+function renderStructuredFields(sectionId: string, notes: RenderedNote[]): string {
   if (notes.length === 0) return "";
-  return `<div class="notes-list">${notes
-    .map(
-      (n) => `
-        <div class="note">
-          <div class="note-label">${escapeHtml(n.label)}</div>
-          <div class="note-body">${nl2br(n.content)}</div>
-        </div>`,
-    )
+  const isRyg = sectionId === "red-yellow-green";
+  return `<div class="fields-list">${notes
+    .map((n) => {
+      let extraClass = "";
+      if (isRyg) {
+        if (n.fieldKey === "red") extraClass = "field-red";
+        else if (n.fieldKey === "yellow") extraClass = "field-yellow";
+        else if (n.fieldKey === "green") extraClass = "field-green";
+      }
+      return `
+        <div class="field-block ${extraClass}">
+          <div class="field-label">${escapeHtml(n.label)}</div>
+          <div class="field-body">${nl2br(n.content)}</div>
+        </div>`;
+    })
     .join("")}</div>`;
+}
+
+function renderYourNotesBlock(freeformContent: string | null): string {
+  const body = freeformContent && freeformContent.trim()
+    ? `<div class="note-body">${nl2br(freeformContent)}</div>`
+    : `<div class="note-body empty-notes">No notes recorded</div>`;
+  return `
+    <div class="notes-list">
+      <div class="note">
+        <div class="note-label">Your Notes</div>
+        ${body}
+      </div>
+    </div>`;
 }
 
 function buildHtml(opts: {
@@ -286,13 +482,16 @@ function buildHtml(opts: {
   participantEmail: string;
   cohortName: string;
   generatedDate: string;
+  closingQuote: string;
+  closingSubtext: string | null;
   sectionsByLevel: Map<number, Array<{
     section: SectionLite;
-    notes: RenderedNote[];
+    structuredNotes: RenderedNote[];
+    freeformNote: string | null;
     workflowMapHtml: string;
   }>>;
 }): string {
-  const { participantName, participantEmail, cohortName, generatedDate, sectionsByLevel } = opts;
+  const { participantName, participantEmail, cohortName, generatedDate, closingQuote, closingSubtext, sectionsByLevel } = opts;
 
   const levels = Array.from(sectionsByLevel.keys()).sort((a, b) => a - b);
 
@@ -335,11 +534,18 @@ function buildHtml(opts: {
       const items = sectionsByLevel.get(level) ?? [];
       const sectionsHtml = items
         .map((it, idx) => {
-          const { section, notes, workflowMapHtml } = it;
+          const { section, structuredNotes, freeformNote, workflowMapHtml } = it;
           const goal = section.isGeneric ? section.generic?.goalText : section.description;
           const genericBody = section.isGeneric
             ? renderGenericBlocks(section.generic?.contentBlocks ?? [])
             : "";
+          // Reference content (hardcoded for known sections, special-case for closing)
+          let referenceHtml = "";
+          if (section.id === "closing") {
+            referenceHtml = renderClosingQuoteBlock(closingQuote, closingSubtext);
+          } else if (!section.isGeneric && SECTION_REFERENCE_CONTENT[section.id]) {
+            referenceHtml = `<div class="ref-content">${SECTION_REFERENCE_CONTENT[section.id]}</div>`;
+          }
           // Avoid an extra page break before the first section in a level
           const breakClass = idx === 0 ? "" : "section-break";
           return `
@@ -347,9 +553,11 @@ function buildHtml(opts: {
               <div class="section-eyebrow">${escapeHtml(section.type === "reference" ? "Reference" : section.type === "exercise" ? "Exercise" : section.type)}</div>
               <h3 class="section-title">${escapeHtml(section.title)}</h3>
               ${goal ? `<div class="goal-box"><div class="goal-label">Goal</div><div class="goal-text">${nl2br(goal)}</div></div>` : ""}
+              ${referenceHtml}
               ${genericBody ? `<div class="generic-body">${genericBody}</div>` : ""}
+              ${renderStructuredFields(section.id, structuredNotes)}
               ${workflowMapHtml}
-              ${renderNotes(notes)}
+              ${renderYourNotesBlock(freeformNote)}
             </article>
           `;
         })
@@ -499,6 +707,91 @@ function buildHtml(opts: {
     margin-bottom: 4px;
   }
   .goal-text { font-size: 11pt; color: ${NAVY}; }
+
+  /* Reference content (hardcoded teaching copy per section) */
+  .ref-content { margin: 14px 0 18px; font-size: 10.5pt; line-height: 1.6; color: ${NAVY}; }
+  .ref-content p { margin: 0 0 8px; }
+  .ref-content p strong { font-weight: 700; }
+  .ref-content ol.ref-list, .ref-content ul.ref-list { margin: 8px 0 12px; padding-left: 22px; }
+  .ref-content ol.ref-list li, .ref-content ul.ref-list li { margin-bottom: 5px; }
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 14px;
+    font-size: 10pt;
+  }
+  .ref-table th {
+    text-align: left;
+    background: rgba(26, 39, 68, 0.04);
+    color: ${NAVY};
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 8.5pt;
+    padding: 8px 10px;
+    border-bottom: 1.5px solid ${GOLD};
+  }
+  .ref-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid ${BORDER};
+    vertical-align: top;
+    color: ${NAVY};
+  }
+  .ref-table tbody tr:last-child td { border-bottom: none; }
+
+  /* Closing quote block */
+  .closing-quote {
+    background: ${NAVY};
+    color: #fff;
+    border-top: 4px solid ${GOLD};
+    border-radius: 8px;
+    padding: 32px 28px;
+    text-align: center;
+    margin: 18px 0;
+    page-break-inside: avoid;
+  }
+  .closing-quote-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22pt;
+    line-height: 1.3;
+    color: #fff;
+    white-space: pre-line;
+  }
+  .closing-quote-subtext {
+    margin-top: 16px;
+    font-style: italic;
+    font-size: 11pt;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  /* Structured field blocks (RICECO, R/Y/G, 6 Ways, etc.) */
+  .fields-list { margin: 14px 0 4px; }
+  .field-block {
+    background: #fff;
+    border: 1px solid ${BORDER};
+    border-left: 3px solid #94a3b8;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    page-break-inside: avoid;
+  }
+  .field-label {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-size: 8.5pt;
+    color: ${NAVY};
+    margin-bottom: 4px;
+  }
+  .field-body { font-size: 10.5pt; color: ${NAVY}; white-space: pre-wrap; line-height: 1.5; }
+  .field-block.field-red { border-left-color: #dc2626; }
+  .field-block.field-yellow { border-left-color: #d97706; }
+  .field-block.field-green { border-left-color: #16a34a; }
+  .field-block.field-red .field-label { color: #dc2626; }
+  .field-block.field-yellow .field-label { color: #b45309; }
+  .field-block.field-green .field-label { color: #16a34a; }
+
+  .empty-notes { font-style: italic; color: ${MUTED}; }
 
   .generic-body { margin: 16px 0; }
   .text-block { margin-bottom: 12px; color: ${NAVY}; }
@@ -680,12 +973,30 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     .limit(1);
   const workflowMapHtmlGlobal = workflowMapRow ? renderWorkflowMap(workflowMapRow.data) : "";
 
+  // Load content variants for closing quote / subtext (cohort overrides).
+  const closingVariantRows = await db
+    .select({
+      blockKey: contentVariantsTable.blockKey,
+      content: contentVariantsTable.content,
+    })
+    .from(contentVariantsTable)
+    .where(
+      and(
+        eq(contentVariantsTable.cohortId, cohortId),
+        eq(contentVariantsTable.sectionId, "closing"),
+      ),
+    );
+  const closingByKey = new Map(closingVariantRows.map((r) => [r.blockKey, r.content] as const));
+  const closingQuote = closingByKey.get("closing_quote")?.trim() || FALLBACK_CLOSING_QUOTE;
+  const closingSubtext = closingByKey.get("closing_subtext")?.trim() || FALLBACK_CLOSING_SUBTEXT;
+
   const tierAccess = cohort.tierAccess ?? {};
 
   // Build a list of unlocked sections with assembled metadata.
   type Assembled = {
     section: SectionLite;
-    notes: RenderedNote[];
+    structuredNotes: RenderedNote[];
+    freeformNote: string | null;
     workflowMapHtml: string;
   };
   const assembled: Assembled[] = [];
@@ -750,19 +1061,17 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
         content: n.content,
       };
     });
+    // Split: structured fields (everything except free-form "notes") render in
+    // their own block. The "notes" fieldKey goes into the gold "Your Notes"
+    // block (with an empty-state if absent).
+    const structuredNotes = renderedNotes.filter((n) => n.fieldKey !== "notes");
+    const freeformNote = renderedNotes.find((n) => n.fieldKey === "notes")?.content ?? null;
 
     // Attach workflow map HTML to the workflow-configurator section only.
     const workflowMapHtml =
       cs.sectionId === "workflow-configurator" ? workflowMapHtmlGlobal : "";
 
-    // Skip sections that have no notes AND no generic content blocks AND no workflow map.
-    const hasGenericBody =
-      isGeneric && (generic?.contentBlocks ?? []).length > 0;
-    if (renderedNotes.length === 0 && !hasGenericBody && !workflowMapHtml) {
-      continue;
-    }
-
-    assembled.push({ section: sectionLite, notes: renderedNotes, workflowMapHtml });
+    assembled.push({ section: sectionLite, structuredNotes, freeformNote, workflowMapHtml });
   }
 
   // Sort and group by level.
@@ -784,6 +1093,8 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     participantEmail: participant.email,
     cohortName: cohort.name || "",
     generatedDate: formatDate(new Date()),
+    closingQuote,
+    closingSubtext,
     sectionsByLevel,
   });
 

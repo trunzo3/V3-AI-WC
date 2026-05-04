@@ -1,0 +1,321 @@
+# Replit Prompt 11 — Enrich PDF Workbook Content
+
+## What This Prompt Does
+
+The PDF workbook currently shows only section titles, goals, and participant notes. Each page needs enough reference content that a participant can use the workbook as a standalone resource months later. This prompt adds hardcoded teaching content to each section's PDF page and fixes two bugs.
+
+---
+
+## 1. Bug Fix — Show All Unlocked Sections
+
+The PDF currently skips sections where the participant has no notes. Change this: every unlocked section appears in the PDF. Sections with no notes render the section header, goal, reference content (see below), and a "No notes recorded" message in muted italic text. Do not skip any unlocked section.
+
+---
+
+## 2. Bug Fix — Remove "DRAFT —" Prefix from RICECO Labels
+
+In the Draft with RICECO section of the PDF, the RICECO field labels currently show as "DRAFT — ROLE", "DRAFT — INSTRUCTION", "DRAFT — CONTEXT", etc. Remove the "DRAFT —" prefix. The labels should just be "ROLE", "INSTRUCTION", "CONTEXT", "EXAMPLES", "CONSTRAINTS", "OUTPUT FORMAT".
+
+---
+
+## 3. Add Reference Content to Each Section's PDF Page
+
+For each section listed below, add the specified reference content to the PDF page BETWEEN the goal box and the participant's notes. This content is static — it does not come from the database. It is hardcoded into the PDF HTML template, keyed by section ID.
+
+The reference content should be visually distinct from the participant's notes. Use a clean, readable style: 13px font, navy text, standard line-height 1.6. Use the same styling as body text. Do NOT put it in a gold-bordered notes block — that style is reserved for participant content.
+
+---
+
+### Section: verification-test
+
+Reference content to include:
+
+**The Exercise**
+You were given a prompt containing statistics with deliberate errors. You pasted it into one or more AI tools and checked whether the AI caught the mistakes.
+
+**Key Takeaway**
+No single AI tool reliably catches every factual error. The verification habit — checking AI output against primary sources before sharing — is the most important skill from this workshop.
+
+---
+
+### Section: tool-safari
+
+Reference content to include:
+
+**The Exercise**
+You explored multiple AI tools hands-on, using guided worksheets to compare how each tool handles the same types of tasks.
+
+Each tool has strengths and limitations. Choosing the right tool for the job matters more than mastering one tool for everything.
+
+---
+
+### Section: riceco-framework
+
+Reference content to include:
+
+**The RICECO Framework**
+
+| Letter | Element | Question |
+|--------|---------|----------|
+| R | Role | Who is the AI acting as? |
+| I | Instruction | What exactly do you want it to do? |
+| C | Context | What background information is needed? |
+| E | Examples | What does good look like? |
+| C | Constraints | What rules must it follow? |
+| O | Output Format | How should the final result be formatted? |
+
+**The 80% Shortcut**
+You don't need all six every time. For most daily tasks, I + C + C — Instruction, Context, Constraints — gets you 80% of the way there.
+
+---
+
+### Section: draft-with-riceco
+
+Reference content to include:
+
+**The Exercise**
+You picked a real task from your 6 Ways worksheet and built a complete RICECO prompt to draft it. The fields below show what you entered for each RICECO element.
+
+(The structured RICECO fields render after this text — Role, Instruction, Context, Examples, Constraints, Output Format — followed by participant notes.)
+
+---
+
+### Section: llm-peer-review
+
+Reference content to include:
+
+**The Exercise**
+You ran the same task through two different AI tools and compared their outputs. Then you used one model to critique the other's work.
+
+**The Critique Scaffold**
+"Here are the instructions I gave to [Model A]. Below is the response. Critique only. Do not redraft."
+
+**Why This Matters**
+AI models have different strengths and blind spots. Using a second model as a reviewer catches errors that a single model misses — especially factual claims, logical gaps, and tone issues.
+
+---
+
+### Section: distill
+
+Reference content to include:
+
+**The Exercise**
+You took something complex and turned it into something clear — a long document into a summary, policy language into plain language, or dense data into key takeaways.
+
+**RICECO Scaffold for Distillation**
+I: Summarize the attached document.
+C: The audience is busy executives who need the bottom line.
+C: Keep it under 300 words. No jargon.
+O: 3 bullet points of key takeaways, 1 paragraph summary.
+
+---
+
+### Section: prepare
+
+Reference content to include:
+
+**The Exercise**
+You used AI to prepare for a high-stakes conversation — anticipating objections, practicing responses, and planning your approach before the real thing.
+
+**RICECO Scaffold for Preparation**
+R: You are a skeptical [stakeholder type].
+I: Roleplay a conversation with me about [topic].
+C: We are at [setting]. I am presenting [what].
+C: Push back on my points. Ask one question at a time.
+O: Dialogue format. Wait for my response before replying.
+
+---
+
+### Section: synthesize
+
+Reference content to include:
+
+**The Exercise**
+You used AI to find patterns across multiple documents — identifying common themes, contradictions, and gaps that would take hours to spot manually.
+
+**RICECO Scaffold for Synthesis**
+I: Review the attached reports and identify common themes.
+C: Focus on recurring challenges and proposed solutions.
+C: Cite which document each point comes from.
+O: A thematic summary table with source attribution.
+
+---
+
+### Section: power-follow-ups
+
+Reference content to include:
+
+**Nine Moves to Refine AI Output**
+
+1. **Go Deeper** — "Expand on point 3 with specific examples."
+2. **Change Format** — "Rewrite this as a table / email / FAQ / one-pager."
+3. **Shift Audience** — "Rewrite for [board members / new staff / the public]."
+4. **Challenge It** — "What are the strongest counterarguments to this?"
+5. **Simplify** — "A smart 8th grader should understand this. Rewrite."
+6. **Add Constraints** — "Now do it in under 200 words / without jargon / in Spanish."
+7. **Verify** — "What sources support these claims? Flag anything you're uncertain about."
+8. **Compare** — "How does this compare to [alternative approach]?"
+9. **Pressure-Test** — "What's missing? What would a skeptic say?"
+
+These work with any AI tool, on any task. Use them after your first prompt to push the output from "okay" to "actually useful."
+
+---
+
+### Section: what-ai-is
+
+Reference content to include:
+
+**Core Concept**
+AI is pattern matching, not thinking. The same process that produces correct answers also produces hallucinations. It doesn't know the difference.
+
+**What This Means for Your Work**
+AI can draft, brainstorm, summarize, and restructure. It cannot verify facts, exercise professional judgment, or understand the human stakes of your decisions. Every output needs a human checkpoint before it reaches a client, a colleague, or a decision-maker.
+
+---
+
+### Section: persistent-context
+
+Reference content to include:
+
+**Core Concept**
+Stop re-explaining yourself. Move from one-off chats to persistent, reusable workflows.
+
+**Persistent Context Tools**
+
+| Tool Type | Description |
+|-----------|-------------|
+| Custom Instructions | Basic rules applied to every chat. |
+| Projects / Spaces | Scoped context for specific workflows. |
+| Custom GPTs | Shareable, specialized bots with specific knowledge. |
+| NotebookLM | Retrieval-Augmented Generation. Highest accuracy on specific docs. |
+
+---
+
+### Section: red-yellow-green
+
+Reference content to include:
+
+**The Exercise**
+Your team sorted AI use cases into three categories based on risk level and built shared judgment about what's appropriate in your work context.
+
+(The structured Red/Yellow/Green fields render after this text, followed by the condition field and participant notes.)
+
+---
+
+### Section: capstone
+
+Reference content to include:
+
+**The Exercise**
+You picked real tasks from your work and matched each one to one of the 6 Ways to use AI. Then you built a complete AI-assisted work product: prompt, run, verify, revise.
+
+**The 6 Ways to Use AI**
+1. **Draft** — Create something new (email, report, talking points, agenda)
+2. **Brainstorm** — Generate options or ideas (approaches, solutions, alternatives)
+3. **Prepare** — Get ready for a conversation (anticipate objections, plan questions)
+4. **Synthesize** — Find patterns across sources (themes in feedback, documents)
+5. **Distill** — Make complex things clear (policy to plain language, long to short)
+6. **Critique** — Evaluate and find weaknesses (check a draft, identify gaps)
+
+(The 6 Ways table with participant entries renders after this, followed by notes.)
+
+---
+
+### Section: overnight-assignment
+
+Reference content to include:
+
+**The Assignment**
+Use what you learned today on one safe, low-stakes task before tomorrow. Come back ready to report what happened — what worked, what surprised you, and what you'd do differently.
+
+---
+
+### Section: overnight-harvest
+
+Reference content to include:
+
+**The Exercise**
+You shared what you learned from your overnight task and surfaced the workflow worth mapping today. The goal: move from "I tried a prompt" to "I found a process worth redesigning."
+
+---
+
+### Section: workflow-configurator
+
+Reference content to include:
+
+**The Exercise**
+You mapped a real workflow from your job — documenting how it works today, redesigning it with AI insertion points, and defining the human verification checkpoints and stop conditions that keep it safe.
+
+(The workflow maps render after this text.)
+
+---
+
+### Section: status-quo-bias
+
+Reference content to include:
+
+**Core Concept**
+Your director isn't being irrational. They're experiencing the same cognitive patterns that drive most decisions: loss aversion, status quo bias, and the endowment effect.
+
+**Why This Matters for AI Adoption**
+People overvalue what they already have (current processes) and overweight potential losses (what could go wrong) relative to potential gains (what AI could improve). Understanding this helps you pitch change in terms that work with these biases, not against them.
+
+---
+
+### Section: county-change-framework (title: Change Message Framework)
+
+Reference content to include:
+
+**The 5-Step Change Narrative**
+1. **Acknowledge the Current State** — Show you understand how things work today and why.
+2. **Name the Tension** — Identify the gap between what is and what could be.
+3. **Introduce the Possibility** — Present AI as a tool that addresses the tension.
+4. **Address the Fear** — Name the risks honestly and show your mitigation plan.
+5. **Make the Ask** — Propose a specific, low-risk pilot — not a transformation.
+
+---
+
+### Section: county-change-message (title: Build Your Change Message)
+
+Reference content to include:
+
+**The Exercise**
+You drafted a change narrative tailored to your county's context, using the 5-step framework to pitch AI adoption to risk-averse leadership.
+
+(Participant's structured fields and notes render after this text.)
+
+---
+
+### Section: closing
+
+Reference content to include:
+
+(Use the closing quote from the content variant if one is set for this cohort. Otherwise use the default hardcoded quote. The quote should render in the same styled block as it appears in the app — centered, italic, prominent.)
+
+---
+
+### Generic Sections
+
+For generic sections (section IDs starting with "generic_"), the content_blocks array already contains the full content. Render all blocks in order: text blocks as formatted HTML, prompt blocks as navy boxes with "PROMPT 1" / "PROMPT 2" labels. No additional hardcoded content needed.
+
+---
+
+## 4. Layout Order on Each PDF Page
+
+For every section page, the content renders in this order from top to bottom:
+
+1. Badge (EXERCISE or REFERENCE) + Section title + navy underline
+2. Goal box (cream background, "GOAL" label)
+3. Reference content (from section 3 above) — in standard body text styling, not in a notes block
+4. Structured exercise fields if applicable (RICECO fields, Red/Yellow/Green columns, 6 Ways table, workflow maps)
+5. Gold-bordered notes block with "YOUR NOTES" label and participant's notes (or "No notes recorded" in muted italic if empty)
+
+---
+
+## DO NOT in this prompt:
+- Touch the admin panel
+- Modify any section React components (this is PDF template only)
+- Change the sidebar or home screen
+- Modify the database schema
+- Change the PDF cover page, table of contents, or workflow map rendering (those are already correct)
+- Reset existing cohort configurations

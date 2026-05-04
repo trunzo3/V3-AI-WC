@@ -121,10 +121,25 @@ Required env vars (managed via Replit Secrets):
 
 - `GET /api/workbook/download` (`artifacts/api-server/src/routes/workbook.ts`)
   renders a branded multi-page PDF of the participant's unlocked sections
-  with their notes, generic content blocks, and workflow map. Sections with
-  no captured data are skipped. Pages: cover, table of contents, section
-  pages grouped by level, and a footer with page numbers and the
-  participant's name.
+  with their notes, generic content blocks, hardcoded reference content,
+  and workflow map. **All unlocked, non-skipped sections are included** —
+  empty sections render with a "No notes recorded" muted-italic state in
+  the gold "Your Notes" block. Per-section template order: badge → title →
+  goal box → reference content (or closing quote block for `closing`) →
+  generic blocks → structured fields (RICECO/RYG/6Ways) → workflow map →
+  gold "Your Notes" block. Pages: cover, table of contents, section pages
+  grouped by level, and a footer with page numbers and the participant's
+  name.
+- Hardcoded reference content per section lives in `SECTION_REFERENCE_CONTENT`
+  (verification-test, tool-safari, riceco-framework, draft-with-riceco,
+  llm-peer-review, distill, prepare, synthesize, power-follow-ups,
+  what-ai-is, persistent-context, red-yellow-green, capstone,
+  overnight-assignment, overnight-harvest, workflow-configurator,
+  status-quo-bias, county-change-framework, county-change-message). The
+  `closing` section pulls quote/subtext from `content_variants` rows
+  (sectionId='closing', blockKey IN ('closing_quote','closing_subtext'))
+  with `FALLBACK_CLOSING_QUOTE` / `FALLBACK_CLOSING_SUBTEXT` constants
+  used when the cohort has no overrides.
 - Brand: navy `#1A2744`, gold `#C8963E`, cream `#FDFBF7`; DM Serif Display
   for headings + DM Sans for body, loaded from Google Fonts.
 - Renderer: `puppeteer-core` driving the system Chromium. The executable
