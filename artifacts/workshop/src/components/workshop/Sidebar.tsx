@@ -200,18 +200,49 @@ export function Sidebar({
       {workbookEnabled && (
         <div className="border-t border-border px-2 pt-3 pb-2">
           <button
+            type="button"
             onClick={() => {
               toast({ title: "Workbook export coming soon." });
             }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md font-medium transition-colors"
-            style={{
-              color: "#C8963E",
-              backgroundColor: "rgba(200,150,62,0.08)",
-              border: "1px solid rgba(200,150,62,0.25)",
-            }}
             data-testid="sidebar-download-workbook"
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 12px",
+              borderRadius: "8px",
+              backgroundColor: "rgba(200, 150, 62, 0.08)",
+              border: "1px solid rgba(200, 150, 62, 0.2)",
+              cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: 500,
+              color: "#1A2744",
+              textAlign: "left",
+            }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              style={{ flexShrink: 0 }}
+            >
+              <path
+                d="M8 1v9M8 10L5 7M8 10l3-3"
+                stroke="#C8963E"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M2 12v1.5a1 1 0 001 1h10a1 1 0 001-1V12"
+                stroke="#C8963E"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
             <span>Download Workbook</span>
           </button>
         </div>
