@@ -36,6 +36,7 @@ export function Sidebar({
   const { data: meResp } = useGetCurrentParticipant();
   const workbookEnabled = (meResp?.cohort as any)?.workbookEnabled ?? false;
   const { toast } = useToast();
+  const [downloading, setDownloading] = useState(false);
   const expandKey = `workshop-sidebar-expanded-${session?.participantId ?? "anon"}`;
 
   const levels = Array.from(new Set(sections.map((s) => s.level))).sort();
@@ -77,6 +78,54 @@ export function Sidebar({
         window.location.href = import.meta.env.BASE_URL || "/";
       },
     });
+  };
+
+  const handleDownloadWorkbook = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const res = await fetch("/api/workbook/download", {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        let message = "Could not generate your workbook.";
+        try {
+          const body = await res.json();
+          if (body?.error) message = body.error;
+        } catch {}
+        throw new Error(message);
+      }
+
+      const disposition = res.headers.get("Content-Disposition") ?? "";
+      let filename = "iqmeeteq-workbook.pdf";
+      const match = /filename\*?=(?:UTF-\d+''|"?)([^";]+)"?/i.exec(disposition);
+      if (match && match[1]) {
+        try {
+          filename = decodeURIComponent(match[1]);
+        } catch {
+          filename = match[1];
+        }
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // Defer revoke so the browser can finish the download.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      toast({
+        title: "Download failed",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -201,9 +250,8 @@ export function Sidebar({
         <div className="border-t border-border px-2 pt-3 pb-2">
           <button
             type="button"
-            onClick={() => {
-              toast({ title: "Workbook export coming soon." });
-            }}
+            onClick={handleDownloadWorkbook}
+            disabled={downloading}
             data-testid="sidebar-download-workbook"
             style={{
               width: "100%",
@@ -214,7 +262,8 @@ export function Sidebar({
               borderRadius: "8px",
               backgroundColor: "rgba(200, 150, 62, 0.08)",
               border: "1px solid rgba(200, 150, 62, 0.2)",
-              cursor: "pointer",
+              cursor: downloading ? "wait" : "pointer",
+              opacity: downloading ? 0.7 : 1,
               fontSize: "13px",
               fontWeight: 500,
               color: "#1A2744",
@@ -243,7 +292,7 @@ export function Sidebar({
                 strokeLinejoin="round"
               />
             </svg>
-            <span>Download Workbook</span>
+            <span>{downloading ? "Preparing PDF…" : "Download Workbook"}</span>
           </button>
         </div>
       )}

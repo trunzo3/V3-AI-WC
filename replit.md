@@ -109,12 +109,34 @@ Required env vars (managed via Replit Secrets):
 - A **cohort** owns its participants, section visibility/codes, content
   variants, safari tab assignments, facilitator message, and a
   `workbook_enabled` boolean (default `true`) that controls whether the
-  "Download Workbook" link appears in the participant sidebar.
+  "Download Workbook" controls (sidebar button + home-screen text link)
+  appear for participants.
 - The default cohort is seeded with code `WORKSHOP`. Lookups are
   case-insensitive (`lower(cohort_code) = lower(input)`).
 - Creating a new cohort auto-seeds `cohort_sections` from
   `artifacts/api-server/src/lib/sections.ts` (`ALL_SECTIONS` +
   `SECTION_CODE_CONFIG`).
+
+### Workbook PDF export
+
+- `GET /api/workbook/download` (`artifacts/api-server/src/routes/workbook.ts`)
+  renders a branded multi-page PDF of the participant's unlocked sections
+  with their notes, generic content blocks, and workflow map. Sections with
+  no captured data are skipped. Pages: cover, table of contents, section
+  pages grouped by level, and a footer with page numbers and the
+  participant's name.
+- Brand: navy `#1A2744`, gold `#C8963E`, cream `#FDFBF7`; DM Serif Display
+  for headings + DM Sans for body, loaded from Google Fonts.
+- Renderer: `puppeteer-core` driving the system Chromium. The executable
+  path is resolved once via `PUPPETEER_EXECUTABLE_PATH` or `which chromium`
+  and cached. `puppeteer-core` is externalized in `build.mjs`.
+- Returns `403` when the cohort has `workbook_enabled = false`. Filename
+  is `iqmeeteq-workbook-<name-slug>-YYYY-MM-DD.pdf`.
+- Triggered from the sidebar "Download Workbook" button
+  (`artifacts/workshop/src/components/workshop/Sidebar.tsx`) and the muted
+  "Download your workbook" link on the home screen
+  (`artifacts/workshop/src/pages/home.tsx`); both gated on
+  `cohort.workbookEnabled`.
 
 ### Sections
 

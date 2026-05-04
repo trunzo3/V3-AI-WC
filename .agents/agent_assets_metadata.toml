@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "OOj4oDnJnWK21H_0MEp3T"
+uri = "file://attached_assets/sample-workbook.pdf"
+type = "pdf"
+title = "Sample Workbook PDF (rich data, 7 pages)"

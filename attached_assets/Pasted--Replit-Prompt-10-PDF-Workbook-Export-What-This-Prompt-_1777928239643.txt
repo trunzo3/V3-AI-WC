@@ -1,0 +1,288 @@
+# Replit Prompt 10 — PDF Workbook Export
+
+## What This Prompt Does
+
+When a participant clicks "Download Workbook" in the sidebar, a branded PDF downloads to their computer containing every unlocked section with their notes. This prompt builds the server-side PDF generation and connects it to the existing sidebar button.
+
+---
+
+## 1. Install Puppeteer
+
+Install Puppeteer in the API server package. Try the full package first:
+
+```bash
+pnpm --filter @workspace/api-server add puppeteer
+```
+
+If Puppeteer's bundled Chromium fails to install or run in the Replit environment, switch to puppeteer-core and use the system-installed Chromium:
+
+```bash
+pnpm --filter @workspace/api-server add puppeteer-core
+```
+
+Then find the system Chromium path (try `/usr/bin/chromium-browser` or `/usr/bin/chromium` or run `which chromium`) and pass it to `puppeteer.launch({ executablePath: '...' })`.
+
+---
+
+## 2. New API Endpoint
+
+Create a new route file: `artifacts/api-server/src/routes/workbook.ts`
+
+### GET /workbook/download
+
+Requires participant session (check `req.session.participantId`). If not authenticated, return 401.
+
+Steps:
+1. Get participant from session (ID, email, name)
+2. Get the participant's cohort (name, workbook_enabled)
+3. If workbook_enabled is false, return 403 with message "Workbook download is not enabled for this cohort"
+4. Get the cohort's sections from cohort_sections, ordered by level then sort_order, filtered to visible = true
+5. Get the participant's unlocked sections from unlocked_sections
+6. Filter to only sections that are unlocked (intersection of visible sections and unlocked sections). Also include sections where code_active is false (those are auto-unlocked)
+7. For each unlocked section, fetch all notes from the notes table for this participant and section
+8. Fetch all workflow maps from workflow_maps for this participant
+9. For generic sections (section IDs starting with "generic_"), fetch the generic section data (title, content_blocks, goal_text) from generic_sections table
+10. Build an HTML string from all this data (see section 4 below)
+11. Render the HTML to PDF using Puppeteer (see section 5)
+12. Return the PDF as a download:
+
+```
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="IQmeetEQ_Workbook_[CohortName]_[Date].pdf"
+```
+
+Register the route in the route index file:
+```typescript
+import workbookRouter from "./workbook";
+router.use(workbookRouter);
+```
+
+---
+
+## 3. Data Assembly
+
+Create a helper function that gathers all workbook data before rendering.
+
+For each unlocked section, collect:
+- Section ID
+- Section title (use display_name from cohort_sections if set, otherwise use the title from ALL_SECTIONS or generic_sections)
+- Section type ("exercise" or "reference")
+- Level number
+- All notes for this section (array of { fieldKey, content } objects)
+- For generic sections: the content_blocks array and goal_text
+
+For workflow maps, collect:
+- Workflow name
+- Frequency
+- Current process steps (array of strings)
+- Redesigned process steps (array of strings)
+- Human verification checkpoints (string)
+- Stop conditions (string)
+
+---
+
+## 4. HTML Template
+
+Build a complete HTML page that Puppeteer will render to PDF. Use Google Fonts for DM Sans and DM Serif Display. Use the IQmeetEQ brand colors: navy #1A2744, gold #C8963E, cream #FDFBF7, white #FFFFFF, border #E8E4DC, muted text #6B7280.
+
+### Page setup CSS:
+
+```css
+@page { size: letter; margin: 0.75in 0.85in; }
+body { font-family: 'DM Sans', sans-serif; color: #1A2744; font-size: 11pt; line-height: 1.5; }
+h1, h2, h3 { font-family: 'DM Serif Display', serif; color: #1A2744; }
+.page-break { page-break-before: always; }
+```
+
+### Cover Page
+
+Render first. Full-page centered layout:
+- Top half: navy background
+- "IQMEETEQ" brand text in muted white, centered
+- Gold square with "IQ" text (the logo mark)
+- "Workshop Workbook" in DM Serif Display, 38px, white
+- Workshop/cohort name in DM Serif Display, 22px, gold
+- Bottom half: white background
+- Gold horizontal divider line (60px wide, 3px tall)
+- "Prepared for" label in muted uppercase
+- Participant name in DM Serif Display, 24px, navy
+- "Generated" label in muted uppercase
+- Today's date formatted as "Month Day, Year"
+- Footer: "© 2026 IQmeetEQ · headandheartca.com"
+
+### Table of Contents Page
+
+Page break before this page. Title: "Your Workshop at a Glance" in DM Serif Display, 28px. Subtitle: "Every section you unlocked and worked through, in one place." in muted 14px.
+
+Group sections by level. Each level gets a header: the level label (e.g., "LEVEL 1 — CORE WORKSHOP") in gold, 11px, uppercase, with a bottom border.
+
+Each section listed as a row:
+- A badge showing "EXERCISE" or "REFERENCE" in gold, 9px, uppercase, bordered
+- Section title in 14px, weight 500, navy
+- A dotted line fill
+- A notes indicator: "● Notes" if the participant has any notes for that section, blank if not
+
+### Section Pages
+
+Page break before each level group (not each individual section — sections within the same level flow continuously, with page breaks only between levels).
+
+Each section renders:
+
+**Header area:**
+- Badge: "EXERCISE" or "REFERENCE" in gold, 9px, uppercase, 1px gold border, border-radius 4px
+- Title: DM Serif Display, 26px, navy
+- 2px navy bottom border on the header
+
+**Goal box** (if the section has a goal — check the ALL_SECTIONS description field or generic section goal_text):
+- Cream background (#FDFBF7), 1px border (#E8E4DC), border-radius 8px, padding 14px 18px
+- "GOAL" label in muted 9px uppercase
+- Goal text in 14px, weight 600, navy
+
+**One-line description** below the goal in muted italic 13px — use the section's description from ALL_SECTIONS.
+
+**Notes rendering:**
+
+For sections with a single "notes" fieldKey:
+- Gold left border block: background #FDFBF7, 3px left border in #C8963E, padding 14px 18px, border-radius 0 8px 8px 0
+- "YOUR NOTES" label in gold, 9px, uppercase, weight 700, letter-spacing 1.5px
+- Content in 13px, line-height 1.7, white-space pre-wrap
+- If empty: show "No notes recorded" in muted italic 13px
+
+For sections with multiple fieldKeys (structured exercise fields), render each field:
+
+**RICECO fields** (section IDs "riceco-framework" and "draft-with-riceco"):
+- For each letter (R, I, C, E, C, O): show a gold circle (28px) with the letter in white, bold label, then the participant's content in a cream block with gold left border
+- Labels: R = "Role", I = "Instructions", C = "Context", E = "Examples", C = "Constraints", O = "Output Format"
+
+**Red/Yellow/Green fields** (section ID "red-yellow-green"):
+- Three-column grid
+- Each column: colored header (RED in #dc2626, YELLOW in #C8963E, GREEN in #16a34a), 10px uppercase, 2px colored bottom border
+- Content below each header from the corresponding fieldKey ("red", "yellow", "green")
+- Below the grid: the "condition" field in a gold-bordered notes block labeled "THE CONDITION THAT MOVES SOMETHING FROM YELLOW TO GREEN"
+- Below that: general "notes" field if it has content
+
+**Capstone 6 Ways** (section ID "capstone"):
+- Table with navy header row: "Way" and "Your Task" columns
+- Six rows: DRAFT, BRAINSTORM, PREPARE, SYNTHESIZE, DISTILL, CRITIQUE
+- Way name in bold navy, content from the corresponding fieldKey ("6ways-draft", "6ways-brainstorm", etc.)
+- Alternating row backgrounds (white and cream)
+- Below the table: general "notes" field if it has content
+
+**LLM Peer Review** (section ID "llm-peer-review"):
+- If fieldKeys "model-a" and "model-b" have content, show them as labeled fields ("Model A Used", "Model B Used")
+- General "notes" field below
+
+**Generic sections:**
+- Render content_blocks in order:
+  - Text blocks: render HTML content directly
+  - Prompt blocks: render in a navy (#1A2744) box with white text, monospace font, labeled "PROMPT 1", "PROMPT 2" etc. (number only prompt blocks sequentially)
+- Notes field at the bottom
+
+**For all other sections:** just show the goal, description, and the "notes" field.
+
+### Workflow Map Pages
+
+After all sections, if the participant has any workflow maps, render them. Title page: "Your Workflow Maps" in DM Serif Display, 28px.
+
+Each workflow map renders as:
+
+- Navy header bar with workflow name in DM Serif Display 20px white, and frequency in 12px muted white below
+- Two-column layout below:
+  - Left column: "TODAY — HOW IT WORKS" header in navy 10px uppercase with 2px navy bottom border. Numbered steps with navy number circles.
+  - Right column: "WITH AI — REDESIGNED" header in gold 10px uppercase with 2px gold bottom border. Numbered steps with gold number circles.
+- Footer area with two columns separated by a top border:
+  - Left: "HUMAN VERIFICATION CHECKPOINTS" header, content below
+  - Right: "STOP CONDITIONS" header, content below
+
+Put a page break between workflow maps if there are more than one.
+
+If the participant has no workflow maps, skip this section entirely (don't show an empty "Your Workflow Maps" page).
+
+### Page Footer
+
+On every page except the cover, show a footer at the bottom:
+- Left: "IQmeetEQ" in muted bold 9px
+- Center: cohort/workshop name in 9px muted
+- Right: "Page X" (use Puppeteer's built-in page numbering via the footerTemplate)
+
+### Sections to Skip
+
+Do not include these section IDs in the PDF even if they are unlocked:
+- "six-ways-worksheet" (its content is captured in the Capstone 6 Ways table)
+- Any section where the participant has zero notes AND zero structured field content AND it's not a generic section with content_blocks. In other words: skip sections that would render as just a title, goal, description, and "No notes recorded."
+
+---
+
+## 5. Puppeteer PDF Generation
+
+```typescript
+async function generateWorkbookPdf(html: string): Promise<Buffer> {
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdf = await page.pdf({
+      format: 'Letter',
+      printBackground: true,
+      margin: { top: '0.75in', bottom: '0.75in', left: '0.85in', right: '0.85in' },
+      displayHeaderFooter: true,
+      headerTemplate: '<div></div>',
+      footerTemplate: '<div style="width:100%;text-align:center;font-size:8pt;color:#6B7280;font-family:sans-serif;padding:0 0.85in;"><span style="float:left;font-weight:700;">IQmeetEQ</span><span>Workshop Workbook</span><span style="float:right;">Page <span class="pageNumber"></span></span></div>',
+    });
+
+    return Buffer.from(pdf);
+  } finally {
+    await browser.close();
+  }
+}
+```
+
+---
+
+## 6. Wire the Sidebar Button
+
+In the sidebar component, the "Download Workbook" link currently shows a toast saying "Workbook export coming soon." Replace that behavior:
+
+**On click:**
+1. Set a loading state (disable the button, change text to "Generating..." or show a small spinner)
+2. Make a fetch request to GET /api/workbook/download with credentials included (to send the session cookie)
+3. If the response is OK:
+   - Get the response as a blob
+   - Create a temporary download link
+   - Extract the filename from the Content-Disposition header, or fall back to "IQmeetEQ_Workbook.pdf"
+   - Trigger the download
+   - Clean up the temporary link
+4. If the response fails:
+   - Show a toast: "Download failed. Please try again."
+5. Reset the loading state
+
+Remove the old toast placeholder code.
+
+---
+
+## 7. Also Add Download Link on Home Screen
+
+Add a secondary "Download your workbook" text link on the home screen (the page participants see before entering the workshop).
+
+**Position:** Below the "Enter the Workshop →" button and above the "Log out" link.
+
+**Styling:** Simple text link — 14px, muted color (#6B7280), no background, no border. Underline on hover. Text: "Download your workbook"
+
+**Visibility:** Only show if workbook_enabled is true for the participant's cohort.
+
+**Click behavior:** Same as the sidebar button — triggers the PDF download with loading state.
+
+---
+
+## DO NOT in this prompt:
+- Touch the admin panel
+- Modify the login page
+- Change any section components
+- Modify the database schema (except the workbook route — use existing tables)
+- Reset existing cohort configurations
+- Change the sidebar styling or layout (only replace the toast click handler)

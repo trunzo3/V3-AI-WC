@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import {
   useListSections,
@@ -8,6 +8,7 @@ import {
 } from "@workspace/api-client-react";
 import { getSession, clearSession } from "@/lib/auth";
 import { Logo } from "@/components/logo";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -20,7 +21,10 @@ export default function Home() {
   const cohortName = meResp?.cohort?.name?.trim() || "";
   const homeMessage = (meResp?.cohort?.homeMessage ?? "").trim();
   const facilitatorMessage = (meResp?.cohort?.facilitatorMessage ?? "").trim();
+  const workbookEnabled = (meResp?.cohort as any)?.workbookEnabled ?? false;
   const logoutMutation = useParticipantLogout();
+  const { toast } = useToast();
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (!session) setLocation("/");
@@ -34,6 +38,51 @@ export default function Home() {
   const progressPct = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0;
 
   const talkUrl = (settings as Record<string, string> | undefined)?.["talk_with_anthony_url"] || "https://talkwithanthony.com";
+
+  const handleDownloadWorkbook = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const res = await fetch("/api/workbook/download", {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        let message = "Could not generate your workbook.";
+        try {
+          const body = await res.json();
+          if (body?.error) message = body.error;
+        } catch {}
+        throw new Error(message);
+      }
+      const disposition = res.headers.get("Content-Disposition") ?? "";
+      let filename = "iqmeeteq-workbook.pdf";
+      const match = /filename\*?=(?:UTF-\d+''|"?)([^";]+)"?/i.exec(disposition);
+      if (match && match[1]) {
+        try {
+          filename = decodeURIComponent(match[1]);
+        } catch {
+          filename = match[1];
+        }
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      toast({
+        title: "Download failed",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const handleLogout = () => {
     // Match the sidebar behaviour: hard-reload to "/" after the API call so
@@ -160,6 +209,21 @@ export default function Home() {
             Enter the Workshop →
           </button>
         </div>
+
+        {workbookEnabled && (
+          <div className="flex justify-center pt-2">
+            <button
+              type="button"
+              onClick={handleDownloadWorkbook}
+              disabled={downloading}
+              className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors disabled:opacity-60"
+              style={{ fontSize: "14px", color: "#6B7280" }}
+              data-testid="home-download-workbook"
+            >
+              {downloading ? "Preparing PDF…" : "Download your workbook"}
+            </button>
+          </div>
+        )}
 
         <div className="flex justify-center pt-2">
           <button

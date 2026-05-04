@@ -10,6 +10,7 @@ import llmToolsRouter from "./llm-tools";
 import appSettingsRouter from "./app-settings";
 import safariTabsRouter from "./safari-tabs";
 import filesRouter from "./files";
+import workbookRouter from "./workbook";
 import adminRouter from "./admin";
 
 const router: IRouter = Router();
@@ -25,6 +26,7 @@ router.use(llmToolsRouter);
 router.use(appSettingsRouter);
 router.use(safariTabsRouter);
 router.use(filesRouter);
+router.use(workbookRouter);
 router.use(adminRouter);
 
 export default router;
