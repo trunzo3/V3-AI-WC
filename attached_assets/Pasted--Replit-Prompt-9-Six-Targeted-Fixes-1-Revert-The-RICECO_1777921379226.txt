@@ -1,0 +1,103 @@
+# Replit Prompt 9 — Six Targeted Fixes
+
+---
+
+## 1. Revert "The RICECO Framework" Section
+
+The section with ID "riceco-framework" and title "The RICECO Framework" was modified in Prompt 8. Undo every change Prompt 8 made to this section's React component. The component should look exactly as it did before Prompt 8 ran. Do not add a "Copy Full Prompt" button to this section. Do not add textareas to this section. Do not change the layout, styling, or content of this section in any way. Full revert to pre-Prompt-8 state.
+
+To be clear: The only RICECO section that should have the styled drafting fields and the "Copy Full Prompt" button is the section with ID "draft-with-riceco" (title "Draft with RICECO"). That section's Prompt 8 changes are correct — leave them as they are.
+
+---
+
+## 2. Fix Capstone Section
+
+The section with ID "capstone" (title "Capstone — Your 6 Ways in Action") has two layout problems:
+
+**Problem A:** The instructions card — the rounded box containing three numbered steps ("1. Pick a Real Task", "2. Prime & Prompt", "3. Draft → Verify → Revise") — is currently at the bottom of the page. Move it so it appears directly after the Goal box, before the 6 Ways table.
+
+**Problem B:** Remove the entire "BUILD WORKSPACE" section. This is the area with fields labeled MY TASK, WAYS CHECKED, CONTEXT TOOL, VERIFIED, BUILT, SURPRISED. Delete all of it — the header, the labels, and the textareas. It's overkill and participants won't use it.
+
+After this fix, the Capstone section layout from top to bottom should be:
+1. EXERCISE badge + section title
+2. Goal box
+3. Instructions card (the three numbered steps)
+4. "THE 6 WAYS TO USE AI" header + six rows (DRAFT, BRAINSTORM, PREPARE, SYNTHESIZE, DISTILL, CRITIQUE), each with its gold label, description text, and textarea
+5. The existing quote block ("Building something once is a skill...")
+6. YOUR NOTES textarea
+
+Nothing else.
+
+---
+
+## 3. Make All Copy-Prompt Boxes Use Navy Background
+
+There are several sections that contain a styled box with pre-written prompt text and a copy button. These boxes should all use the same dark navy background style. Here are the specific fixes:
+
+**The correct style** (already used by the Verification Test section and the LLM Peer Review section):
+- Background color: #1A2744
+- Text color: white or light (rgba(255,255,255,0.9))
+- Font: monospace
+- Border-radius: 10px
+- Padding: 20px
+- A gold label badge at the top of the box
+- Copy button styled for dark background
+
+**What to fix:**
+
+In the Distill section (ID "distill"): there is a box labeled "RICECO Scaffold" that currently has a white/light background. Change its background to #1A2744, its text to white, and style it to match the Verification Test's prompt box.
+
+Check the Prepare section (ID "prepare") and the Synthesize section (ID "synthesize") — if either has a prompt/scaffold box with a white or light background, apply the same navy styling.
+
+Do NOT change the Verification Test or LLM Peer Review boxes — they are already correct.
+
+---
+
+## 4. Workflow Section — Show Newest Workflow First
+
+In the Workflow Configurator section (ID "workflow-configurator"), when a participant has multiple workflows, the most recently created one should appear at the top of the list and the oldest at the bottom. Currently new workflows are appended to the bottom, which means the participant has to scroll down to see that their new workflow was created.
+
+Fix: In the frontend component, reverse the display order of the workflows array before rendering. When someone clicks the "Add Workflow" button, the new empty workflow should appear at the top, immediately visible without scrolling.
+
+This is a frontend display change only. Do not change the database storage order or the API response.
+
+---
+
+## 5. Rename "Map Your Workflow" to "Map Your Workflows"
+
+In the file artifacts/api-server/src/lib/sections.ts, find the entry in ALL_SECTIONS with ID "workflow-configurator". Change its title from "Map Your Workflow" to "Map Your Workflows" (plural).
+
+If the Workflow Configurator React component has the title "Map Your Workflow" hardcoded anywhere in its JSX, update it to "Map Your Workflows". If the component uses a title prop passed from the section data, the change in ALL_SECTIONS is sufficient.
+
+Remember: the seed script must NOT reset existing cohorts (per Prompt 8 rules). This title change will only appear automatically for new cohorts. Existing cohorts will keep whatever display name they currently have unless the admin changes it manually.
+
+---
+
+## 6. Download Workbook Link in Sidebar
+
+Add a link to the sidebar, positioned between the last section in the scrolling list and the existing "Log out" link.
+
+**Position:** This link scrolls with the section list — it is NOT pinned at the top. It sits at the natural bottom of the sidebar content, just above "Log out."
+
+**Separator:** Add a thin horizontal divider line above this link (between the last section and this link) and another divider below it (between this link and "Log out").
+
+**Link styling:**
+- Background: rgba(200, 150, 62, 0.08) — a very subtle gold tint
+- Border: 1px solid rgba(200, 150, 62, 0.2)
+- Border-radius: 8px
+- Padding: 10px 12px
+- Margin: 14px horizontal padding to match the sidebar content
+- Text: "Download Workbook" — font-size 13px, font-weight 500, color #1A2744
+- Icon: a small downward-arrow SVG icon to the left of the text, colored #C8963E (gold). Do not use an emoji. Use an inline SVG like: arrow pointing down into a tray (standard download icon)
+
+**Click behavior:** For now, show a toast message: "Workbook export coming soon." The actual PDF download will be connected in a future prompt.
+
+---
+
+## DO NOT in this prompt:
+- Touch the admin panel
+- Modify the login page
+- Change the home screen
+- Modify the database schema
+- Reset existing cohort configurations in the seed script
+- Touch any section not listed above
