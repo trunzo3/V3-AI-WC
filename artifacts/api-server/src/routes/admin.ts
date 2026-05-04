@@ -82,6 +82,7 @@ const createCohortSchema = z.object({
     .nullish()
     .transform((v) => sanitizeRichHtmlNullable(v ?? null)),
   tierAccess: tierAccessSchema.optional(),
+  workbookEnabled: z.boolean().optional(),
 });
 
 router.get("/admin/cohorts", requireAdmin, async (_req, res) => {
@@ -113,6 +114,7 @@ router.post("/admin/cohorts", requireAdmin, async (req, res) => {
           data.facilitatorMessage ?? DEFAULT_FACILITATOR_MESSAGE,
         homeMessage: data.homeMessage ?? null,
         tierAccess: data.tierAccess ?? DEFAULT_TIER_ACCESS,
+        workbookEnabled: data.workbookEnabled ?? true,
       })
       .returning();
     if (!created) throw new Error("Failed to create cohort.");
@@ -160,6 +162,7 @@ const updateCohortSchema = z.object({
     .nullish()
     .transform((v) => sanitizeRichHtmlNullable(v ?? null)),
   tierAccess: tierAccessSchema.optional(),
+  workbookEnabled: z.boolean().optional(),
   settings: z.record(z.string(), z.unknown()).optional(),
 });
 

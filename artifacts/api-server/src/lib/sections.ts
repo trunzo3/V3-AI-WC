@@ -53,7 +53,7 @@ const RAW_SECTIONS: ReadonlyArray<RawSection> = [
   { id: "overnight-assignment", title: "Overnight Assignment", description: "Use what you built on one safe task. Come to Day 2 ready to report.", day: 1, order: 14, tier: 1, type: "reference" },
   { id: "six-ways-worksheet", title: "6 Ways Worksheet", description: "For each use case, write one task you do regularly that AI could help with.", day: 1, order: 15, tier: 1, type: "reference" },
   { id: "overnight-harvest", title: "Overnight Harvest — Workflow Ideas", description: "Surface what you learned last night and find the workflow worth mapping today.", day: 2, order: 1, tier: 1, type: "exercise" },
-  { id: "workflow-configurator", title: "Map Your Workflow", description: "Produce a one-page, deployable workflow document — AI insertion points, human verification, and stop conditions.", day: 2, order: 2, tier: 1, type: "exercise" },
+  { id: "workflow-configurator", title: "Map Your Workflows", description: "Produce a one-page, deployable workflow document — AI insertion points, human verification, and stop conditions.", day: 2, order: 2, tier: 1, type: "exercise" },
   { id: "closing", title: "Closing", description: "Reflect and carry forward.", day: 2, order: 6, tier: 1, type: "reference" },
   { id: "advanced-prompt-engineering", title: "Advanced Prompt Engineering", description: "Go beyond basics with multi-step chains, system prompts, and structured outputs.", day: 2, order: 7, tier: 2, type: "locked" },
   { id: "voice-management", title: "Voice Management — Human vs. AI", description: "Control AI tone, register, and voice to match your professional context.", day: 2, order: 8, tier: 2, type: "locked" },

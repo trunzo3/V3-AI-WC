@@ -107,7 +107,9 @@ Required env vars (managed via Replit Secrets):
 ### Cohort model
 
 - A **cohort** owns its participants, section visibility/codes, content
-  variants, safari tab assignments, and facilitator message.
+  variants, safari tab assignments, facilitator message, and a
+  `workbook_enabled` boolean (default `true`) that controls whether the
+  "Download Workbook" link appears in the participant sidebar.
 - The default cohort is seeded with code `WORKSHOP`. Lookups are
   case-insensitive (`lower(cohort_code) = lower(input)`).
 - Creating a new cohort auto-seeds `cohort_sections` from

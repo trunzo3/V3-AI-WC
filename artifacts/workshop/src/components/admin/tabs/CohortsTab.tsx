@@ -38,6 +38,7 @@ interface FormState {
   tier2: boolean;
   tier3: boolean;
   tier4: boolean;
+  workbookEnabled: boolean;
 }
 
 const EMPTY_FORM: FormState = {
@@ -50,6 +51,7 @@ const EMPTY_FORM: FormState = {
   tier2: false,
   tier3: false,
   tier4: false,
+  workbookEnabled: true,
 };
 
 function fromCohort(c: AdminCohort): FormState {
@@ -63,6 +65,7 @@ function fromCohort(c: AdminCohort): FormState {
     tier2: !!c.tierAccess?.["2"],
     tier3: !!c.tierAccess?.["3"],
     tier4: !!c.tierAccess?.["4"],
+    workbookEnabled: (c as any).workbookEnabled ?? true,
   };
 }
 
@@ -149,6 +152,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
         "3": form.tier3,
         "4": form.tier4,
       },
+      workbookEnabled: form.workbookEnabled,
     };
     if (!payload.name || !payload.cohortCode) {
       toast({ title: "Name and cohort code are required", variant: "destructive" });
@@ -278,6 +282,16 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                     );
                   })}
                 </div>
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-sm">
+                  <Switch
+                    checked={form.workbookEnabled}
+                    onCheckedChange={(v) => setForm({ ...form, workbookEnabled: v })}
+                    data-testid="switch-workbook-enabled"
+                  />
+                  Download Workbook enabled
+                </label>
               </div>
             </div>
             <DialogFooter>

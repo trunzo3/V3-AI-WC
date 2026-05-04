@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Lock, ChevronDown, ChevronRight, LogOut, ExternalLink } from "lucide-react";
 import type { Section } from "@workspace/api-client-react";
-import { useParticipantLogout, useListLlmTools } from "@workspace/api-client-react";
+import { useParticipantLogout, useListLlmTools, useGetCurrentParticipant } from "@workspace/api-client-react";
 import { clearSession, getSession } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 
 interface SidebarProps {
   sections: Section[];
@@ -32,6 +33,9 @@ export function Sidebar({
   const logoutMutation = useParticipantLogout();
   const llmToolsQuery = useListLlmTools();
   const llmTools = llmToolsQuery.data?.tools ?? [];
+  const { data: meResp } = useGetCurrentParticipant();
+  const workbookEnabled = (meResp?.cohort as any)?.workbookEnabled ?? false;
+  const { toast } = useToast();
   const expandKey = `workshop-sidebar-expanded-${session?.participantId ?? "anon"}`;
 
   const levels = Array.from(new Set(sections.map((s) => s.level))).sort();
@@ -193,6 +197,25 @@ export function Sidebar({
         </div>
       </div>
 
+      {workbookEnabled && (
+        <div className="border-t border-border px-2 pt-3 pb-2">
+          <button
+            onClick={() => {
+              toast({ title: "Workbook export coming soon." });
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md font-medium transition-colors"
+            style={{
+              color: "#C8963E",
+              backgroundColor: "rgba(200,150,62,0.08)",
+              border: "1px solid rgba(200,150,62,0.25)",
+            }}
+            data-testid="sidebar-download-workbook"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Download Workbook</span>
+          </button>
+        </div>
+      )}
       <div className="border-t border-border px-2 pt-3 pb-2">
         <button
           onClick={handleLogout}

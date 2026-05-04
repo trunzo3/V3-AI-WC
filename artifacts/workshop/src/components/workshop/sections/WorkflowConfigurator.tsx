@@ -334,7 +334,7 @@ export function WorkflowConfigurator({
         </div>
       ) : (
         <div className="space-y-8">
-          {workflows.map((wf) => (
+          {[...workflows].reverse().map((wf) => (
             <WorkflowEditor
               key={wf.id}
               workflow={wf}

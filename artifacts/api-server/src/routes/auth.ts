@@ -182,6 +182,7 @@ router.get("/auth/me", async (req, res) => {
     | "homeMessage"
     | "tierAccess"
     | "audienceType"
+    | "workbookEnabled"
   > | null = row.cohort
     ? {
         id: row.cohort.id,
@@ -190,6 +191,7 @@ router.get("/auth/me", async (req, res) => {
         homeMessage: row.cohort.homeMessage ?? null,
         tierAccess: row.cohort.tierAccess,
         audienceType: row.cohort.audienceType,
+        workbookEnabled: row.cohort.workbookEnabled,
       }
     : null;
 

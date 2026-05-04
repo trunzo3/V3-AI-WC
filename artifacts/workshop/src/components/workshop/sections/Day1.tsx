@@ -377,8 +377,25 @@ export function RicecoFramework({ sectionId, title }: SectionProps) {
       <SectionHeader title={title} type="reference" />
       <GoalBox text="Six ingredients for prompts that produce usable output the first time." />
 
-      <div className="mb-8">
-        <RicecoInputFields sectionId={sectionId} prefix="riceco" />
+      <div className="grid gap-4 mb-8">
+        {[
+          { l: "R", name: "Role", desc: "Who is the AI acting as?" },
+          { l: "I", name: "Instruction", desc: "What exactly do you want it to do?" },
+          { l: "C", name: "Context", desc: "What background information is needed?" },
+          { l: "E", name: "Examples", desc: "What does good look like?" },
+          { l: "C", name: "Constraints", desc: "What rules must it follow?" },
+          { l: "O", name: "Output", desc: "How should the final result be formatted?" },
+        ].map((item, i) => (
+          <div key={i} className="flex items-center gap-4 p-4 bg-card rounded-lg border">
+            <div className="w-10 h-10 rounded-full bg-accent text-primary font-bold text-lg flex items-center justify-center flex-shrink-0">
+              {item.l}
+            </div>
+            <div>
+              <div className="font-bold text-primary">{item.name}</div>
+              <div className="text-sm text-muted-foreground">{item.desc}</div>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="border-l-4 border-accent pl-6 py-2 my-8 bg-secondary/30 rounded-r-lg p-4">
@@ -470,17 +487,17 @@ export function Distill({ sectionId, title }: SectionProps) {
       <SectionHeader title={title} type="exercise" />
       <GoalBox text="Turn something complex into something clear." />
 
-      <div className="bg-card p-6 border rounded-lg mb-8 shadow-sm relative">
+      <div className="bg-[#1A2744] p-6 rounded-lg mb-8 shadow-sm relative">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold text-primary">RICECO Scaffold</h3>
+          <span className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded">RICECO Scaffold</span>
           <CopyButton text={scaffoldText} label="Copy Scaffold" />
         </div>
-        <p className="text-foreground font-mono text-sm bg-secondary/50 p-4 rounded">
-          <strong className="text-primary">I:</strong> Summarize the attached document.<br />
-          <strong className="text-primary">C:</strong> The audience is busy executives who need the bottom line.<br />
-          <strong className="text-primary">C:</strong> Keep it under 300 words. No jargon.<br />
-          <strong className="text-primary">O:</strong> 3 bullet points of key takeaways, 1 paragraph summary.
-        </p>
+        <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono">
+          <strong className="text-accent">I:</strong> Summarize the attached document.{"\n"}
+          <strong className="text-accent">C:</strong> The audience is busy executives who need the bottom line.{"\n"}
+          <strong className="text-accent">C:</strong> Keep it under 300 words. No jargon.{"\n"}
+          <strong className="text-accent">O:</strong> 3 bullet points of key takeaways, 1 paragraph summary.
+        </pre>
       </div>
 
       <NotesField sectionId={sectionId} fieldKey="notes" label="Your Notes" />
@@ -496,18 +513,18 @@ export function Prepare({ sectionId, title }: SectionProps) {
       <SectionHeader title={title} type="exercise" />
       <GoalBox text="Get ready for a high-stakes conversation before it happens." />
 
-      <div className="bg-card p-6 border rounded-lg mb-6 shadow-sm relative">
+      <div className="bg-[#1A2744] p-6 rounded-lg mb-6 shadow-sm relative">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold text-primary">RICECO Scaffold</h3>
+          <span className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded">RICECO Scaffold</span>
           <CopyButton text={scaffoldText} label="Copy Scaffold" />
         </div>
-        <p className="text-foreground font-mono text-sm bg-secondary/50 p-4 rounded">
-          <strong className="text-primary">R:</strong> You are a skeptical community member.<br />
-          <strong className="text-primary">I:</strong> Roleplay a conversation with me about [Topic].<br />
-          <strong className="text-primary">C:</strong> We are at a town hall. I am presenting a new policy.<br />
-          <strong className="text-primary">C:</strong> Push back on my points. Ask one question at a time.<br />
-          <strong className="text-primary">O:</strong> Dialogue format. Wait for my response before replying.
-        </p>
+        <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono">
+          <strong className="text-accent">R:</strong> You are a skeptical community member.{"\n"}
+          <strong className="text-accent">I:</strong> Roleplay a conversation with me about [Topic].{"\n"}
+          <strong className="text-accent">C:</strong> We are at a town hall. I am presenting a new policy.{"\n"}
+          <strong className="text-accent">C:</strong> Push back on my points. Ask one question at a time.{"\n"}
+          <strong className="text-accent">O:</strong> Dialogue format. Wait for my response before replying.
+        </pre>
       </div>
 
       <div className="border-l-4 border-accent pl-4 py-3 my-8 bg-card rounded-r-lg">
@@ -530,17 +547,17 @@ export function Synthesize({ sectionId, title }: SectionProps) {
       <SectionHeader title={title} type="exercise" />
       <GoalBox text="Find patterns across multiple documents." />
 
-      <div className="bg-card p-6 border rounded-lg mb-8 shadow-sm relative">
+      <div className="bg-[#1A2744] p-6 rounded-lg mb-8 shadow-sm relative">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold text-primary">Steps & Scaffold</h3>
+          <span className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded">Steps & Scaffold</span>
           <CopyButton text={scaffoldText} label="Copy Scaffold" />
         </div>
-        <p className="text-foreground font-mono text-sm bg-secondary/50 p-4 rounded">
-          <strong className="text-primary">I:</strong> Review the attached reports and identify common themes.<br />
-          <strong className="text-primary">C:</strong> Focus on recurring challenges and proposed solutions.<br />
-          <strong className="text-primary">C:</strong> Cite which document each point comes from.<br />
-          <strong className="text-primary">O:</strong> A thematic summary table.
-        </p>
+        <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono">
+          <strong className="text-accent">I:</strong> Review the attached reports and identify common themes.{"\n"}
+          <strong className="text-accent">C:</strong> Focus on recurring challenges and proposed solutions.{"\n"}
+          <strong className="text-accent">C:</strong> Cite which document each point comes from.{"\n"}
+          <strong className="text-accent">O:</strong> A thematic summary table.
+        </pre>
       </div>
 
       <NotesField sectionId={sectionId} fieldKey="notes" label="Your Notes" />
@@ -747,32 +764,6 @@ export function Capstone({ sectionId, title }: SectionProps) {
       <SectionHeader title={title} type="exercise" />
       <GoalBox text="Build a complete, AI-assisted work product on a real task. Full cycle: prompt, run, verify, revise." />
 
-      <div className="mb-2 text-xs font-bold tracking-widest uppercase text-muted-foreground">The 6 Ways to Use AI</div>
-
-      <div className="space-y-4 mb-6">
-        {sixWaysRows.map((row) => (
-          <div key={row.key} className="border rounded-lg overflow-hidden bg-card">
-            <div className="flex items-baseline gap-3 px-4 py-3 bg-secondary/30 border-b">
-              <span className="font-bold text-accent uppercase text-sm tracking-wider">{row.name}</span>
-              <span className="text-muted-foreground text-sm">{row.def}</span>
-            </div>
-            <div className="p-3">
-              <NotesField sectionId={sectionId} fieldKey={row.key} label="" placeholder={`Your ${row.name.toLowerCase()} notes...`} minHeight="min-h-[80px]" />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-card p-6 border rounded-lg mb-6 shadow-sm">
-        <div className="text-xs font-bold tracking-widest uppercase text-muted-foreground mb-4">Build Workspace</div>
-        <NotesField sectionId={sectionId} fieldKey="my-task" label="My Task" placeholder="What real task are you working on?" className="mb-4" />
-        <NotesField sectionId={sectionId} fieldKey="ways-checked" label="Ways Checked" placeholder="Which of the 6 Ways did you use?" className="mb-4" />
-        <NotesField sectionId={sectionId} fieldKey="context-tool" label="Context Tool" placeholder="What persistent context did you set up?" className="mb-4" />
-        <NotesField sectionId={sectionId} fieldKey="verified" label="Verified" placeholder="What did you verify?" className="mb-4" />
-        <NotesField sectionId={sectionId} fieldKey="built" label="Built" placeholder="What did you build?" className="mb-4" />
-        <NotesField sectionId={sectionId} fieldKey="surprised" label="Surprised" placeholder="What surprised you?" />
-      </div>
-
       <div className="bg-card p-6 border rounded-lg mb-8 shadow-sm">
         {[
           { n: 1, title: "Pick a Real Task", desc: "Choose one from the table above. Genuine work, not invented scenarios." },
@@ -786,6 +777,22 @@ export function Capstone({ sectionId, title }: SectionProps) {
             <div>
               <div className="font-bold text-primary">{s.title}</div>
               <div className="text-sm text-muted-foreground">{s.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mb-2 text-xs font-bold tracking-widest uppercase text-muted-foreground">The 6 Ways to Use AI</div>
+
+      <div className="space-y-4 mb-6">
+        {sixWaysRows.map((row) => (
+          <div key={row.key} className="border rounded-lg overflow-hidden bg-card">
+            <div className="flex items-baseline gap-3 px-4 py-3 bg-secondary/30 border-b">
+              <span className="font-bold text-accent uppercase text-sm tracking-wider">{row.name}</span>
+              <span className="text-muted-foreground text-sm">{row.def}</span>
+            </div>
+            <div className="p-3">
+              <NotesField sectionId={sectionId} fieldKey={row.key} label="" placeholder={`Your ${row.name.toLowerCase()} notes...`} minHeight="min-h-[80px]" />
             </div>
           </div>
         ))}

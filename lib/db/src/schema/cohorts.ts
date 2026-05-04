@@ -32,6 +32,7 @@ export const cohortsTable = pgTable(
       .$type<Record<string, boolean>>()
       .notNull()
       .default(DEFAULT_TIER_ACCESS),
+    workbookEnabled: boolean("workbook_enabled").notNull().default(true),
     settings: jsonb("settings")
       .$type<Record<string, unknown>>()
       .notNull()
