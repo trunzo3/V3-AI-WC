@@ -18,3 +18,9 @@ id = "_GBEPPc1jcIYyoSbdS1wD"
 uri = "file://attached_assets/sample-workbook-empty.pdf"
 type = "pdf"
 title = "Sample Workbook (no notes — empty state)"
+
+[[outputs]]
+id = "5zXjYsdFan6UOqsMpnUK0"
+uri = "file://attached_assets/sample-workbook-generic-html.pdf"
+type = "pdf"
+title = "Sample Workbook — generic section with rich HTML (Fix 2 verified)"

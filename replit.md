@@ -54,8 +54,10 @@ Two surface areas:
   - The gear icon (bottom-left) is a wouter `<Link to="/admin/login">`, no
     inline admin form on `/`.
 - **Admin panel** (`/admin/login`, `/admin`): two-tier layout.
-  - **Global tabs**: Cohorts, Tool Safari, Verification test links, Feedback,
-    Settings.
+  - **Global tabs**: Cohorts, Tool Safari, Links to LLMs, Feedback, Settings.
+  - LLM tools have per-tool `showInSidebar` and `showInVerification` flags
+    (default `true`). The participant Sidebar and the Day1 verification-test
+    section both filter by their respective flag.
   - **Per-cohort tabs**: Sections, Content variants, Participants.
   - Tab headers are grouped under visible **GLOBAL** / **COHORT** labels.
   - The header has a cohort switcher (selection persisted in

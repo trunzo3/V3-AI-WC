@@ -32,7 +32,9 @@ export function Sidebar({
   const session = getSession();
   const logoutMutation = useParticipantLogout();
   const llmToolsQuery = useListLlmTools();
-  const llmTools = llmToolsQuery.data?.tools ?? [];
+  const llmTools = (llmToolsQuery.data?.tools ?? []).filter(
+    (t) => t.showInSidebar,
+  );
   const { data: meResp } = useGetCurrentParticipant();
   const workbookEnabled = (meResp?.cohort as any)?.workbookEnabled ?? false;
   const { toast } = useToast();

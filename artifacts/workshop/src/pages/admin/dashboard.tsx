@@ -205,7 +205,7 @@ export default function AdminDashboard() {
                   Tool Safari
                 </TabsTrigger>
                 <TabsTrigger value="llm-tools" data-testid="tab-llm-tools">
-                  Verification test links
+                  Links to LLMs
                 </TabsTrigger>
                 <TabsTrigger value="feedback" data-testid="tab-feedback">
                   Feedback

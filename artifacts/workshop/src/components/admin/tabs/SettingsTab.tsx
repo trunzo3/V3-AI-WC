@@ -24,8 +24,6 @@ const KNOWN_SETTINGS: { key: string; label: string; placeholder?: string }[] = [
   },
 ];
 
-const KNOWN_KEYS = new Set(KNOWN_SETTINGS.map((s) => s.key));
-
 export function SettingsTab() {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -63,8 +61,6 @@ export function SettingsTab() {
       },
     );
   };
-
-  const customRows = settings.filter((s) => !KNOWN_KEYS.has(s.key));
 
   return (
     <Card>
@@ -107,39 +103,6 @@ export function SettingsTab() {
                 </div>
               );
             })}
-
-            {customRows.length > 0 && (
-              <div className="pt-4 border-t space-y-3">
-                <div className="text-xs uppercase tracking-widest text-muted-foreground">
-                  Custom keys
-                </div>
-                {customRows.map((s) => {
-                  const draft = values[s.key] ?? "";
-                  const dirty = draft !== s.value;
-                  return (
-                    <div key={s.key} className="space-y-1">
-                      <Label className="text-sm font-mono">{s.key}</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          value={draft}
-                          onChange={(e) =>
-                            setValues({ ...values, [s.key]: e.target.value })
-                          }
-                          data-testid={`input-setting-${s.key}`}
-                        />
-                        <Button
-                          onClick={() => save(s.key)}
-                          disabled={!dirty || upsertMut.isPending}
-                        >
-                          <Save className="w-4 h-4 mr-2" />
-                          Save
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </>
         )}
       </CardContent>

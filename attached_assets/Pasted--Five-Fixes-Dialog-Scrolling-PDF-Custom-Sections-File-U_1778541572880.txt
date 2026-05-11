@@ -1,0 +1,82 @@
+# Five Fixes: Dialog Scrolling, PDF Custom Sections, File Upload, LLM Link Toggles, Settings Cleanup
+
+## Fix 1: Cohort Edit Dialog — Enable Scrolling
+
+**The problem:** When the facilitator message or home screen message editors contain a lot of text, the "Save Changes" button scrolls off screen and becomes unreachable.
+
+**What to do:** Add `max-height: 80vh` and `overflow-y: auto` to the scrollable content area of the Edit Cohort dialog. Keep the dialog title ("Edit cohort") and the footer buttons ("Cancel" / "Save Changes") fixed — only the content between them should scroll.
+
+**Where to look:** The Edit Cohort dialog component. It was created during the admin panel build (Prompt 3). The same fix was already applied to the "Edit generic section" dialog — match that pattern.
+
+## Fix 2: PDF Workbook — Custom Sections Showing Raw HTML Tags
+
+**The problem:** When a generic/custom section appears in the downloaded PDF workbook, the page shows raw HTML tags like `<p>`, `<ol>`, `<li>`, `<a>`, `<strong>` as visible text instead of rendering them as formatted content.
+
+**What to do:** In the PDF workbook HTML template (the file that builds the HTML string for Puppeteer), find where generic section content_blocks are inserted into the template. Text blocks contain HTML from the WYSIWYG editor. They must be inserted as raw HTML, not as escaped text.
+
+**Example of the bug:**
+```
+<p>Hi Shayla.</p><ol><li><p>You may want to check out <a target="_blank"...
+```
+This entire string is showing as visible text on the page.
+
+**Example of the fix:**
+The template should inject text block content so that the browser interprets the HTML tags. If using a template literal, make sure the content is not being HTML-escaped or wrapped in a text node. It should render as formatted paragraphs, numbered lists, bold text, and clickable links.
+
+## Fix 3: Tool Safari File Upload — Accept PDF and Word Documents
+
+**The problem:** The "Upload PDF guide" button in the Tool Safari admin section rejects PDF and Word files. It only accepts text files.
+
+**What to do:** Update the file input to accept these MIME types:
+- `application/pdf` (PDF files)
+- `application/vnd.openxmlformats-officedocument.wordprocessingml.document` (Word .docx files)
+- `image/png`, `image/jpeg`, `image/gif`, `image/webp` (images)
+- `text/plain` (text files — already works)
+
+Set the file input's `accept` attribute to: `.pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.gif,.webp`
+
+Also check the backend file upload endpoint (`POST /admin/files`). If it validates MIME types server-side, add the same types to the allowed list.
+
+Keep the 20 MB max file size limit.
+
+## Fix 4: LLM Links — Separate Sidebar from Verification Test
+
+**The problem:** Every LLM tool added in admin appears in both the sidebar pill links and the Verification Test exercise. There is no way to show a link in the sidebar but hide it from the Verification Test, or vice versa.
+
+**What to do:**
+
+**Database:** Add two boolean columns to the `llm_tools` table:
+- `show_in_sidebar` — boolean, not null, default true
+- `show_in_verification` — boolean, not null, default true
+
+**Admin UI:** Rename the "Verification test links" tab to "Links to LLMs". For each LLM tool in the list, add two toggle switches:
+- "Show in sidebar" (controls whether this link appears in the sidebar pill area)
+- "Show in verification test" (controls whether this link appears in the Verification Test exercise)
+
+Both default to ON.
+
+**Sidebar:** Update the sidebar component to fetch only LLM tools where `show_in_sidebar` is true. Currently it fetches from `GET /llm-tools` — either add a query parameter like `?sidebar=true` or filter on the frontend.
+
+**Verification Test:** Update the Verification Test component to fetch only LLM tools where `show_in_verification` is true. Same approach — query parameter or frontend filter.
+
+**API:** Update `GET /llm-tools` to include the two new fields in the response. Update `POST /admin/llm-tools` and `PUT /admin/llm-tools/:id` to accept the two new fields. Update the OpenAPI spec and run codegen.
+
+## Fix 5: Remove Support Email from Settings
+
+**The problem:** The Settings tab still shows a "CUSTOM KEYS" section with a `support_email` field. This field is not connected to anything in the app.
+
+**What to do:** In the Settings tab component, remove the "CUSTOM KEYS" section entirely. Do not display `support_email` or any other custom keys. The Settings tab should only show two fields:
+- "Talk with Anthony — Calendly link"
+- "Feedback dialog intro text"
+
+Do not delete the data from the `app_settings` database table — just stop displaying the custom keys section in the admin UI.
+
+---
+
+## Important: Do not change anything else
+
+- Do not modify participant-facing section components
+- Do not change the sidebar layout or home screen
+- Do not change the login flow
+- Do not reset cohort configurations in the seed script
+- Do not modify the PDF workbook content or layout beyond Fix 2

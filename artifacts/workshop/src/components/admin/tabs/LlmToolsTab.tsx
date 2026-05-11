@@ -42,6 +42,8 @@ interface FormState {
   url: string;
   sortOrder: number;
   active: boolean;
+  showInSidebar: boolean;
+  showInVerification: boolean;
 }
 
 const EMPTY: FormState = {
@@ -50,6 +52,8 @@ const EMPTY: FormState = {
   url: "",
   sortOrder: 0,
   active: true,
+  showInSidebar: true,
+  showInVerification: true,
 };
 
 export function LlmToolsTab() {
@@ -90,6 +94,8 @@ export function LlmToolsTab() {
       url: t.url,
       sortOrder: t.sortOrder,
       active: t.active,
+      showInSidebar: t.showInSidebar,
+      showInVerification: t.showInVerification,
     });
     setOpen(true);
   };
@@ -108,6 +114,8 @@ export function LlmToolsTab() {
       url: form.url.trim(),
       sortOrder: form.sortOrder,
       active: form.active,
+      showInSidebar: form.showInSidebar,
+      showInVerification: form.showInVerification,
     };
     if (editing) {
       updateMut.mutate(
@@ -214,6 +222,26 @@ export function LlmToolsTab() {
                 />
                 Active
               </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch
+                  checked={form.showInSidebar}
+                  onCheckedChange={(v) =>
+                    setForm({ ...form, showInSidebar: v })
+                  }
+                  data-testid="switch-llm-show-sidebar"
+                />
+                Show in sidebar
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch
+                  checked={form.showInVerification}
+                  onCheckedChange={(v) =>
+                    setForm({ ...form, showInVerification: v })
+                  }
+                  data-testid="switch-llm-show-verification"
+                />
+                Show in verification test
+              </label>
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setOpen(false)}>
@@ -260,6 +288,34 @@ export function LlmToolsTab() {
                   </div>
                   <div className="text-xs text-muted-foreground">
                     Sort: {t.sortOrder} · name: {t.name}
+                  </div>
+                  <div className="flex flex-wrap gap-3 mt-2">
+                    <label className="flex items-center gap-2 text-xs">
+                      <Switch
+                        checked={t.showInSidebar}
+                        onCheckedChange={(v) =>
+                          updateMut.mutate(
+                            { id: t.id, data: { showInSidebar: v } },
+                            { onSuccess: () => refresh() },
+                          )
+                        }
+                        data-testid={`row-llm-${t.id}-sidebar`}
+                      />
+                      Show in sidebar
+                    </label>
+                    <label className="flex items-center gap-2 text-xs">
+                      <Switch
+                        checked={t.showInVerification}
+                        onCheckedChange={(v) =>
+                          updateMut.mutate(
+                            { id: t.id, data: { showInVerification: v } },
+                            { onSuccess: () => refresh() },
+                          )
+                        }
+                        data-testid={`row-llm-${t.id}-verification`}
+                      />
+                      Show in verification test
+                    </label>
                   </div>
                 </div>
                 <div className="flex gap-1">

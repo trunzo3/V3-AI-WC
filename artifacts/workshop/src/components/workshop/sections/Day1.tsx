@@ -56,7 +56,7 @@ interface SectionProps {
 
 function LlmToolButtons() {
   const { data: toolsResp } = useListLlmTools();
-  const tools = toolsResp?.tools ?? [];
+  const tools = (toolsResp?.tools ?? []).filter((t) => t.showInVerification);
   if (tools.length === 0) return null;
 
   return (

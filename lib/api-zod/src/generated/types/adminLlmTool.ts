@@ -21,4 +21,6 @@ export interface AdminLlmTool {
   url: string;
   sortOrder: number;
   active: boolean;
+  showInSidebar: boolean;
+  showInVerification: boolean;
 }

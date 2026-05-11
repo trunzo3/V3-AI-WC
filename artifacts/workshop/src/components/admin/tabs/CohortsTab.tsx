@@ -208,11 +208,11 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
               New cohort
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
+          <DialogContent className="max-w-lg max-h-[85vh] flex flex-col p-0">
+            <DialogHeader className="px-6 pt-6">
               <DialogTitle>{editing ? "Edit cohort" : "New cohort"}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto px-6 py-2 flex-1 min-h-0">
               <div>
                 <Label htmlFor="cohort-name">Name</Label>
                 <Input
@@ -294,7 +294,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                 </label>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="px-6 pb-6">
               <Button variant="ghost" onClick={() => setOpen(false)}>
                 Cancel
               </Button>

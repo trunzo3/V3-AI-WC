@@ -437,7 +437,10 @@ function renderGenericBlocks(blocks: Array<{ type: string; content: string }>): 
       if (b.type === "prompt") {
         return `<div class="prompt-block"><div class="prompt-label">Prompt</div><div class="prompt-body">${nl2br(b.content)}</div></div>`;
       }
-      return `<div class="text-block">${nl2br(b.content)}</div>`;
+      // Text blocks contain HTML from the WYSIWYG editor (already sanitized
+      // server-side via sanitizeRichHtml on write). Inject as raw HTML so the
+      // browser renders <p>, <ol>, <li>, <a>, <strong>, etc.
+      return `<div class="text-block">${b.content}</div>`;
     })
     .join("");
 }

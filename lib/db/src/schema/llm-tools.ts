@@ -15,6 +15,8 @@ export const llmToolsTable = pgTable("llm_tools", {
   url: text("url").notNull(),
   active: boolean("active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
+  showInSidebar: boolean("show_in_sidebar").notNull().default(true),
+  showInVerification: boolean("show_in_verification").notNull().default(true),
 });
 
 export const insertLlmToolSchema = createInsertSchema(llmToolsTable).omit({

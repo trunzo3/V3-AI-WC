@@ -700,6 +700,10 @@ const llmToolCreateSchema = z.object({
   name: z.string().trim().min(1),
   displayLabel: z.string().trim().min(1),
   url: z.string().trim().url(),
+  sortOrder: z.number().int().optional(),
+  active: z.boolean().optional(),
+  showInSidebar: z.boolean().optional(),
+  showInVerification: z.boolean().optional(),
 });
 
 router.post("/admin/llm-tools", requireAdmin, async (req, res) => {
@@ -721,6 +725,8 @@ const llmToolUpdateSchema = z.object({
   url: z.string().trim().url().optional(),
   active: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
+  showInSidebar: z.boolean().optional(),
+  showInVerification: z.boolean().optional(),
 });
 
 router.put("/admin/llm-tools/:id", requireAdmin, async (req, res) => {

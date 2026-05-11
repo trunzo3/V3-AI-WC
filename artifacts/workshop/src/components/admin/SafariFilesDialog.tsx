@@ -192,7 +192,7 @@ export function SafariFilesDialog({
           <input
             ref={fileInputRef}
             type="file"
-            accept="application/pdf,image/*,.doc,.docx,.txt,.md"
+            accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.gif,.webp"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];

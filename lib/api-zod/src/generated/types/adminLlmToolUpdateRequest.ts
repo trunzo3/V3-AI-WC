@@ -23,4 +23,6 @@ export interface AdminLlmToolUpdateRequest {
   url?: string;
   sortOrder?: number;
   active?: boolean;
+  showInSidebar?: boolean;
+  showInVerification?: boolean;
 }

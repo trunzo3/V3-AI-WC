@@ -19,4 +19,6 @@ export interface LlmTool {
   name: string;
   displayLabel: string;
   url: string;
+  showInSidebar: boolean;
+  showInVerification: boolean;
 }

@@ -239,6 +239,8 @@ export interface LlmTool {
   name: string;
   displayLabel: string;
   url: string;
+  showInSidebar: boolean;
+  showInVerification: boolean;
 }
 
 export interface LlmToolsResponse {
@@ -463,6 +465,8 @@ export interface AdminLlmTool {
   url: string;
   sortOrder: number;
   active: boolean;
+  showInSidebar: boolean;
+  showInVerification: boolean;
 }
 
 export interface AdminLlmToolListResponse {
@@ -482,6 +486,8 @@ export interface AdminLlmToolCreateRequest {
   url: string;
   sortOrder?: number;
   active?: boolean;
+  showInSidebar?: boolean;
+  showInVerification?: boolean;
 }
 
 export interface AdminLlmToolUpdateRequest {
@@ -493,6 +499,8 @@ export interface AdminLlmToolUpdateRequest {
   url?: string;
   sortOrder?: number;
   active?: boolean;
+  showInSidebar?: boolean;
+  showInVerification?: boolean;
 }
 
 export interface AdminFeedbackCategoryCreateRequest {

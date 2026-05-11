@@ -11,6 +11,8 @@ router.get("/llm-tools", async (_req, res) => {
       name: llmToolsTable.name,
       displayLabel: llmToolsTable.displayLabel,
       url: llmToolsTable.url,
+      showInSidebar: llmToolsTable.showInSidebar,
+      showInVerification: llmToolsTable.showInVerification,
     })
     .from(llmToolsTable)
     .where(eq(llmToolsTable.active, true))

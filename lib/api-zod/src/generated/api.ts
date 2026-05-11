@@ -338,6 +338,8 @@ export const ListLlmToolsResponse = zod.object({
       name: zod.string(),
       displayLabel: zod.string(),
       url: zod.string(),
+      showInSidebar: zod.boolean(),
+      showInVerification: zod.boolean(),
     }),
   ),
 });
@@ -791,6 +793,8 @@ export const AdminListLlmToolsResponse = zod.object({
       url: zod.string(),
       sortOrder: zod.number(),
       active: zod.boolean(),
+      showInSidebar: zod.boolean(),
+      showInVerification: zod.boolean(),
     }),
   ),
 });
@@ -805,6 +809,8 @@ export const AdminCreateLlmToolBody = zod.object({
   url: zod.string().min(1),
   sortOrder: zod.number().optional(),
   active: zod.boolean().optional(),
+  showInSidebar: zod.boolean().optional(),
+  showInVerification: zod.boolean().optional(),
 });
 
 /**
@@ -820,6 +826,8 @@ export const AdminUpdateLlmToolBody = zod.object({
   url: zod.string().min(1).optional(),
   sortOrder: zod.number().optional(),
   active: zod.boolean().optional(),
+  showInSidebar: zod.boolean().optional(),
+  showInVerification: zod.boolean().optional(),
 });
 
 export const AdminUpdateLlmToolResponse = zod.object({
@@ -830,6 +838,8 @@ export const AdminUpdateLlmToolResponse = zod.object({
     url: zod.string(),
     sortOrder: zod.number(),
     active: zod.boolean(),
+    showInSidebar: zod.boolean(),
+    showInVerification: zod.boolean(),
   }),
 });
 
