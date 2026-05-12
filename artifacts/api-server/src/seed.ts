@@ -52,6 +52,11 @@ const DEFAULT_FEEDBACK_CATEGORIES = [
 
 const DEFAULT_APP_SETTINGS: Array<{ key: string; value: string }> = [
   { key: "talk_with_anthony_url", value: "https://talkwithanthony.com" },
+  {
+    key: "feedback_intro",
+    value:
+      "Tell us what you're working on, what you're stuck on, or what you'd like to go deeper on.",
+  },
 ];
 
 async function ensureDefaultCohort(): Promise<void> {

@@ -842,40 +842,49 @@ export function OvernightAssignment({ sectionId, title }: SectionProps) {
   );
 }
 
+const SIX_WAYS_DEFAULT_INSTRUCTION =
+  "Think about your actual work. For each use case, write one task you do regularly or/and that you are working on now, that AI could help with.";
+
+export const SIX_WAYS = [
+  { key: "draft", name: "DRAFT", definition: "Create something new — email, report, talking points, agenda", example: "Write an email to supervisors explaining new training requirements" },
+  { key: "brainstorm", name: "BRAINSTORM", definition: "Generate options or ideas — approaches, solutions, alternatives", example: "I'm developing a training on a new topic. What should I think through as I begin?" },
+  { key: "prepare", name: "PREPARE", definition: "Get ready for a conversation or scenario — anticipate objections, plan questions", example: "Help me prepare for a difficult conversation about a performance issue" },
+  { key: "synthesize", name: "SYNTHESIZE", definition: "Find patterns across multiple sources — themes in feedback, common threads in documents", example: "Identify common themes across these three staff survey responses" },
+  { key: "distill", name: "DISTILL", definition: "Make complex things clear — policy to plain language, long to short", example: "What are the key points in this 50-page directive?" },
+  { key: "critique", name: "CRITIQUE", definition: "Evaluate and find weaknesses — check a draft, identify gaps, score against criteria", example: "Review my draft budget narrative and identify what's missing or unclear" },
+] as const;
+
 export function SixWaysWorksheet({ sectionId, title }: SectionProps) {
-  const ways = [
-    { name: "DRAFT", example: "First pass at a tricky email" },
-    { name: "BRAINSTORM", example: "10 ideas for team offsite" },
-    { name: "PREPARE", example: "Roleplay a difficult conversation" },
-    { name: "SYNTHESIZE", example: "Find themes in 50 survey responses" },
-    { name: "DISTILL", example: "Turn a 20-page report into a 1-pager" },
-    { name: "CRITIQUE", example: "Find holes in my project plan" },
-  ];
+  const { data: variantsResp } = useGetContentVariants(sectionId);
+  const variants = variantsResp?.variants ?? [];
+  const instruction =
+    variants.find((v) => v.blockKey === "worksheet_instruction")?.content?.trim() ||
+    SIX_WAYS_DEFAULT_INSTRUCTION;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <SectionHeader title={title} type="reference" />
 
       <div className="bg-card p-6 border rounded-lg mb-8 shadow-sm">
-        <p className="text-foreground font-medium">
-          For each use case, write one task you do regularly that AI could help with.
-        </p>
+        <p className="text-foreground font-medium">{instruction}</p>
       </div>
 
       <div className="space-y-4 mb-8">
-        {ways.map((way) => (
-          <div key={way.name} className="bg-card p-4 border rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="bg-accent text-primary font-bold px-3 py-1 rounded text-sm uppercase tracking-wider">
-                {way.name}
-              </span>
-              <span className="text-muted-foreground text-sm italic">Ex: {way.example}</span>
-            </div>
+        {SIX_WAYS.map((way) => (
+          <div key={way.key} className="bg-card p-6 border rounded-lg shadow-sm space-y-2">
+            <span className="inline-block bg-accent text-primary font-bold px-3 py-1 rounded text-sm uppercase tracking-wider">
+              {way.name}
+            </span>
+            <div className="text-foreground font-semibold text-sm">{way.definition}</div>
+            <div className="text-muted-foreground text-xs italic">Ex: {way.example}</div>
+            <NotesField
+              sectionId={sectionId}
+              fieldKey={`sixways-${way.key}`}
+              label=""
+            />
           </div>
         ))}
       </div>
-
-      <NotesField sectionId={sectionId} fieldKey="notes" label="Your Notes" />
     </div>
   );
 }

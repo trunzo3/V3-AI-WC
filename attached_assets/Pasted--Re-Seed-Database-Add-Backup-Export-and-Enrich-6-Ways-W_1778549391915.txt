@@ -1,0 +1,155 @@
+# Re-Seed Database, Add Backup Export, and Enrich 6 Ways Worksheet
+
+## Part 1: Re-Seed the Database
+
+The database is currently empty — no cohorts, no sections, no data. Run the seed script to repopulate everything.
+
+### How to trigger it
+Run the application startup, which should execute the seed script automatically. If it does not, run:
+```
+pnpm --filter @workspace/api-server run dev
+```
+
+### What the seed should create
+
+1. **One default cohort** named "Default Workshop" with cohort code "WORKSHOP", audience type "general", Level 1 open, Levels 2-4 closed, workbook download enabled
+2. **All sections from ALL_SECTIONS** (defined in `artifacts/api-server/src/lib/sections.ts`) populated into `cohort_sections` for the default cohort — all sections across Levels 1-4 with correct codes from `SECTION_CODE_CONFIG` (defined in `artifacts/api-server/src/section-codes-config.ts`)
+3. **LLM tools**: Gemini (https://gemini.google.com), ChatGPT (https://chatgpt.com), Claude (https://claude.ai), Copilot (https://copilot.microsoft.com) — all with `show_in_sidebar` and `show_in_verification` set to true
+4. **Safari library tools**: ChatGPT, Claude, Gemini, NotebookLM, Perplexity — all active
+5. **Feedback categories**: "Topic I want to learn", "App feedback", "Other"
+6. **App settings**: `talk_with_anthony_url` = "https://talkwithanthony.com", `feedback_intro` = "Tell us what you're working on, what you're stuck on, or what you'd like to go deeper on."
+
+### How to verify
+Log into the admin panel. Confirm the cohort "Default Workshop" exists, the Sections tab shows all sections across Levels 1-4, the Tool Safari tab shows 5 tools in the library, and the Settings tab shows the two app settings.
+
+---
+
+## Part 2: Add Data Backup Export to Admin Settings Tab
+
+Add a "Data Management" section at the bottom of the Settings tab in the admin panel.
+
+### Admin UI
+
+At the bottom of the Settings tab (below the existing app settings fields), add:
+
+1. A horizontal divider line
+2. A section header: "Data Management" — same heading style as "App settings" above it
+3. A button labeled "Export All Data (JSON)" — navy background, white text
+4. Below the button, a description in muted 13px text: "Downloads a complete backup of all cohorts, participants, notes, workflows, feedback, and settings as a single JSON file. File uploads (PDFs) are not included — only metadata."
+
+### Button behavior
+1. On click, show loading state ("Exporting...")
+2. Call `GET /api/admin/export`
+3. Download the response as a file named `iqmeeteq-backup-YYYY-MM-DD.json` (using today's date)
+4. Reset the button after download completes
+
+### Backend endpoint
+
+Create `GET /api/admin/export` in a new file `artifacts/api-server/src/routes/export.ts`. Register it in `artifacts/api-server/src/routes/index.ts` by importing the router and adding it with `router.use(exportRouter)`.
+
+Requires admin authentication (`req.session.isAdmin`). Returns 401 if not admin.
+
+Returns a single JSON object containing every table:
+
+- `exportedAt`: ISO timestamp
+- `cohorts`: all rows from cohorts table
+- `cohortSections`: all rows from cohort_sections table
+- `participants`: all rows from participants table
+- `notes`: all rows from notes table
+- `unlockedSections`: all rows from unlocked_sections table
+- `workflowMaps`: all rows from workflow_maps table
+- `feedback`: all rows from feedback table
+- `genericSections`: all rows from generic_sections table
+- `contentVariants`: all rows from content_variants table
+- `safariLibrary`: all rows from safari_library table
+- `cohortSafariTabs`: all rows from cohort_safari_tabs table
+- `llmTools`: all rows from llm_tools table
+- `sectionFiles`: all rows from section_files table, but EXCLUDE the fileData column (the base64 blob). Include only: id, displayName, sectionId, safariLibraryId, mimeType, fileSize, uploadedAt
+- `feedbackCategories`: all rows from feedback_categories table
+- `appSettings`: all rows from app_settings table
+
+Set response headers:
+- `Content-Type: application/json`
+- `Content-Disposition: attachment; filename="iqmeeteq-backup-YYYY-MM-DD.json"` (using today's date)
+
+The endpoint should return empty arrays (not errors) if any table is empty.
+
+### How to verify
+Log into admin, go to Settings tab, scroll to bottom, click "Export All Data (JSON)". A JSON file downloads. Open it and confirm it has keys for all tables listed above.
+
+---
+
+## Part 3: Enrich the 6 Ways Worksheet Section
+
+### 3A: Reorder in ALL_SECTIONS
+
+In `artifacts/api-server/src/lib/sections.ts`, find the entry in ALL_SECTIONS with ID `"six-ways-worksheet"`. Change its `order` value so it appears first among Level 1 sections — before `"verification-test"`. Set its order to 1 and increment the order values of all other Level 1 sections by 1 (verification-test becomes 2, tool-safari becomes 3, etc.).
+
+For new cohorts, the default sidebar order will start with 6 Ways Worksheet at the top of Level 1. Existing cohorts are not affected (the seed does not reorder existing cohort_sections rows).
+
+### 3B: Update the SixWaysWorksheet component
+
+Open `artifacts/workshop/src/components/workshop/sections/Day1.tsx`. Find the `SixWaysWorksheet` function (search for `export function SixWaysWorksheet`).
+
+The current `ways` array looks like this:
+```
+const ways = [
+  { name: "DRAFT", example: "First pass at a tricky email" },
+  { name: "BRAINSTORM", example: "10 ideas for team offsite" },
+  ...
+];
+```
+
+Replace it with this array that includes definitions:
+```
+const ways = [
+  { name: "DRAFT", definition: "Create something new — email, report, talking points, agenda", example: "Write an email to supervisors explaining new training requirements" },
+  { name: "BRAINSTORM", definition: "Generate options or ideas — approaches, solutions, alternatives", example: "I'm developing a training on a new topic. What should I think through as I begin?" },
+  { name: "PREPARE", definition: "Get ready for a conversation or scenario — anticipate objections, plan questions", example: "Help me prepare for a difficult conversation about a performance issue" },
+  { name: "SYNTHESIZE", definition: "Find patterns across multiple sources — themes in feedback, common threads in documents", example: "Identify common themes across these three staff survey responses" },
+  { name: "DISTILL", definition: "Make complex things clear — policy to plain language, long to short", example: "What are the key points in this 50-page directive?" },
+  { name: "CRITIQUE", definition: "Evaluate and find weaknesses — check a draft, identify gaps, score against criteria", example: "Review my draft budget narrative and identify what's missing or unclear" },
+];
+```
+
+### 3C: Update the row rendering
+
+In the same component, update how each row renders. Currently each row shows the gold badge and the example on the same line, then the textarea below. Change it to:
+
+1. Gold badge with the use case name (e.g., "DRAFT") — left-aligned, same style as current
+2. Definition text — directly below or beside the badge. Bold, 14px, navy color (`text-foreground font-semibold text-sm`)
+3. Example text — below the definition. Italic, 13px, muted gray (`text-muted-foreground text-xs italic`). Prefixed with "Ex: "
+4. Textarea — below the example, full width. Keep the existing NotesField component and the existing field keys (`sixways-draft`, `sixways-brainstorm`, etc.). Keep the existing auto-save behavior.
+
+Keep the card/container styling for each row (the `bg-card p-6 border rounded-lg shadow-sm` wrapper).
+
+### 3D: Update the instruction text and make it a content variant
+
+The instruction text at the top of the section is currently inside a card:
+```
+<p className="text-foreground font-medium">For each use case, write one task you do regularly that AI could help with.</p>
+```
+
+Change the default text to: "Think about your actual work. For each use case, write one task you do regularly or/and that you are working on now, that AI could help with."
+
+Make this text a content variant so it can be changed per cohort:
+1. The component should call `GET /content-variants/six-ways-worksheet` to check for an override with block_key `"worksheet_instruction"`
+2. If an override exists, display it. If not, display the default text above.
+3. Add `"six-ways-worksheet"` to the VARIANT_SLOTS constant in `artifacts/workshop/src/components/admin/variant-slots.ts` with one slot: `{ key: "worksheet_instruction", label: "Worksheet instruction text", type: "text" }`
+
+### 3E: Update the PDF workbook template
+
+In the PDF workbook HTML template, update how the 6 Ways Worksheet section renders. Each row should show:
+1. The gold use case name (DRAFT, BRAINSTORM, etc.)
+2. The definition text in bold
+3. The participant's entered task text (from the notes with field key `sixways-draft`, `sixways-brainstorm`, etc.)
+
+Do not include the example text in the PDF — it's a prompt for input, not a record of their work. If a participant did not enter a task for a use case, show "No task entered" in muted italic.
+
+### How to verify
+1. Log in as a participant
+2. The 6 Ways Worksheet should be the first section in Level 1 (above Verification Test)
+3. Each of the six rows shows: gold badge, bold definition, italic example with "Ex:" prefix, and a textarea
+4. Type something in one of the textareas, navigate away, come back — it should auto-save
+5. In admin, go to Content Variants for the cohort, find "six-ways-worksheet" — the "Worksheet instruction text" slot should appear with the default text and an override field
+6. Download the workbook PDF — the 6 Ways Worksheet page should show use case names, definitions, and participant entries

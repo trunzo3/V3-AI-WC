@@ -49,6 +49,21 @@ export const VARIANT_SECTIONS: VariantSection[] = [
     ],
   },
   {
+    sectionId: "six-ways-worksheet",
+    title: "6 Ways Worksheet",
+    slots: [
+      {
+        blockKey: "worksheet_instruction",
+        label: "Worksheet instruction text",
+        description:
+          "The lead-in instruction shown above the six use-case rows.",
+        defaultContent:
+          "Think about your actual work. For each use case, write one task you do regularly or/and that you are working on now, that AI could help with.",
+        multiline: true,
+      },
+    ],
+  },
+  {
     sectionId: "closing",
     title: "Closing",
     slots: [

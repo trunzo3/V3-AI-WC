@@ -36,7 +36,35 @@ const LEVEL_LABELS: Record<number, string> = {
 };
 
 // Skipped sections (no participant input expected).
-const SKIPPED_SECTION_IDS = new Set<string>(["six-ways-worksheet"]);
+const SKIPPED_SECTION_IDS = new Set<string>([]);
+
+const SIX_WAYS_WORKSHEET_ROWS: Array<{ key: string; name: string; definition: string }> = [
+  { key: "draft", name: "DRAFT", definition: "Create something new — email, report, talking points, agenda" },
+  { key: "brainstorm", name: "BRAINSTORM", definition: "Generate options or ideas — approaches, solutions, alternatives" },
+  { key: "prepare", name: "PREPARE", definition: "Get ready for a conversation or scenario — anticipate objections, plan questions" },
+  { key: "synthesize", name: "SYNTHESIZE", definition: "Find patterns across multiple sources — themes in feedback, common threads in documents" },
+  { key: "distill", name: "DISTILL", definition: "Make complex things clear — policy to plain language, long to short" },
+  { key: "critique", name: "CRITIQUE", definition: "Evaluate and find weaknesses — check a draft, identify gaps, score against criteria" },
+];
+
+function renderSixWaysWorksheet(notes: RenderedNote[]): string {
+  const byKey = new Map(notes.map((n) => [n.fieldKey, n.content]));
+  const rows = SIX_WAYS_WORKSHEET_ROWS.map((r) => {
+    const entry = (byKey.get(`sixways-${r.key}`) ?? "").trim();
+    const body = entry
+      ? `<div class="sixways-entry">${nl2br(entry)}</div>`
+      : `<div class="sixways-entry empty-notes">No task entered</div>`;
+    return `
+      <div class="sixways-row">
+        <div class="sixways-head">
+          <span class="sixways-badge">${escapeHtml(r.name)}</span>
+        </div>
+        <div class="sixways-def">${escapeHtml(r.definition)}</div>
+        ${body}
+      </div>`;
+  }).join("");
+  return `<div class="sixways-list">${rows}</div>`;
+}
 
 // Friendly labels for known structured fieldKeys per section.
 const RICECO_FIELD_LABELS: Record<string, string> = {
@@ -549,6 +577,8 @@ function buildHtml(opts: {
           } else if (!section.isGeneric && SECTION_REFERENCE_CONTENT[section.id]) {
             referenceHtml = `<div class="ref-content">${SECTION_REFERENCE_CONTENT[section.id]}</div>`;
           }
+          const isSixWays = section.id === "six-ways-worksheet";
+          const sixWaysHtml = isSixWays ? renderSixWaysWorksheet(structuredNotes) : "";
           // Avoid an extra page break before the first section in a level
           const breakClass = idx === 0 ? "" : "section-break";
           return `
@@ -558,9 +588,9 @@ function buildHtml(opts: {
               ${goal ? `<div class="goal-box"><div class="goal-label">Goal</div><div class="goal-text">${nl2br(goal)}</div></div>` : ""}
               ${referenceHtml}
               ${genericBody ? `<div class="generic-body">${genericBody}</div>` : ""}
-              ${renderStructuredFields(section.id, structuredNotes)}
+              ${isSixWays ? sixWaysHtml : renderStructuredFields(section.id, structuredNotes)}
               ${workflowMapHtml}
-              ${renderYourNotesBlock(freeformNote)}
+              ${isSixWays ? "" : renderYourNotesBlock(freeformNote)}
             </article>
           `;
         })
@@ -795,6 +825,32 @@ function buildHtml(opts: {
   .field-block.field-green .field-label { color: #16a34a; }
 
   .empty-notes { font-style: italic; color: ${MUTED}; }
+
+  /* 6 Ways Worksheet */
+  .sixways-list { margin: 14px 0 4px; }
+  .sixways-row {
+    background: #fff;
+    border: 1px solid ${BORDER};
+    border-left: 3px solid ${GOLD};
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    page-break-inside: avoid;
+  }
+  .sixways-head { margin-bottom: 6px; }
+  .sixways-badge {
+    display: inline-block;
+    background: ${GOLD};
+    color: ${NAVY};
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-size: 9pt;
+    padding: 3px 9px;
+    border-radius: 4px;
+  }
+  .sixways-def { font-weight: 700; font-size: 10.5pt; color: ${NAVY}; margin-bottom: 6px; }
+  .sixways-entry { font-size: 10.5pt; color: ${NAVY}; line-height: 1.5; }
 
   .generic-body { margin: 16px 0; }
   .text-block { margin-bottom: 12px; color: ${NAVY}; }

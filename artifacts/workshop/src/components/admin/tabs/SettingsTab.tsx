@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Save } from "lucide-react";
+import { Save, Download } from "lucide-react";
 
 const KNOWN_SETTINGS: { key: string; label: string; placeholder?: string }[] = [
   {
@@ -62,6 +62,26 @@ export function SettingsTab() {
     );
   };
 
+  const downloadExport = async () => {
+    try {
+      const res = await fetch("/api/admin/export", { credentials: "include" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const today = new Date().toISOString().slice(0, 10);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `iqmeeteq-backup-${today}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast({ title: "Backup downloaded" });
+    } catch {
+      toast({ title: "Export failed", variant: "destructive" });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -103,6 +123,24 @@ export function SettingsTab() {
                 </div>
               );
             })}
+            <div className="pt-6 mt-2 border-t">
+              <h3 className="text-base font-semibold text-primary mb-1">
+                Data Management
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Download a JSON backup of every cohort, participant, note, and
+                configuration row in the system. File metadata is included
+                without raw file contents.
+              </p>
+              <Button
+                onClick={downloadExport}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                data-testid="button-export-data"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export All Data (JSON)
+              </Button>
+            </div>
           </>
         )}
       </CardContent>

@@ -11,6 +11,7 @@ import appSettingsRouter from "./app-settings";
 import safariTabsRouter from "./safari-tabs";
 import filesRouter from "./files";
 import workbookRouter from "./workbook";
+import exportRouter from "./export";
 import adminRouter from "./admin";
 
 const router: IRouter = Router();
@@ -27,6 +28,7 @@ router.use(appSettingsRouter);
 router.use(safariTabsRouter);
 router.use(filesRouter);
 router.use(workbookRouter);
+router.use(exportRouter);
 router.use(adminRouter);
 
 export default router;
