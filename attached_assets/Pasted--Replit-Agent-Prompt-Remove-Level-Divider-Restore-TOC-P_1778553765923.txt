@@ -1,0 +1,75 @@
+# Replit Agent Prompt — Remove Level Divider + Restore TOC Page Break + Tighten TOC Spacing
+
+## What went wrong in the last attempt
+
+The previous prompt asked you to remove a heading reading "18 Sections" by searching for that literal string. That failed because the number is generated dynamically (likely `${sections.length} Sections` or similar template interpolation). A literal-string search for "18 Sections" won't find it.
+
+You also removed the page break that previously separated the Table of Contents from the section content that follows it. The current PDF now has the TOC list, the "LEVEL 1 — CORE WORKSHOP" gold line, the large dynamic-count heading, AND the start of the first section ("Note to Shayla") all stacked on page 2 together. That is worse than the original. The TOC must occupy page 2 alone.
+
+## Goal
+
+1. **Delete the level divider element entirely.** This is the block that renders, in sequence: a small gold uppercase line `LEVEL 1 — CORE WORKSHOP`, then a large heading rendered from a count expression (currently showing as "18 Sections"). Remove the whole block — header line, count heading, and any rule below it that exists only to decorate it.
+2. **Restore a clean page break after the Table of Contents.** Page 2 ends with the TOC. Page 3 begins with the first section's normal layout (`REFERENCE | Note to Shayla | content...`). No divider in between.
+3. **Tighten TOC list item spacing** so adding sections in the future doesn't push the TOC onto a second page.
+
+Do NOT reduce any font sizes anywhere.
+
+## Steps
+
+### Part 1 — Find and remove the level divider element
+
+1. Open the workbook PDF template. Most likely path: `artifacts/api-server/src/routes/workbook.ts`.
+2. Search the template for any of the following patterns. The element you want will match at least one:
+   - `Sections` appearing inside a large heading tag (`<h1>`, `<h2>`, or large class)
+   - `LEVEL` or `Level 1` appearing together with `Core Workshop`
+   - `.length} Sections`, `.length + ' Sections'`, or `${...} Sections`
+   - A function or component named something like `renderLevelDivider`, `levelHeader`, `levelTitlePage`, `levelIntro`
+3. Once located, delete the entire divider element — both the small uppercase line and the large dynamic count heading, plus any decorative rule exclusive to this divider. If the divider is rendered by its own function, delete both the function and its call site.
+4. Do NOT delete the "LEVEL 1 — CORE WORKSHOP" header that sits inside the TOC itself, above the list of section titles on page 2. That stays.
+
+### Part 2 — Restore the page break
+
+1. The TOC must end at the bottom of page 2.
+2. The first content section (`Note to Shayla` in this cohort) must begin on page 3 with its normal section heading layout.
+3. Whatever CSS or HTML mechanism previously created this page break (likely `page-break-after: always` on the TOC container, or a `<div class="page-break"></div>` element after the TOC) should be in place. Restore it if missing.
+
+### Part 3 — Tighten TOC list item spacing
+
+1. Locate the CSS rules that style the TOC list rows (the rows with section title and dot-leader line).
+2. Reduce vertical spacing of TOC list items by ~30%. Adjust `padding-top` + `padding-bottom`, or `margin-bottom`, whichever currently controls the gap. If `line-height` on TOC rows is greater than 1.4, bring it down to 1.25.
+3. Do not change the margin around the "LEVEL 1 — CORE WORKSHOP" header inside the TOC.
+4. Do not change any font sizes.
+
+### Part 4 — Report back
+
+Reply with:
+- The exact file path edited.
+- The exact code block(s) removed for the level divider (Part 1).
+- The exact code restored or added for the page break (Part 2).
+- Before/after values for every CSS property changed (Part 3).
+- Confirmation that no font sizes were changed.
+
+## Do NOT change
+
+- Any font sizes.
+- The cover page.
+- Any section content page (page 3 onward, in the new layout).
+- The "LEVEL 1 — CORE WORKSHOP" header *inside the TOC*.
+- The dot-leader styling, colors, or fonts.
+
+## Verification
+
+1. Regenerate the Workbook PDF for the Shayla Preview cohort.
+2. Confirm page 1 is the cover.
+3. Confirm page 2 contains the TOC only — TOC title, "LEVEL 1 — CORE WORKSHOP" header, full list of section titles. No other content.
+4. Confirm page 3 begins directly with `REFERENCE | Note to Shayla | Hi Shayla. ...` and no "18 Sections" heading or level divider appears anywhere in the export.
+5. Attach or describe screenshots of pages 2 and 3 of the new export.
+
+## Self-score (1–10) on prompting best practices
+
+- **Specific (exact files, exact targets):** ___/10
+- **Positive language:** ___/10
+- **Simple and scoped:** ___/10
+- **Provides context:** ___/10
+- **Verification steps included:** ___/10
+- **No unrelated changes:** ___/10

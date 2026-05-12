@@ -595,13 +595,8 @@ function buildHtml(opts: {
           `;
         })
         .join("");
-      const levelBreak = levelIdx === 0 ? "" : "level-break";
       return `
-        <section class="page ${levelBreak}">
-          <div class="page-header">
-            <div class="page-eyebrow">${escapeHtml(LEVEL_LABELS[level] ?? `Level ${level}`)}</div>
-            <h2 class="page-title">${items.length} ${items.length === 1 ? "Section" : "Sections"}</h2>
-          </div>
+        <section class="page">
           ${sectionsHtml}
         </section>
       `;
@@ -628,7 +623,8 @@ function buildHtml(opts: {
   }
   h1, h2, h3, h4 { font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; color: ${NAVY}; margin: 0; }
 
-  .page { padding: 56px 56px 72px 56px; }
+  .page { padding: 56px 56px 72px 56px; page-break-before: always; }
+  .page:first-child { page-break-before: auto; }
   .level-break, .section-break { page-break-before: always; }
 
   /* Cover */
@@ -704,7 +700,7 @@ function buildHtml(opts: {
     display: flex;
     align-items: baseline;
     gap: 12px;
-    padding: 3.5px 0;
+    padding: 2.5px 0;
     line-height: 1.25;
     font-size: 11pt;
     color: ${NAVY};
