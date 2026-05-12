@@ -1,0 +1,49 @@
+# Replit Agent Prompt — Compress TOC Spacing in Workbook PDF
+
+## Context
+
+The Workbook PDF is generated server-side via Puppeteer from an HTML template. Currently the Table of Contents page (page 2 of the export) has overly generous vertical spacing. With 18 sections plus the level group header, the TOC consumes the full page and pushes the next section's big title heading ("18 Sections") onto page 3 in an awkward, orphaned position.
+
+## Goal
+
+Tighten the vertical rhythm of the TOC so the entire Level 1 list fits more compactly on page 2 and the page break to page 3 lands cleaner. **Do NOT reduce the font size of any TOC element. Only reduce spacing.**
+
+## Steps
+
+1. **Locate the workbook PDF template.** It is the file that composes the HTML string passed to Puppeteer. Most likely path: `artifacts/api-server/src/routes/workbook.ts`. If it's somewhere else, find it by searching for `puppeteer` and `Table of Contents` in the api-server source.
+
+2. **Identify the CSS rules that style the Table of Contents.** Look for the selectors that style the TOC list items (the rows with the dot-leader separator between section title and what would otherwise be a page number), the level group header (e.g. "LEVEL 1 — CORE WORKSHOP"), and the TOC page title.
+
+3. **Apply these spacing reductions only:**
+   - **TOC list items** — reduce vertical padding (or `margin-bottom`) by ~40%. If `line-height` is currently above 1.4, bring it down to 1.25.
+   - **Level group header** (`LEVEL 1 — CORE WORKSHOP`) — reduce `margin-top` and `margin-bottom` by ~40%.
+   - **Spacing between TOC page title and first level header** — reduce by ~30%.
+
+4. **Show me the diff.** Reply with:
+   - The exact file path you edited.
+   - Before/after values for every CSS property you changed.
+   - Confirmation that no font sizes were changed.
+
+## Do NOT change
+
+- Any font sizes anywhere in the workbook.
+- The cover page (page 1).
+- Any section content page (page 3 onward).
+- The dot-leader styling, the gold rule under the TOC title, or any colors.
+- The level group header text itself.
+
+## Verification
+
+1. After editing, regenerate the Workbook PDF for the Shayla Preview cohort.
+2. Confirm page 2 still contains the full TOC with all 18 sections listed under the LEVEL 1 — CORE WORKSHOP header.
+3. Confirm the page 2 → page 3 break is cleaner — the next section's title heading is no longer orphaned alone at the top of page 3.
+4. Report success or attach screenshots of the new page 2 and page 3.
+
+## Self-score (1–10) on prompting best practices
+
+- **Specific (exact files, exact targets):** ___/10
+- **Positive language:** ___/10
+- **Simple and scoped:** ___/10
+- **Provides context:** ___/10
+- **Verification steps included:** ___/10
+- **No unrelated changes:** ___/10

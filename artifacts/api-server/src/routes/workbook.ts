@@ -695,8 +695,8 @@ function buildHtml(opts: {
     letter-spacing: 2px;
     font-size: 10pt;
     color: ${GOLD};
-    margin-top: 28px;
-    margin-bottom: 12px;
+    margin-top: 17px;
+    margin-bottom: 7px;
     padding-bottom: 6px;
     border-bottom: 1px solid ${BORDER};
   }
@@ -704,7 +704,8 @@ function buildHtml(opts: {
     display: flex;
     align-items: baseline;
     gap: 12px;
-    padding: 6px 0;
+    padding: 3.5px 0;
+    line-height: 1.25;
     font-size: 11pt;
     color: ${NAVY};
   }
