@@ -6,6 +6,15 @@ packages:
 
 autoInstallPeers: false
 
+# orval (dev tool) pulls in zod v4, which pnpm hoists to the fallback
+# node_modules and breaks type resolution of `zod` inside
+# @hookform/resolvers (it has no zod peer dep of its own). Declaring the
+# peer forces resolvers to link against the workspace's catalog zod v3.
+packageExtensions:
+  '@hookform/resolvers':
+    peerDependencies:
+      zod: '*'
+
 catalog:
   '@replit/vite-plugin-cartographer': ^0.5.1
   '@replit/vite-plugin-dev-banner': ^0.1.1

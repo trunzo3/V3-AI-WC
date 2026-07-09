@@ -232,6 +232,8 @@ export function SectionsTab({ cohortId }: Props) {
     goalText: string;
     sectionType: "exercise" | "reference";
     targetLevel: number;
+    showNotesField: boolean;
+    badgeLabel: string;
   }
   const [genForm, setGenForm] = useState<GenForm>({
     title: "",
@@ -239,6 +241,8 @@ export function SectionsTab({ cohortId }: Props) {
     goalText: "",
     sectionType: "exercise",
     targetLevel: 1,
+    showNotesField: true,
+    badgeLabel: "",
   });
 
   const updateBlock = (idx: number, patch: Partial<GenericContentBlock>) => {
@@ -263,11 +267,101 @@ export function SectionsTab({ cohortId }: Props) {
       contentBlocks: f.contentBlocks.filter((_, i) => i !== idx),
     }));
   };
-  const addBlock = (type: "text" | "prompt") => {
+  const BLOCK_DEFAULTS: Record<string, GenericContentBlock> = {
+    text: { type: "text", content: "" },
+    prompt: { type: "prompt", content: "" },
+    callout: { type: "callout", variant: "insight", title: "", content: "" },
+    cards: { type: "cards", columns: 2, cards: [{ title: "", body: "" }] },
+    steps: { type: "steps", ordered: true, items: [{ title: "", body: "" }] },
+    link: { type: "link", url: "", label: "", style: "button" },
+    field: {
+      type: "field",
+      fieldKey: "",
+      label: "",
+      placeholder: "",
+      multiline: true,
+    },
+  };
+  const addBlock = (type: string) => {
+    const def = BLOCK_DEFAULTS[type];
+    if (!def) return;
     setGenForm((f) => ({
       ...f,
-      contentBlocks: [...f.contentBlocks, { type, content: "" }],
+      contentBlocks: [...f.contentBlocks, { ...def }],
     }));
+  };
+
+  // Add / remove / reorder for child items of cards and steps blocks.
+  const updateChildItem = (
+    blockIdx: number,
+    listKey: "cards" | "items",
+    itemIdx: number,
+    patch: Partial<{ title: string; body: string }>,
+  ) => {
+    setGenForm((f) => {
+      const next = f.contentBlocks.slice();
+      const block = { ...next[blockIdx]! } as GenericContentBlock;
+      const list = ((block as unknown as Record<string, unknown>)[listKey] as Array<{
+        title: string;
+        body: string;
+      }> | undefined)?.slice() ?? [];
+      list[itemIdx] = { ...list[itemIdx]!, ...patch };
+      (block as unknown as Record<string, unknown>)[listKey] = list;
+      next[blockIdx] = block;
+      return { ...f, contentBlocks: next };
+    });
+  };
+  const addChildItem = (blockIdx: number, listKey: "cards" | "items") => {
+    setGenForm((f) => {
+      const next = f.contentBlocks.slice();
+      const block = { ...next[blockIdx]! } as GenericContentBlock;
+      const list = ((block as unknown as Record<string, unknown>)[listKey] as Array<{
+        title: string;
+        body: string;
+      }> | undefined)?.slice() ?? [];
+      list.push({ title: "", body: "" });
+      (block as unknown as Record<string, unknown>)[listKey] = list;
+      next[blockIdx] = block;
+      return { ...f, contentBlocks: next };
+    });
+  };
+  const removeChildItem = (
+    blockIdx: number,
+    listKey: "cards" | "items",
+    itemIdx: number,
+  ) => {
+    setGenForm((f) => {
+      const next = f.contentBlocks.slice();
+      const block = { ...next[blockIdx]! } as GenericContentBlock;
+      const list = ((block as unknown as Record<string, unknown>)[listKey] as Array<{
+        title: string;
+        body: string;
+      }> | undefined)?.filter((_, i) => i !== itemIdx) ?? [];
+      (block as unknown as Record<string, unknown>)[listKey] = list;
+      next[blockIdx] = block;
+      return { ...f, contentBlocks: next };
+    });
+  };
+  const moveChildItem = (
+    blockIdx: number,
+    listKey: "cards" | "items",
+    itemIdx: number,
+    dir: -1 | 1,
+  ) => {
+    setGenForm((f) => {
+      const next = f.contentBlocks.slice();
+      const block = { ...next[blockIdx]! } as GenericContentBlock;
+      const list = ((block as unknown as Record<string, unknown>)[listKey] as Array<{
+        title: string;
+        body: string;
+      }> | undefined)?.slice() ?? [];
+      const target = itemIdx + dir;
+      if (target < 0 || target >= list.length) return f;
+      [list[itemIdx], list[target]] = [list[target]!, list[itemIdx]!];
+      (block as unknown as Record<string, unknown>)[listKey] = list;
+      next[blockIdx] = block;
+      return { ...f, contentBlocks: next };
+    });
   };
 
   const openCreateGeneric = () => {
@@ -278,6 +372,8 @@ export function SectionsTab({ cohortId }: Props) {
       goalText: "",
       sectionType: "exercise",
       targetLevel: 1,
+      showNotesField: true,
+      badgeLabel: "",
     });
     setGenOpen(true);
   };
@@ -291,6 +387,8 @@ export function SectionsTab({ cohortId }: Props) {
       goalText: g.goalText ?? "",
       sectionType: (g.sectionType as "exercise" | "reference") ?? "exercise",
       targetLevel: 1,
+      showNotesField: g.showNotesField ?? true,
+      badgeLabel: g.badgeLabel ?? "",
     });
     setGenOpen(true);
   };
@@ -309,6 +407,8 @@ export function SectionsTab({ cohortId }: Props) {
       contentBlocks: genForm.contentBlocks,
       goalText: genForm.goalText || null,
       sectionType: genForm.sectionType,
+      showNotesField: genForm.showNotesField,
+      badgeLabel: genForm.badgeLabel.trim() || null,
     };
     if (editingGeneric) {
       updateGenMut.mutate(
@@ -472,6 +572,33 @@ export function SectionsTab({ cohortId }: Props) {
                       }
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-3 items-end">
+                    <div>
+                      <Label>Badge label (optional)</Label>
+                      <Input
+                        value={genForm.badgeLabel}
+                        onChange={(e) =>
+                          setGenForm({ ...genForm, badgeLabel: e.target.value })
+                        }
+                        placeholder={`Defaults to "${genForm.sectionType}"`}
+                        data-testid="input-generic-badge-label"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 pb-2">
+                      <Switch
+                        checked={genForm.showNotesField}
+                        onCheckedChange={(v) =>
+                          setGenForm({ ...genForm, showNotesField: v })
+                        }
+                        data-testid="switch-generic-show-notes"
+                      />
+                      <Label className="cursor-pointer" onClick={() =>
+                        setGenForm({ ...genForm, showNotesField: !genForm.showNotesField })
+                      }>
+                        Show "Your Notes" field
+                      </Label>
+                    </div>
+                  </div>
                   <div className="space-y-3">
                     <Label>Content blocks</Label>
                     {genForm.contentBlocks.length === 0 && (
@@ -492,7 +619,7 @@ export function SectionsTab({ cohortId }: Props) {
                               variant={block.type === "prompt" ? "default" : "outline"}
                               className="text-[10px] uppercase tracking-widest"
                             >
-                              {block.type === "prompt" ? "Prompt block" : "Text block"}
+                              {block.type} block
                             </Badge>
                             <div className="flex items-center gap-1">
                               <Button
@@ -526,9 +653,9 @@ export function SectionsTab({ cohortId }: Props) {
                               </Button>
                             </div>
                           </div>
-                          {block.type === "text" ? (
+                          {block.type === "text" && (
                             <RichTextEditor
-                              value={block.content}
+                              value={block.content ?? ""}
                               onChange={(html) =>
                                 updateBlock(idx, { content: html })
                               }
@@ -536,42 +663,317 @@ export function SectionsTab({ cohortId }: Props) {
                               minHeight={140}
                               testId={`input-generic-block-text-${idx}`}
                             />
-                          ) : (
-                            <Textarea
-                              rows={4}
-                              value={block.content}
-                              onChange={(e) =>
-                                updateBlock(idx, { content: e.target.value })
-                              }
-                              className="font-mono text-sm"
-                              placeholder="Paste the prompt text here…"
-                              data-testid={`input-generic-block-prompt-${idx}`}
-                            />
+                          )}
+                          {block.type === "prompt" && (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Pill label (optional)</Label>
+                                  <Input
+                                    value={block.label ?? ""}
+                                    onChange={(e) =>
+                                      updateBlock(idx, { label: e.target.value })
+                                    }
+                                    placeholder='Defaults to "Prompt N"'
+                                    data-testid={`input-generic-block-prompt-label-${idx}`}
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Copy button label (optional)</Label>
+                                  <Input
+                                    value={block.buttonLabel ?? ""}
+                                    onChange={(e) =>
+                                      updateBlock(idx, { buttonLabel: e.target.value })
+                                    }
+                                    placeholder='Defaults to "Copy Prompt"'
+                                    data-testid={`input-generic-block-prompt-button-${idx}`}
+                                  />
+                                </div>
+                              </div>
+                              <Textarea
+                                rows={4}
+                                value={block.content ?? ""}
+                                onChange={(e) =>
+                                  updateBlock(idx, { content: e.target.value })
+                                }
+                                className="font-mono text-sm"
+                                placeholder="Paste the prompt text here…"
+                                data-testid={`input-generic-block-prompt-${idx}`}
+                              />
+                            </div>
+                          )}
+                          {block.type === "callout" && (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Variant</Label>
+                                  <Select
+                                    value={block.variant ?? "insight"}
+                                    onValueChange={(v) =>
+                                      updateBlock(idx, {
+                                        variant: v as "stop" | "insight" | "rule" | "quote",
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger data-testid={`select-generic-block-callout-variant-${idx}`}>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="stop">Stop (red banner)</SelectItem>
+                                      <SelectItem value="insight">Insight box</SelectItem>
+                                      <SelectItem value="rule">Rule</SelectItem>
+                                      <SelectItem value="quote">Quote</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Title (optional)</Label>
+                                  <Input
+                                    value={block.title ?? ""}
+                                    onChange={(e) =>
+                                      updateBlock(idx, { title: e.target.value })
+                                    }
+                                    data-testid={`input-generic-block-callout-title-${idx}`}
+                                  />
+                                </div>
+                              </div>
+                              <RichTextEditor
+                                value={block.content ?? ""}
+                                onChange={(html) =>
+                                  updateBlock(idx, { content: html })
+                                }
+                                placeholder="Callout body…"
+                                minHeight={100}
+                                testId={`input-generic-block-callout-${idx}`}
+                              />
+                            </div>
+                          )}
+                          {(block.type === "cards" || block.type === "steps") && (
+                            <div className="space-y-2">
+                              {block.type === "cards" ? (
+                                <div>
+                                  <Label className="text-xs">Columns</Label>
+                                  <Select
+                                    value={String(block.columns ?? 2)}
+                                    onValueChange={(v) =>
+                                      updateBlock(idx, { columns: Number(v) as 2 | 3 })
+                                    }
+                                  >
+                                    <SelectTrigger data-testid={`select-generic-block-cards-columns-${idx}`}>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="2">2 columns</SelectItem>
+                                      <SelectItem value="3">3 columns</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    checked={block.ordered ?? true}
+                                    onCheckedChange={(v) =>
+                                      updateBlock(idx, { ordered: v })
+                                    }
+                                    data-testid={`switch-generic-block-steps-ordered-${idx}`}
+                                  />
+                                  <Label className="text-xs">Numbered steps</Label>
+                                </div>
+                              )}
+                              {(block.type === "cards"
+                                ? (block.cards ?? [])
+                                : (block.items ?? [])
+                              ).map((item, itemIdx, arr) => {
+                                const listKey = block.type === "cards" ? "cards" as const : "items" as const;
+                                return (
+                                  <div
+                                    key={itemIdx}
+                                    className="border rounded p-2 space-y-1.5 bg-background"
+                                    data-testid={`generic-block-${idx}-item-${itemIdx}`}
+                                  >
+                                    <div className="flex items-center gap-1">
+                                      <Input
+                                        value={item.title}
+                                        onChange={(e) =>
+                                          updateChildItem(idx, listKey, itemIdx, {
+                                            title: e.target.value,
+                                          })
+                                        }
+                                        placeholder="Item title"
+                                        data-testid={`input-generic-block-${idx}-item-title-${itemIdx}`}
+                                      />
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        disabled={itemIdx === 0}
+                                        onClick={() => moveChildItem(idx, listKey, itemIdx, -1)}
+                                        aria-label="Move item up"
+                                        data-testid={`button-generic-block-${idx}-item-up-${itemIdx}`}
+                                      >
+                                        <ArrowUp className="w-3.5 h-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        disabled={itemIdx === arr.length - 1}
+                                        onClick={() => moveChildItem(idx, listKey, itemIdx, 1)}
+                                        aria-label="Move item down"
+                                        data-testid={`button-generic-block-${idx}-item-down-${itemIdx}`}
+                                      >
+                                        <ArrowDown className="w-3.5 h-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => removeChildItem(idx, listKey, itemIdx)}
+                                        aria-label="Remove item"
+                                        data-testid={`button-generic-block-${idx}-item-remove-${itemIdx}`}
+                                      >
+                                        <X className="w-3.5 h-3.5 text-destructive" />
+                                      </Button>
+                                    </div>
+                                    <Textarea
+                                      rows={2}
+                                      value={item.body}
+                                      onChange={(e) =>
+                                        updateChildItem(idx, listKey, itemIdx, {
+                                          body: e.target.value,
+                                        })
+                                      }
+                                      placeholder="Item body"
+                                      data-testid={`input-generic-block-${idx}-item-body-${itemIdx}`}
+                                    />
+                                  </div>
+                                );
+                              })}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  addChildItem(
+                                    idx,
+                                    block.type === "cards" ? "cards" : "items",
+                                  )
+                                }
+                                data-testid={`button-generic-block-${idx}-add-item`}
+                              >
+                                <Plus className="w-3.5 h-3.5 mr-1" />
+                                Add {block.type === "cards" ? "card" : "step"}
+                              </Button>
+                            </div>
+                          )}
+                          {block.type === "link" && (
+                            <div className="grid grid-cols-3 gap-2">
+                              <div className="col-span-2">
+                                <Label className="text-xs">URL</Label>
+                                <Input
+                                  value={block.url ?? ""}
+                                  onChange={(e) =>
+                                    updateBlock(idx, { url: e.target.value })
+                                  }
+                                  placeholder="https://…"
+                                  data-testid={`input-generic-block-link-url-${idx}`}
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Style</Label>
+                                <Select
+                                  value={block.style ?? "button"}
+                                  onValueChange={(v) =>
+                                    updateBlock(idx, { style: v as "button" | "text" })
+                                  }
+                                >
+                                  <SelectTrigger data-testid={`select-generic-block-link-style-${idx}`}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="button">Button</SelectItem>
+                                    <SelectItem value="text">Text link</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="col-span-3">
+                                <Label className="text-xs">Label</Label>
+                                <Input
+                                  value={block.label ?? ""}
+                                  onChange={(e) =>
+                                    updateBlock(idx, { label: e.target.value })
+                                  }
+                                  placeholder="Open the worksheet"
+                                  data-testid={`input-generic-block-link-label-${idx}`}
+                                />
+                              </div>
+                            </div>
+                          )}
+                          {block.type === "field" && (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Field key (unique, not "notes")</Label>
+                                  <Input
+                                    value={block.fieldKey ?? ""}
+                                    onChange={(e) =>
+                                      updateBlock(idx, { fieldKey: e.target.value })
+                                    }
+                                    placeholder="my-field-key"
+                                    data-testid={`input-generic-block-field-key-${idx}`}
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Label</Label>
+                                  <Input
+                                    value={block.label ?? ""}
+                                    onChange={(e) =>
+                                      updateBlock(idx, { label: e.target.value })
+                                    }
+                                    data-testid={`input-generic-block-field-label-${idx}`}
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Placeholder (optional)</Label>
+                                  <Input
+                                    value={block.placeholder ?? ""}
+                                    onChange={(e) =>
+                                      updateBlock(idx, { placeholder: e.target.value })
+                                    }
+                                    data-testid={`input-generic-block-field-placeholder-${idx}`}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-2 pt-5">
+                                  <Switch
+                                    checked={block.multiline ?? true}
+                                    onCheckedChange={(v) =>
+                                      updateBlock(idx, { multiline: v })
+                                    }
+                                    data-testid={`switch-generic-block-field-multiline-${idx}`}
+                                  />
+                                  <Label className="text-xs">Multiline</Label>
+                                </div>
+                              </div>
+                            </div>
                           )}
                         </div>
                       );
                     })}
-                    <div className="flex gap-2 pt-1">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addBlock("text")}
-                        data-testid="button-add-text-block"
+                    <div className="pt-1 max-w-xs">
+                      <Select
+                        value=""
+                        onValueChange={(v) => addBlock(v)}
                       >
-                        <Plus className="w-4 h-4 mr-1.5" />
-                        Add text block
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addBlock("prompt")}
-                        data-testid="button-add-prompt-block"
-                      >
-                        <Plus className="w-4 h-4 mr-1.5" />
-                        Add prompt block
-                      </Button>
+                        <SelectTrigger data-testid="select-add-block">
+                          <SelectValue placeholder="Add a block…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="text">Text</SelectItem>
+                          <SelectItem value="prompt">Prompt</SelectItem>
+                          <SelectItem value="callout">Callout</SelectItem>
+                          <SelectItem value="cards">Card grid</SelectItem>
+                          <SelectItem value="steps">Steps</SelectItem>
+                          <SelectItem value="link">Link</SelectItem>
+                          <SelectItem value="field">Input field</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
@@ -931,20 +1333,33 @@ export function SectionsTab({ cohortId }: Props) {
                         </div>
                       );
                     }
+                    if (b.type === "text") {
+                      return (
+                        <div key={i} className="border rounded-md p-3">
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] uppercase tracking-widest mb-2"
+                          >
+                            Text
+                          </Badge>
+                          <div
+                            className="prose prose-sm max-w-none"
+                            // Server-side sanitized via sanitizeRichHtml on
+                            // admin write.
+                            dangerouslySetInnerHTML={{ __html: b.content ?? "" }}
+                          />
+                        </div>
+                      );
+                    }
+                    // callout / cards / steps / link / field — summary only.
                     return (
                       <div key={i} className="border rounded-md p-3">
                         <Badge
                           variant="outline"
-                          className="text-[10px] uppercase tracking-widest mb-2"
+                          className="text-[10px] uppercase tracking-widest"
                         >
-                          Text
+                          {b.type}
                         </Badge>
-                        <div
-                          className="prose prose-sm max-w-none"
-                          // Server-side sanitized via sanitizeRichHtml on
-                          // admin write.
-                          dangerouslySetInnerHTML={{ __html: b.content }}
-                        />
                       </div>
                     );
                   });

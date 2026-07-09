@@ -48,13 +48,6 @@ export const SECTION_CODE_CONFIG: SectionCodeEntry[] = [
   { code: "SKEPTIC",     sectionIds: ["navigating-skepticism"] },
 
   // Level 3
-  { code: "VIBE",        sectionIds: ["vibe-coding"] },
-  { code: "AGENTIC",     sectionIds: ["agentic-workflows"] },
-  { code: "BUILD",       sectionIds: ["build-first-tool"] },
-  { code: "TRAIN",       sectionIds: ["training-others"] },
-  { code: "KNOWLEDGE",   sectionIds: ["knowledge-base"] },
-  { code: "DATA",        sectionIds: ["data-visualization"] },
-  { code: "GOVERN",      sectionIds: ["ai-governance"] },
 
   // Level 4
   { code: "ADVOCATE",    sectionIds: ["advocating-adoption"] },

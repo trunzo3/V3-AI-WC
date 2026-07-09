@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Lock, ChevronDown, ChevronRight, LogOut, ExternalLink } from "lucide-react";
 import type { Section } from "@workspace/api-client-react";
@@ -61,14 +61,20 @@ export function Sidebar({
     } catch {}
   }, [expanded, expandKey]);
 
-  // Auto-expand the level of the active section once sections have loaded.
+  // Auto-expand the level of the active section, once per active-section
+  // change. Reading `sections` through a ref keeps refetches (new array
+  // identity every 4s) and manual collapses from re-triggering this effect.
+  const sectionsRef = useRef(sections);
+  sectionsRef.current = sections;
   useEffect(() => {
-    if (!activeSectionId || sections.length === 0) return;
-    const sec = sections.find((s) => s.id === activeSectionId);
-    if (sec && !expanded[sec.level]) {
-      setExpanded((prev) => ({ ...prev, [sec.level]: true }));
+    if (!activeSectionId) return;
+    const sec = sectionsRef.current.find((s) => s.id === activeSectionId);
+    if (sec) {
+      setExpanded((prev) =>
+        prev[sec.level] ? prev : { ...prev, [sec.level]: true },
+      );
     }
-  }, [activeSectionId, sections, expanded]);
+  }, [activeSectionId]);
 
   const toggleLevel = (level: number) =>
     setExpanded((prev) => ({ ...prev, [level]: !prev[level] }));

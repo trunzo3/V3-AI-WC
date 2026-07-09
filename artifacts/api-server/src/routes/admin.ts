@@ -463,20 +463,103 @@ router.put(
 
 // ----- Generic sections ---------------------------------------------------
 
+const blockItemSchema = z.object({
+  title: z.string(),
+  body: z.string(),
+});
+
 const contentBlockSchema = z
-  .object({
-    type: z.enum(["text", "prompt"]),
-    content: z.string(),
-  })
-  .transform((b) =>
-    b.type === "text" ? { ...b, content: sanitizeRichHtml(b.content) } : b,
-  );
+  .discriminatedUnion("type", [
+    z.object({
+      type: z.literal("text"),
+      content: z.string(),
+    }),
+    z.object({
+      type: z.literal("prompt"),
+      content: z.string(),
+      label: z.string().optional(),
+      buttonLabel: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal("callout"),
+      variant: z.enum(["stop", "insight", "rule", "quote"]),
+      title: z.string().optional(),
+      content: z.string(),
+    }),
+    z.object({
+      type: z.literal("cards"),
+      columns: z.union([z.literal(2), z.literal(3)]),
+      cards: z.array(blockItemSchema),
+    }),
+    z.object({
+      type: z.literal("steps"),
+      ordered: z.boolean(),
+      items: z.array(blockItemSchema),
+    }),
+    z.object({
+      type: z.literal("link"),
+      url: z.string(),
+      label: z.string(),
+      style: z.enum(["button", "text"]),
+    }),
+    z.object({
+      type: z.literal("field"),
+      fieldKey: z.string().trim().min(1),
+      label: z.string(),
+      placeholder: z.string().optional(),
+      multiline: z.boolean(),
+    }),
+  ])
+  .transform((b) => {
+    // Sanitize admin-authored rich HTML. Prompt content stays literal — it
+    // renders inside <pre>.
+    switch (b.type) {
+      case "text":
+        return { ...b, content: sanitizeRichHtml(b.content) };
+      case "callout":
+        return { ...b, content: sanitizeRichHtml(b.content) };
+      case "cards":
+        return {
+          ...b,
+          cards: b.cards.map((c) => ({ ...c, body: sanitizeRichHtml(c.body) })),
+        };
+      case "steps":
+        return {
+          ...b,
+          items: b.items.map((i) => ({ ...i, body: sanitizeRichHtml(i.body) })),
+        };
+      default:
+        return b;
+    }
+  });
+
+// Within one section, all `field` fieldKeys must be unique and none may be
+// "notes" (reserved for the automatic bottom notes field).
+function validateFieldKeys(
+  blocks: Array<z.infer<typeof contentBlockSchema>>,
+): string | null {
+  const seen = new Set<string>();
+  for (const b of blocks) {
+    if (b.type !== "field") continue;
+    const key = b.fieldKey;
+    if (key === "notes") {
+      return 'Field key "notes" is reserved for the automatic notes field.';
+    }
+    if (seen.has(key)) {
+      return `Duplicate field key "${key}" — field keys must be unique within a section.`;
+    }
+    seen.add(key);
+  }
+  return null;
+}
 
 const genericCreateSchema = z.object({
   title: z.string().trim().min(1),
   contentBlocks: z.array(contentBlockSchema).default([]),
   goalText: z.string().nullish(),
   sectionType: z.enum(["exercise", "reference"]).default("exercise"),
+  showNotesField: z.boolean().default(true),
+  badgeLabel: z.string().trim().nullish(),
 });
 
 router.get("/admin/generic-sections", requireAdmin, async (_req, res) => {
@@ -494,6 +577,11 @@ router.post("/admin/generic-sections", requireAdmin, async (req, res) => {
     res.status(400).json({ error: "Invalid section payload." });
     return;
   }
+  const fieldKeyError = validateFieldKeys(parsed.data.contentBlocks);
+  if (fieldKeyError) {
+    res.status(400).json({ error: fieldKeyError });
+    return;
+  }
   const [created] = await db
     .insert(genericSectionsTable)
     .values({
@@ -501,6 +589,8 @@ router.post("/admin/generic-sections", requireAdmin, async (req, res) => {
       contentBlocks: parsed.data.contentBlocks,
       goalText: parsed.data.goalText ?? null,
       sectionType: parsed.data.sectionType,
+      showNotesField: parsed.data.showNotesField,
+      badgeLabel: parsed.data.badgeLabel ?? null,
     })
     .returning();
   res.status(201).json({ section: created });
@@ -518,6 +608,13 @@ router.put("/admin/generic-sections/:id", requireAdmin, async (req, res) => {
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid section payload." });
     return;
+  }
+  if (parsed.data.contentBlocks) {
+    const fieldKeyError = validateFieldKeys(parsed.data.contentBlocks);
+    if (fieldKeyError) {
+      res.status(400).json({ error: fieldKeyError });
+      return;
+    }
   }
   const [updated] = await db
     .update(genericSectionsTable)

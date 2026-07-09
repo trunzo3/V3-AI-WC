@@ -1098,21 +1098,59 @@ components:
         generic:
           nullable: true
           type: object
-          required: [contentBlocks, goalText]
+          required: [contentBlocks, goalText, showNotesField, badgeLabel]
           properties:
             contentBlocks:
               type: array
               items: { $ref: "#/components/schemas/GenericContentBlock" }
             goalText: { type: string, nullable: true }
+            showNotesField: { type: boolean }
+            badgeLabel: { type: string, nullable: true }
 
     GenericContentBlock:
       type: object
-      required: [type, content]
+      required: [type]
+      description: >
+        One block of a generic section body. `type` discriminates the shape:
+        text/prompt use `content`; callout uses `variant`, `title?`, `content`;
+        cards uses `columns` + `cards`; steps uses `ordered` + `items`;
+        link uses `url` + `label` + `style`; field uses `fieldKey`, `label`,
+        `placeholder?`, `multiline`.
       properties:
         type:
           type: string
-          enum: [text, prompt]
+          enum: [text, prompt, callout, cards, steps, link, field]
         content: { type: string }
+        label: { type: string }
+        buttonLabel: { type: string }
+        variant:
+          type: string
+          enum: [stop, insight, rule, quote]
+        title: { type: string }
+        columns:
+          type: integer
+          enum: [2, 3]
+        cards:
+          type: array
+          items: { $ref: "#/components/schemas/GenericBlockItem" }
+        ordered: { type: boolean }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/GenericBlockItem" }
+        url: { type: string }
+        style:
+          type: string
+          enum: [button, text]
+        fieldKey: { type: string }
+        placeholder: { type: string }
+        multiline: { type: boolean }
+
+    GenericBlockItem:
+      type: object
+      required: [title, body]
+      properties:
+        title: { type: string }
+        body: { type: string }
 
     SectionsResponse:
       type: object
@@ -1520,6 +1558,10 @@ components:
           type: string
           nullable: true
         sectionType: { type: string }
+        showNotesField: { type: boolean }
+        badgeLabel:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -1555,6 +1597,10 @@ components:
           type: string
           nullable: true
         sectionType: { type: string }
+        showNotesField: { type: boolean }
+        badgeLabel:
+          type: string
+          nullable: true
         cohortId:
           type: integer
           nullable: true

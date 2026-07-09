@@ -1,0 +1,113 @@
+Three changes. Do them in order and don't touch anything else.
+
+=== 1. Delete the Level 3 placeholders ===
+
+In artifacts/api-server/src/lib/sections.ts, remove these entries from RAW_SECTIONS:
+vibe-coding, agentic-workflows, build-first-tool, training-others, knowledge-base, data-visualization, ai-governance
+
+In artifacts/api-server/src/section-codes-config.ts, remove the matching entries from SECTION_CODE_CONFIG (codes VIBE, AGENTIC, BUILD, TRAIN, KNOWLEDGE, DATA, GOVERN).
+
+Then delete the matching rows from the cohort_sections table for every cohort so they disappear from the sidebar.
+
+Leave Levels 1, 2, and 4 alone.
+
+=== 2. Fix the sidebar collapse bug ===
+
+File: artifacts/workshop/src/components/workshop/Sidebar.tsx
+
+The effect that auto-expands the level containing the active section has two bugs:
+  - `expanded` is in its dependency array, so collapsing a level immediately re-triggers the effect and reopens it.
+  - `sections` is in its dependency array, and useListSections refetches every 4000ms returning a new array identity, so the effect re-fires on a timer.
+
+Result: a participant viewing a Level 1 section can never keep Level 1 collapsed.
+
+Fix: the effect must depend only on activeSectionId. It should expand the active section's level once, when the active section changes, and never again. A level the user manually collapses stays collapsed.
+
+Verify by collapsing Level 1 while viewing a Level 1 section, then waiting ten seconds. It must stay closed.
+
+=== 3. Add six block types to generic sections ===
+
+Today a generic section body is a jsonb array where every block is {type:"text"|"prompt", content:string}. Admins pick from exactly two block types. Add six more.
+
+Every existing block keeps working. Do not migrate or rewrite existing rows.
+
+--- Block shapes ---
+
+  { type:"prompt", content, label?, buttonLabel? }
+      label overrides the gold "Prompt N" pill. buttonLabel overrides "Copy Prompt".
+      Both optional. When absent, current behavior is unchanged.
+
+  { type:"callout", variant:"stop"|"insight"|"rule"|"quote", title?, content }
+      stop    — red banner, large centered title. Visual reference: the red "Stop Here" banner in Day1.tsx VerificationTest.
+      insight — reuse the existing InsightBox component from SectionHeader.tsx.
+      rule    — reuse the existing RuleBox component.
+      quote   — reuse the existing DepthQuote component.
+
+  { type:"cards", columns:2|3, cards:[{ title, body }] }
+      Visual reference: the card grid in PowerFollowUps in Day1.tsx.
+
+  { type:"steps", ordered:boolean, items:[{ title, body }] }
+      Visual reference: the numbered-circle steps in VerificationTest in Day1.tsx.
+
+  { type:"link", url, label, style:"button"|"text" }
+      Opens in a new tab, rel="noopener noreferrer".
+
+  { type:"field", fieldKey, label, placeholder?, multiline:boolean }
+      Renders a NotesField with that fieldKey. Persists exactly like the existing notes field.
+
+--- Two new columns on generic_sections ---
+
+  showNotesField  boolean, not null, default true
+      GenericSectionView currently appends a "Your Notes" field to every section unconditionally.
+      When false, suppress it. Sections built entirely from `field` blocks don't want a stray notes box.
+
+  badgeLabel  text, nullable
+      Overrides the badge text in SectionHeader. When null, fall back to sectionType as today.
+      Free text — "Orientation", "Pre-work", "Flagship Exercise".
+      Style it like the existing "reference" badge.
+
+--- Where the changes go ---
+
+  lib/db/src/schema/generic-sections.ts
+      Widen the GenericContentBlock TypeScript union to all eight shapes.
+      Add showNotesField and badgeLabel columns. contentBlocks stays jsonb; no migration needed for the blocks themselves.
+
+  artifacts/api-server/src/routes/admin.ts
+      contentBlockSchema is currently z.object({type:z.enum(["text","prompt"]), content:z.string()}).
+      Replace with a discriminated union on "type" covering all eight shapes.
+      Sanitize with sanitizeRichHtml: text content, callout content, card body, step body.
+      Do NOT sanitize prompt content — it renders inside <pre> and must stay literal.
+      Server-side validation, not just client-side: within one section, all `field` fieldKeys must be unique, and none may equal "notes" (that key is reserved for the automatic bottom field). Reject the save with a 400 on collision.
+      Accept showNotesField and badgeLabel on create and update.
+
+  artifacts/workshop/src/components/workshop/SectionRenderer.tsx
+      GenericSectionView maps blocks to components. Add a case per new type.
+      Prompt numbering: the counter increments only for prompt blocks with no custom label. A labeled prompt block renders its label and does not consume a number.
+      Honor showNotesField and badgeLabel.
+      Unknown block type: render nothing. Never crash, never dump raw JSON.
+
+  artifacts/workshop/src/components/admin/tabs/SectionsTab.tsx
+      The "Add text block" / "Add prompt block" buttons become a dropdown listing all eight types.
+      Each block type gets its own editor form inside the existing block list.
+      Cards and steps need add / remove / reorder controls for their child items.
+      Keep the existing move-up / move-down / delete controls on every block.
+      Add a showNotesField toggle and a badgeLabel text input to the section form.
+
+  artifacts/api-server/src/routes/workbook.ts
+      renderGenericBlocks currently handles "prompt" and falls through to `<div class="text-block">${b.content}</div>` for everything else.
+      That is a bug for the new types — cards and steps have no `content` property and would print "undefined".
+      Make it explicit: handle "text" and "prompt" exactly as today; return an empty string for callout, cards, steps, link, and field.
+      Rendering them into the PDF is a later pass. Returning empty is intentional for now.
+
+--- Acceptance check ---
+
+Create a generic section titled "Block Type Test" containing one block of each of the eight types, with badgeLabel "Pre-work" and showNotesField false. Add it to Level 3 of the WORKSHOP cohort.
+
+Confirm:
+  - It renders in the participant app with no console errors.
+  - No "Your Notes" box appears at the bottom.
+  - The badge reads "Pre-work".
+  - Two unlabeled prompt blocks number as "Prompt 1" and "Prompt 2"; a labeled one shows its label instead.
+  - Downloading the workbook PDF succeeds and the word "undefined" appears nowhere in it.
+
+Leave the test section in place. Do not delete it.

@@ -139,12 +139,55 @@ export const ListSectionsResponse = zod.object({
       generic: zod
         .object({
           contentBlocks: zod.array(
-            zod.object({
-              type: zod.enum(["text", "prompt"]),
-              content: zod.string(),
-            }),
+            zod
+              .object({
+                type: zod.enum([
+                  "text",
+                  "prompt",
+                  "callout",
+                  "cards",
+                  "steps",
+                  "link",
+                  "field",
+                ]),
+                content: zod.string().optional(),
+                label: zod.string().optional(),
+                buttonLabel: zod.string().optional(),
+                variant: zod
+                  .enum(["stop", "insight", "rule", "quote"])
+                  .optional(),
+                title: zod.string().optional(),
+                columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+                cards: zod
+                  .array(
+                    zod.object({
+                      title: zod.string(),
+                      body: zod.string(),
+                    }),
+                  )
+                  .optional(),
+                ordered: zod.boolean().optional(),
+                items: zod
+                  .array(
+                    zod.object({
+                      title: zod.string(),
+                      body: zod.string(),
+                    }),
+                  )
+                  .optional(),
+                url: zod.string().optional(),
+                style: zod.enum(["button", "text"]).optional(),
+                fieldKey: zod.string().optional(),
+                placeholder: zod.string().optional(),
+                multiline: zod.boolean().optional(),
+              })
+              .describe(
+                "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`.\n",
+              ),
           ),
           goalText: zod.string().nullable(),
+          showNotesField: zod.boolean(),
+          badgeLabel: zod.string().nullable(),
         })
         .nullish(),
     }),
@@ -590,13 +633,54 @@ export const AdminListGenericSectionsResponse = zod.object({
       id: zod.number(),
       title: zod.string(),
       contentBlocks: zod.array(
-        zod.object({
-          type: zod.enum(["text", "prompt"]),
-          content: zod.string(),
-        }),
+        zod
+          .object({
+            type: zod.enum([
+              "text",
+              "prompt",
+              "callout",
+              "cards",
+              "steps",
+              "link",
+              "field",
+            ]),
+            content: zod.string().optional(),
+            label: zod.string().optional(),
+            buttonLabel: zod.string().optional(),
+            variant: zod.enum(["stop", "insight", "rule", "quote"]).optional(),
+            title: zod.string().optional(),
+            columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+            cards: zod
+              .array(
+                zod.object({
+                  title: zod.string(),
+                  body: zod.string(),
+                }),
+              )
+              .optional(),
+            ordered: zod.boolean().optional(),
+            items: zod
+              .array(
+                zod.object({
+                  title: zod.string(),
+                  body: zod.string(),
+                }),
+              )
+              .optional(),
+            url: zod.string().optional(),
+            style: zod.enum(["button", "text"]).optional(),
+            fieldKey: zod.string().optional(),
+            placeholder: zod.string().optional(),
+            multiline: zod.boolean().optional(),
+          })
+          .describe(
+            "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`.\n",
+          ),
       ),
       goalText: zod.string().nullish(),
       sectionType: zod.string(),
+      showNotesField: zod.boolean().optional(),
+      badgeLabel: zod.string().nullish(),
       createdAt: zod.coerce.date().nullish(),
       updatedAt: zod.coerce.date().nullish(),
     }),
@@ -611,14 +695,55 @@ export const AdminCreateGenericSectionBody = zod.object({
   title: zod.string().min(1),
   contentBlocks: zod
     .array(
-      zod.object({
-        type: zod.enum(["text", "prompt"]),
-        content: zod.string(),
-      }),
+      zod
+        .object({
+          type: zod.enum([
+            "text",
+            "prompt",
+            "callout",
+            "cards",
+            "steps",
+            "link",
+            "field",
+          ]),
+          content: zod.string().optional(),
+          label: zod.string().optional(),
+          buttonLabel: zod.string().optional(),
+          variant: zod.enum(["stop", "insight", "rule", "quote"]).optional(),
+          title: zod.string().optional(),
+          columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+          cards: zod
+            .array(
+              zod.object({
+                title: zod.string(),
+                body: zod.string(),
+              }),
+            )
+            .optional(),
+          ordered: zod.boolean().optional(),
+          items: zod
+            .array(
+              zod.object({
+                title: zod.string(),
+                body: zod.string(),
+              }),
+            )
+            .optional(),
+          url: zod.string().optional(),
+          style: zod.enum(["button", "text"]).optional(),
+          fieldKey: zod.string().optional(),
+          placeholder: zod.string().optional(),
+          multiline: zod.boolean().optional(),
+        })
+        .describe(
+          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`.\n",
+        ),
     )
     .optional(),
   goalText: zod.string().nullish(),
   sectionType: zod.string().optional(),
+  showNotesField: zod.boolean().optional(),
+  badgeLabel: zod.string().nullish(),
   cohortId: zod
     .number()
     .nullish()
@@ -639,14 +764,55 @@ export const AdminUpdateGenericSectionBody = zod.object({
   title: zod.string().min(1),
   contentBlocks: zod
     .array(
-      zod.object({
-        type: zod.enum(["text", "prompt"]),
-        content: zod.string(),
-      }),
+      zod
+        .object({
+          type: zod.enum([
+            "text",
+            "prompt",
+            "callout",
+            "cards",
+            "steps",
+            "link",
+            "field",
+          ]),
+          content: zod.string().optional(),
+          label: zod.string().optional(),
+          buttonLabel: zod.string().optional(),
+          variant: zod.enum(["stop", "insight", "rule", "quote"]).optional(),
+          title: zod.string().optional(),
+          columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+          cards: zod
+            .array(
+              zod.object({
+                title: zod.string(),
+                body: zod.string(),
+              }),
+            )
+            .optional(),
+          ordered: zod.boolean().optional(),
+          items: zod
+            .array(
+              zod.object({
+                title: zod.string(),
+                body: zod.string(),
+              }),
+            )
+            .optional(),
+          url: zod.string().optional(),
+          style: zod.enum(["button", "text"]).optional(),
+          fieldKey: zod.string().optional(),
+          placeholder: zod.string().optional(),
+          multiline: zod.boolean().optional(),
+        })
+        .describe(
+          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`.\n",
+        ),
     )
     .optional(),
   goalText: zod.string().nullish(),
   sectionType: zod.string().optional(),
+  showNotesField: zod.boolean().optional(),
+  badgeLabel: zod.string().nullish(),
   cohortId: zod
     .number()
     .nullish()
@@ -661,13 +827,54 @@ export const AdminUpdateGenericSectionResponse = zod.object({
     id: zod.number(),
     title: zod.string(),
     contentBlocks: zod.array(
-      zod.object({
-        type: zod.enum(["text", "prompt"]),
-        content: zod.string(),
-      }),
+      zod
+        .object({
+          type: zod.enum([
+            "text",
+            "prompt",
+            "callout",
+            "cards",
+            "steps",
+            "link",
+            "field",
+          ]),
+          content: zod.string().optional(),
+          label: zod.string().optional(),
+          buttonLabel: zod.string().optional(),
+          variant: zod.enum(["stop", "insight", "rule", "quote"]).optional(),
+          title: zod.string().optional(),
+          columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+          cards: zod
+            .array(
+              zod.object({
+                title: zod.string(),
+                body: zod.string(),
+              }),
+            )
+            .optional(),
+          ordered: zod.boolean().optional(),
+          items: zod
+            .array(
+              zod.object({
+                title: zod.string(),
+                body: zod.string(),
+              }),
+            )
+            .optional(),
+          url: zod.string().optional(),
+          style: zod.enum(["button", "text"]).optional(),
+          fieldKey: zod.string().optional(),
+          placeholder: zod.string().optional(),
+          multiline: zod.boolean().optional(),
+        })
+        .describe(
+          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`.\n",
+        ),
     ),
     goalText: zod.string().nullish(),
     sectionType: zod.string(),
+    showNotesField: zod.boolean().optional(),
+    badgeLabel: zod.string().nullish(),
     createdAt: zod.coerce.date().nullish(),
     updatedAt: zod.coerce.date().nullish(),
   }),

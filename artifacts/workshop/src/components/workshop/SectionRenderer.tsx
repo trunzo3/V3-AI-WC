@@ -1,6 +1,13 @@
-import type { Section } from "@workspace/api-client-react";
-import { Lock } from "lucide-react";
-import { SectionHeader, GoalBox } from "./SectionHeader";
+import type { Section, GenericContentBlock } from "@workspace/api-client-react";
+import { Lock, ExternalLink } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  SectionHeader,
+  GoalBox,
+  InsightBox,
+  RuleBox,
+  DepthQuote,
+} from "./SectionHeader";
 import { NotesField } from "./NotesField";
 import { CopyButton } from "./CopyButton";
 import {
@@ -56,19 +63,184 @@ function TextBlock({ html }: { html: string }) {
   );
 }
 
-function PromptBlock({ text, index }: { text: string; index: number }) {
+function PromptBlock({
+  text,
+  pill,
+  buttonLabel,
+}: {
+  text: string;
+  pill: string;
+  buttonLabel?: string;
+}) {
   return (
     <div
       className="bg-primary rounded-lg p-6 text-white mb-6"
       data-testid="generic-prompt-block"
     >
       <span className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded mb-4">
-        Prompt {index}
+        {pill}
       </span>
       <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono">
         {text}
       </pre>
-      <CopyButton text={text} label="Copy Prompt" />
+      <CopyButton text={text} label={buttonLabel || "Copy Prompt"} />
+    </div>
+  );
+}
+
+// Renders sanitized admin-authored HTML, or plaintext with preserved
+// line breaks for legacy bodies.
+function RichBody({ html }: { html: string }) {
+  if (looksLikeHtml(html)) {
+    return <div dangerouslySetInnerHTML={{ __html: html }} />;
+  }
+  return <div className="whitespace-pre-wrap">{html}</div>;
+}
+
+function CalloutBlock({
+  variant,
+  title,
+  content,
+}: {
+  variant: "stop" | "insight" | "rule" | "quote";
+  title?: string;
+  content: string;
+}) {
+  switch (variant) {
+    case "stop":
+      return (
+        <div
+          className="bg-red-600 text-white text-center py-5 px-4 rounded-lg mb-6"
+          data-testid="generic-callout-stop"
+        >
+          {title && <div className="text-2xl font-bold mb-1">{title}</div>}
+          <div className="text-sm opacity-90">
+            <RichBody html={content} />
+          </div>
+        </div>
+      );
+    case "insight":
+      return (
+        <InsightBox>
+          {title && <h4 className="font-bold text-accent uppercase text-xs tracking-wider mb-2">{title}</h4>}
+          <RichBody html={content} />
+        </InsightBox>
+      );
+    case "rule":
+      return (
+        <RuleBox title={title}>
+          <RichBody html={content} />
+        </RuleBox>
+      );
+    case "quote":
+      return (
+        <DepthQuote>
+          <RichBody html={content} />
+        </DepthQuote>
+      );
+    default:
+      return null;
+  }
+}
+
+function CardsBlock({
+  columns,
+  cards,
+}: {
+  columns: 2 | 3;
+  cards: Array<{ title: string; body: string }>;
+}) {
+  return (
+    <div
+      className={cn(
+        "grid grid-cols-1 gap-4 mb-6",
+        columns === 3 ? "md:grid-cols-2 lg:grid-cols-3" : "md:grid-cols-2",
+      )}
+      data-testid="generic-cards-block"
+    >
+      {cards.map((c, i) => (
+        <div
+          key={i}
+          className="bg-card border border-border rounded-lg p-5 hover:border-accent transition-colors shadow-sm"
+        >
+          <h4 className="font-bold text-primary mb-2 uppercase text-sm tracking-wider">
+            {c.title}
+          </h4>
+          <div className="text-foreground">
+            <RichBody html={c.body} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StepsBlock({
+  ordered,
+  items,
+}: {
+  ordered: boolean;
+  items: Array<{ title: string; body: string }>;
+}) {
+  return (
+    <div
+      className="bg-card p-6 rounded-lg border space-y-4 mb-6"
+      data-testid="generic-steps-block"
+    >
+      {items.map((s, i) => (
+        <div key={i} className="flex gap-3 items-start">
+          <div className="w-7 h-7 rounded-full bg-primary text-white font-bold text-sm flex items-center justify-center flex-shrink-0 mt-0.5">
+            {ordered ? i + 1 : "•"}
+          </div>
+          <div>
+            <div className="font-bold text-primary">{s.title}</div>
+            <div className="text-sm text-muted-foreground">
+              <RichBody html={s.body} />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LinkBlock({
+  url,
+  label,
+  style,
+}: {
+  url: string;
+  label: string;
+  style: "button" | "text";
+}) {
+  if (style === "button") {
+    return (
+      <div className="mb-6">
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 bg-primary text-white font-semibold px-5 py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
+          data-testid="generic-link-button"
+        >
+          {label}
+          <ExternalLink className="w-4 h-4" />
+        </a>
+      </div>
+    );
+  }
+  return (
+    <div className="mb-6">
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-primary underline underline-offset-2 hover:text-accent transition-colors"
+        data-testid="generic-link-text"
+      >
+        {label}
+        <ExternalLink className="w-3.5 h-3.5" />
+      </a>
     </div>
   );
 }
@@ -117,31 +289,103 @@ function GenericSectionView({
 }) {
   const generic = section.generic;
   const goal = generic?.goalText?.trim();
-  const blocks = generic?.contentBlocks ?? [];
+  const blocks = (generic?.contentBlocks ?? []) as GenericContentBlock[];
+  const showNotesField = generic?.showNotesField ?? true;
 
   // Prompt blocks are numbered sequentially among themselves so authors who
   // mix multiple text/prompt blocks see "Prompt 1", "Prompt 2", … rather
-  // than the absolute index of every block in the section.
+  // than the absolute index of every block in the section. A prompt block
+  // with a custom label renders the label and does not consume a number.
   let promptCounter = 0;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <SectionHeader title={title} type={section.type} />
+      <SectionHeader
+        title={title}
+        type={section.type}
+        badgeLabel={generic?.badgeLabel}
+      />
       {goal && <GoalBox text={goal} />}
 
       {blocks.map((block, i) => {
-        if (block.type === "prompt") {
-          promptCounter += 1;
-          return (
-            <PromptBlock key={i} text={block.content} index={promptCounter} />
-          );
+        switch (block.type) {
+          case "prompt": {
+            let pill = block.label;
+            if (!pill) {
+              promptCounter += 1;
+              pill = `Prompt ${promptCounter}`;
+            }
+            return (
+              <PromptBlock
+                key={i}
+                text={block.content ?? ""}
+                pill={pill}
+                buttonLabel={block.buttonLabel}
+              />
+            );
+          }
+          case "text":
+            return <TextBlock key={i} html={block.content ?? ""} />;
+          case "callout":
+            if (!block.variant) return null;
+            return (
+              <CalloutBlock
+                key={i}
+                variant={block.variant as "stop" | "insight" | "rule" | "quote"}
+                title={block.title}
+                content={block.content ?? ""}
+              />
+            );
+          case "cards":
+            return (
+              <CardsBlock
+                key={i}
+                columns={block.columns === 3 ? 3 : 2}
+                cards={block.cards ?? []}
+              />
+            );
+          case "steps":
+            return (
+              <StepsBlock
+                key={i}
+                ordered={block.ordered ?? true}
+                items={block.items ?? []}
+              />
+            );
+          case "link":
+            if (!block.url) return null;
+            return (
+              <LinkBlock
+                key={i}
+                url={block.url}
+                label={block.label ?? block.url}
+                style={block.style === "text" ? "text" : "button"}
+              />
+            );
+          case "field":
+            if (!block.fieldKey) return null;
+            return (
+              <div key={i} className="mb-6">
+                <NotesField
+                  sectionId={section.id}
+                  fieldKey={block.fieldKey}
+                  label={block.label ?? ""}
+                  placeholder={block.placeholder}
+                  multiline={block.multiline ?? true}
+                />
+              </div>
+            );
+          default:
+            // Unknown block type from a newer schema version: render nothing.
+            return null;
         }
-        return <TextBlock key={i} html={block.content} />;
       })}
 
-      <div className="border-t pt-6 mt-6">
-        <NotesField sectionId={section.id} fieldKey="notes" label="Your Notes" />
-      </div>
+      {showNotesField && (
+        <div className="border-t pt-6 mt-6">
+          <NotesField sectionId={section.id} fieldKey="notes" label="Your Notes" />
+        </div>
+      )}
     </div>
   );
 }

@@ -13,9 +13,30 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
+import type { GenericBlockItem } from "./genericBlockItem";
+import type { GenericContentBlockColumns } from "./genericContentBlockColumns";
+import type { GenericContentBlockStyle } from "./genericContentBlockStyle";
 import type { GenericContentBlockType } from "./genericContentBlockType";
+import type { GenericContentBlockVariant } from "./genericContentBlockVariant";
 
+/**
+ * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`.
+
+ */
 export interface GenericContentBlock {
   type: GenericContentBlockType;
-  content: string;
+  content?: string;
+  label?: string;
+  buttonLabel?: string;
+  variant?: GenericContentBlockVariant;
+  title?: string;
+  columns?: GenericContentBlockColumns;
+  cards?: GenericBlockItem[];
+  ordered?: boolean;
+  items?: GenericBlockItem[];
+  url?: string;
+  style?: GenericContentBlockStyle;
+  fieldKey?: string;
+  placeholder?: string;
+  multiline?: boolean;
 }

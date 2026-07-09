@@ -13,16 +13,13 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
-import type { GenericContentBlock } from "./genericContentBlock";
 
-export interface AdminGenericSection {
-  id: number;
-  title: string;
-  contentBlocks: GenericContentBlock[];
-  goalText?: string | null;
-  sectionType: string;
-  showNotesField?: boolean;
-  badgeLabel?: string | null;
-  createdAt?: Date | null;
-  updatedAt?: Date | null;
-}
+export type GenericContentBlockVariant =
+  (typeof GenericContentBlockVariant)[keyof typeof GenericContentBlockVariant];
+
+export const GenericContentBlockVariant = {
+  stop: "stop",
+  insight: "insight",
+  rule: "rule",
+  quote: "quote",
+} as const;

@@ -3,11 +3,14 @@ import { Badge } from "@/components/ui/badge";
 interface SectionHeaderProps {
   title: string;
   type: "exercise" | "reference" | "locked";
+  badgeLabel?: string | null;
 }
 
-export function SectionHeader({ title, type }: SectionHeaderProps) {
-  const badgeClass =
-    type === "exercise"
+export function SectionHeader({ title, type, badgeLabel }: SectionHeaderProps) {
+  // A custom badge label always uses the "reference" badge styling.
+  const badgeClass = badgeLabel
+    ? "bg-primary/10 text-primary border-primary"
+    : type === "exercise"
       ? "bg-accent/10 text-accent border-accent"
       : type === "locked"
         ? "bg-muted text-muted-foreground border-muted-foreground"
@@ -19,7 +22,7 @@ export function SectionHeader({ title, type }: SectionHeaderProps) {
           variant="outline"
           className={`uppercase tracking-wider font-semibold ${badgeClass}`}
         >
-          {type}
+          {badgeLabel || type}
         </Badge>
       </div>
       <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground">{title}</h1>

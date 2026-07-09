@@ -458,17 +458,23 @@ function renderWorkflowMap(data: unknown): string {
   return `<div class="workflows">${cards}</div>`;
 }
 
-function renderGenericBlocks(blocks: Array<{ type: string; content: string }>): string {
+function renderGenericBlocks(blocks: Array<{ type: string; content?: string }>): string {
   if (!blocks || blocks.length === 0) return "";
   return blocks
     .map((b) => {
       if (b.type === "prompt") {
-        return `<div class="prompt-block"><div class="prompt-label">Prompt</div><div class="prompt-body">${nl2br(b.content)}</div></div>`;
+        return `<div class="prompt-block"><div class="prompt-label">Prompt</div><div class="prompt-body">${nl2br(b.content ?? "")}</div></div>`;
       }
-      // Text blocks contain HTML from the WYSIWYG editor (already sanitized
-      // server-side via sanitizeRichHtml on write). Inject as raw HTML so the
-      // browser renders <p>, <ol>, <li>, <a>, <strong>, etc.
-      return `<div class="text-block">${b.content}</div>`;
+      if (b.type === "text") {
+        // Text blocks contain HTML from the WYSIWYG editor (already sanitized
+        // server-side via sanitizeRichHtml on write). Inject as raw HTML so the
+        // browser renders <p>, <ol>, <li>, <a>, <strong>, etc.
+        return `<div class="text-block">${b.content ?? ""}</div>`;
+      }
+      // callout / cards / steps / link / field: intentionally omitted from
+      // the PDF for now. Rendering them is a later pass — returning empty
+      // avoids printing "undefined" for shapes without a `content` property.
+      return "";
     })
     .join("");
 }

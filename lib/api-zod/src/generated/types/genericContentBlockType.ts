@@ -20,4 +20,9 @@ export type GenericContentBlockType =
 export const GenericContentBlockType = {
   text: "text",
   prompt: "prompt",
+  callout: "callout",
+  cards: "cards",
+  steps: "steps",
+  link: "link",
+  field: "field",
 } as const;

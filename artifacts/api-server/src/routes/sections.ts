@@ -38,6 +38,8 @@ interface SectionResponse {
   generic: {
     contentBlocks: GenericContentBlockResponse[];
     goalText: string | null;
+    showNotesField: boolean;
+    badgeLabel: string | null;
   } | null;
 }
 
@@ -116,6 +118,8 @@ router.get("/sections", requireParticipant, async (req, res) => {
           ? (g.contentBlocks as GenericContentBlockResponse[])
           : [],
         goalText: g.goalText,
+        showNotesField: g.showNotesField,
+        badgeLabel: g.badgeLabel,
       };
     } else {
       const hard = getHardcodedSection(cs.sectionId);

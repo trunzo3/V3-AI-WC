@@ -18,4 +18,6 @@ import type { GenericContentBlock } from "./genericContentBlock";
 export type SectionGeneric = {
   contentBlocks: GenericContentBlock[];
   goalText: string | null;
+  showNotesField: boolean;
+  badgeLabel: string | null;
 } | null;

@@ -21,6 +21,8 @@ export interface AdminGenericSectionRequest {
   contentBlocks?: GenericContentBlock[];
   goalText?: string | null;
   sectionType?: string;
+  showNotesField?: boolean;
+  badgeLabel?: string | null;
   /** When creating, also insert this generic section into the given cohort */
   cohortId?: number | null;
   insertAfterSortOrder?: number | null;

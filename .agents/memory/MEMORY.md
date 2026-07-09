@@ -1,1 +1,2 @@
 - [Package firewall blocks](package-firewall-blocks.md) — sanitize-html 2.17.3 is 403-blocked by the Replit package firewall; pinned 2.17.0 instead.
+- [zod v3/v4 hoisting break](zod-hoisting-hookform.md) — tools pulling zod v4 break @hookform/resolvers types; fixed via packageExtensions peer dep in pnpm-workspace.yaml.
