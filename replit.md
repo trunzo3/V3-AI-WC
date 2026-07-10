@@ -185,7 +185,7 @@ Sections come from two sources:
    participant's own saved answer from another section (empty string if
    unsaved, never raw `{{...}}` on screen). The left side accepts a section
    id (`generic_7`, hardcoded id) or a seeded module slug
-   (`{{prefill-source:note}}`). Resolution happens client-side via
+   (`{{build-your-prd:replit-prompt}}`). Resolution happens client-side via
    `hooks/use-resolve-template.ts` (the GET /notes/:ref route maps a slug to
    its generic_N id server-side) and server-side in `workbook.ts` for the
    PDF (slug→id map built from `generic_sections.slug`). A field's prefill
@@ -201,9 +201,20 @@ Sections come from two sources:
    and ensures a cohort_sections row in the default WORKSHOP cohort at the
    module's level, locked (`code_active=true`) behind the module's code;
    existing cohort_sections rows are never modified, so admin placement
-   changes survive reseeds. Current seeded modules: `prefill-source` and
-   `prefill-demo` (level 3, code PREFILL) — a linked pair proving slug-based
-   prefill.
+   changes survive reseeds. Current seeded modules: the sixteen "AI
+   Builder" Level 3 modules (sortOrder 1–16, each behind its own code):
+   `what-vibe-coding-is` (PATH), `the-idea` (IDEA), `prompt-1` (ONE),
+   `app-anatomy` (ANATOMY), `make-it-yours` (YOURS), `prompt-2` (TWO),
+   `when-it-doesnt-work` (FIX), `product-requirements` (REQ),
+   `build-your-prd` (PRD), `prompt-replit` (BUILD), `overnight`
+   (OVERNIGHT), `showcase` (SHOW), `iteration-mechanics` (MECH),
+   `build-sprint` (SPRINT), `github-save-point` (SAVE), `closing` (SHIP).
+   `prompt-2` references `{{readiness-check:org-website}}` — that section
+   is NOT seeded; the admin must create a section holding an `org-website`
+   field and it needs the `readiness-check` slug to resolve. Known gap:
+   the admin UI has no way to set a slug on an admin-created section, so
+   the placeholder stays blank until slug support is added (or the section
+   is seeded).
    The legacy `content` and `prompt_block` columns have been dropped.
    Hardcoded sections don't use download blocks: `SectionRenderer` appends
    `components/workshop/SectionAttachedFiles.tsx` below every hardcoded

@@ -61,9 +61,9 @@ export function RuleBox({ title, children }: { title?: string, children: React.R
 export function DepthQuote({ children }: { children: React.ReactNode }) {
   return (
     <div className="text-center my-12">
-      <p className="italic text-muted-foreground text-lg font-serif">
+      <div className="italic text-muted-foreground text-lg font-serif">
         "{children}"
-      </p>
+      </div>
     </div>
   );
 }

@@ -19,7 +19,7 @@ import { logger } from "./logger";
  * modified, so admin-configured placement/codes survive reseeds.
  *
  * Cross-module prefill placeholders should reference modules by slug
- * ({{prefill-source:note}}), which keeps working regardless of numeric ids.
+ * ({{build-your-prd:replit-prompt}}), which keeps working regardless of numeric ids.
  */
 export type SeededGenericModule = {
   slug: string;
