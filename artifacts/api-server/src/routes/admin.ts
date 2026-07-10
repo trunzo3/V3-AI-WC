@@ -507,6 +507,7 @@ const contentBlockSchema = z
       fieldKey: z.string().trim().min(1),
       label: z.string(),
       placeholder: z.string().optional(),
+      helpText: z.string().optional(),
       multiline: z.boolean(),
     }),
     z.object({
@@ -517,6 +518,7 @@ const contentBlockSchema = z
             fieldKey: z.string().trim().min(1),
             label: z.string(),
             placeholder: z.string().optional(),
+            helpText: z.string().optional(),
             multiline: z.boolean(),
           }),
         )
@@ -542,6 +544,19 @@ const contentBlockSchema = z
         return {
           ...b,
           items: b.items.map((i) => ({ ...i, body: sanitizeRichHtml(i.body) })),
+        };
+      case "field":
+        return b.helpText == null
+          ? b
+          : { ...b, helpText: sanitizeRichHtml(b.helpText) };
+      case "form":
+        return {
+          ...b,
+          fields: b.fields.map((f) =>
+            f.helpText == null
+              ? f
+              : { ...f, helpText: sanitizeRichHtml(f.helpText) },
+          ),
         };
       default:
         return b;

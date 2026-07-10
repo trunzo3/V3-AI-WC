@@ -9,6 +9,8 @@ interface NotesFieldProps {
   fieldKey: string;
   label: string;
   placeholder?: string;
+  /** Optional admin-authored rich HTML (sanitized server-side) rendered between the label and the input. */
+  helpText?: string;
   initialValue?: string;
   className?: string;
   minHeight?: string;
@@ -17,7 +19,7 @@ interface NotesFieldProps {
   onValueChange?: (fieldKey: string, value: string) => void;
 }
 
-export function NotesField({ sectionId, fieldKey, label, placeholder, initialValue = "", className = "", minHeight = "min-h-[100px]", multiline = true, onValueChange }: NotesFieldProps) {
+export function NotesField({ sectionId, fieldKey, label, placeholder, helpText, initialValue = "", className = "", minHeight = "min-h-[100px]", multiline = true, onValueChange }: NotesFieldProps) {
   const [value, setValue, flushSave] = useAutoSave(sectionId, fieldKey, initialValue);
 
   useEffect(() => {
@@ -28,6 +30,16 @@ export function NotesField({ sectionId, fieldKey, label, placeholder, initialVal
     <div className={`space-y-2 ${className}`}>
       {label && (
         <Label htmlFor={fieldKey} className="text-sm font-semibold text-primary uppercase tracking-wider">{label}</Label>
+      )}
+      {helpText && helpText.trim() && (
+        <div
+          // Tiptap wraps content in <p> tags that carry prose margins; strip
+          // them (and flush the first/last child) so the help text sits tight
+          // between the label and the input without opening a gap.
+          className="prose prose-sm prose-slate max-w-none text-sm text-muted-foreground [&_p]:my-0 [&>:first-child]:mt-0 [&>:last-child]:mb-0"
+          dangerouslySetInnerHTML={{ __html: helpText }}
+          data-testid={`help-${sectionId}-${fieldKey}`}
+        />
       )}
       {multiline ? (
         <Textarea

@@ -22,7 +22,7 @@ import type { GenericContentBlockVariant } from "./genericContentBlockVariant";
 import type { GenericFormField } from "./genericFormField";
 
 /**
- * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`.
+ * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`.
 
  */
 export interface GenericContentBlock {
@@ -40,6 +40,9 @@ export interface GenericContentBlock {
   style?: GenericContentBlockStyle;
   fieldKey?: string;
   placeholder?: string;
+  /** Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.
+   */
+  helpText?: string;
   multiline?: boolean;
   copyStyle?: GenericContentBlockCopyStyle;
   fields?: GenericFormField[];

@@ -34,6 +34,7 @@ export type GenericContentBlock =
       fieldKey: string;
       label: string;
       placeholder?: string;
+      helpText?: string;
       multiline: boolean;
     }
   | {
@@ -42,6 +43,7 @@ export type GenericContentBlock =
         fieldKey: string;
         label: string;
         placeholder?: string;
+        helpText?: string;
         multiline: boolean;
       }>;
       buttonLabel: string;

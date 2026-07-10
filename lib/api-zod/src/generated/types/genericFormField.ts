@@ -18,5 +18,8 @@ export interface GenericFormField {
   fieldKey: string;
   label: string;
   placeholder?: string;
+  /** Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.
+   */
+  helpText?: string;
   multiline: boolean;
 }

@@ -310,6 +310,7 @@ function FormBlock({
               fieldKey={f.fieldKey}
               label={f.label ?? ""}
               placeholder={f.placeholder}
+              helpText={f.helpText}
               multiline={f.multiline ?? true}
               onValueChange={handleValueChange}
             />
@@ -455,6 +456,7 @@ function GenericSectionView({
                   fieldKey={block.fieldKey}
                   label={block.label ?? ""}
                   placeholder={block.placeholder}
+                  helpText={block.helpText}
                   multiline={block.multiline ?? true}
                 />
               </div>

@@ -284,11 +284,14 @@ export function SectionsTab({ cohortId }: Props) {
       fieldKey: "",
       label: "",
       placeholder: "",
+      helpText: "",
       multiline: true,
     },
     form: {
       type: "form",
-      fields: [{ fieldKey: "", label: "", placeholder: "", multiline: true }],
+      fields: [
+        { fieldKey: "", label: "", placeholder: "", helpText: "", multiline: true },
+      ],
       buttonLabel: "",
       copyStyle: "labeled",
     },
@@ -380,6 +383,7 @@ export function SectionsTab({ cohortId }: Props) {
     fieldKey: string;
     label: string;
     placeholder?: string;
+    helpText?: string;
     multiline: boolean;
   };
   const withFormFields = (
@@ -411,7 +415,13 @@ export function SectionsTab({ cohortId }: Props) {
     });
   const addFormField = (blockIdx: number) =>
     withFormFields(blockIdx, (list) => {
-      list.push({ fieldKey: "", label: "", placeholder: "", multiline: true });
+      list.push({
+        fieldKey: "",
+        label: "",
+        placeholder: "",
+        helpText: "",
+        multiline: true,
+      });
       return list;
     });
   const removeFormField = (blockIdx: number, fieldIdx: number) =>
@@ -1017,6 +1027,18 @@ export function SectionsTab({ cohortId }: Props) {
                                   <Label className="text-xs">Multiline</Label>
                                 </div>
                               </div>
+                              <div>
+                                <Label className="text-xs">Help text (optional)</Label>
+                                <RichTextEditor
+                                  value={block.helpText ?? ""}
+                                  onChange={(html) =>
+                                    updateBlock(idx, { helpText: html })
+                                  }
+                                  placeholder="Shown between the label and the input…"
+                                  minHeight={60}
+                                  testId={`input-generic-block-field-help-${idx}`}
+                                />
+                              </div>
                             </div>
                           )}
                           {block.type === "form" && (
@@ -1160,6 +1182,22 @@ export function SectionsTab({ cohortId }: Props) {
                                           />
                                           <Label className="text-xs">Multiline</Label>
                                         </div>
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs">
+                                          Help text (optional)
+                                        </Label>
+                                        <RichTextEditor
+                                          value={field.helpText ?? ""}
+                                          onChange={(html) =>
+                                            updateFormField(idx, fIdx, {
+                                              helpText: html,
+                                            })
+                                          }
+                                          placeholder="Shown between the label and the input…"
+                                          minHeight={60}
+                                          testId={`input-form-field-help-${idx}-${fIdx}`}
+                                        />
                                       </div>
                                     </div>
                                   );

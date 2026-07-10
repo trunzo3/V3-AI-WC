@@ -1115,8 +1115,8 @@ components:
         text/prompt use `content`; callout uses `variant`, `title?`, `content`;
         cards uses `columns` + `cards`; steps uses `ordered` + `items`;
         link uses `url` + `label` + `style`; field uses `fieldKey`, `label`,
-        `placeholder?`, `multiline`; form uses `fields` + `buttonLabel` +
-        `copyStyle`.
+        `placeholder?`, `helpText?`, `multiline`; form uses `fields` +
+        `buttonLabel` + `copyStyle`.
       properties:
         type:
           type: string
@@ -1144,6 +1144,11 @@ components:
           enum: [button, text]
         fieldKey: { type: string }
         placeholder: { type: string }
+        helpText:
+          type: string
+          description: >
+            Optional rich-text help shown between the field's label and its
+            input. Sanitized server-side like text block content.
         multiline: { type: boolean }
         copyStyle:
           type: string
@@ -1159,6 +1164,11 @@ components:
         fieldKey: { type: string }
         label: { type: string }
         placeholder: { type: string }
+        helpText:
+          type: string
+          description: >
+            Optional rich-text help shown between the field's label and its
+            input. Sanitized server-side like text block content.
         multiline: { type: boolean }
 
     GenericBlockItem:
