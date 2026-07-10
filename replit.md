@@ -181,6 +181,11 @@ Sections come from two sources:
    `download` blocks reference a file attached to the same section
    (`{type:"download", fileId, label?}`) and render one download button.
    The legacy `content` and `prompt_block` columns have been dropped.
+   Hardcoded sections don't use download blocks: `SectionRenderer` appends
+   `components/workshop/SectionAttachedFiles.tsx` below every hardcoded
+   section, which lists the section's attached files (excluding Tool Safari
+   library files) as one download button each and renders nothing when the
+   section has no files.
 
 Running the seed (`pnpm --filter @workspace/api-server run seed`) performs an
 **additive-only** sync: it inserts any sections from `ALL_SECTIONS` that are

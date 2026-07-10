@@ -14,6 +14,7 @@ import {
   DepthQuote,
 } from "./SectionHeader";
 import { NotesField } from "./NotesField";
+import { SectionAttachedFiles } from "./SectionAttachedFiles";
 import { CopyButton } from "./CopyButton";
 import {
   VerificationTest,
@@ -531,6 +532,20 @@ export function SectionRenderer({ section }: { section: Section }) {
     return <GenericSectionView section={section} title={section.title} />;
   }
 
+  // Hardcoded sections render their own component, then any files attached
+  // to the section (via the admin Sections tab) as download buttons at the
+  // very bottom, below the section's notes field.
+  return (
+    <>
+      <HardcodedSectionBody section={section} />
+      {/* Keyed by section id so switching sections remounts the component,
+          preventing a brief flash of the previous section's files. */}
+      <SectionAttachedFiles key={section.id} sectionId={section.id} />
+    </>
+  );
+}
+
+function HardcodedSectionBody({ section }: { section: Section }) {
   switch (section.id) {
     case "verification-test":
       return <VerificationTest sectionId={section.id} title={section.title} />;
