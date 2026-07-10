@@ -1,0 +1,50 @@
+Update the takeaway text in the seeded Level 3 modules. For each module below, replace the content of its takeaway callout (the callout titled "The Takeaway") with the new text. Change only the content — leave the callout variant and title as they are. Do not touch any other block in these modules.
+
+what-vibe-coding-is:
+Building an app used to mean hiring a developer or buying software. Now you describe what you want and the AI builds it. The tool changed, not the skill.
+
+the-idea:
+Every build starts with one idea: something to make, or something to replace. Name yours before you prompt.
+
+prompt-1:
+You asked to see a list of who registered. To do that, it had to store those registrations somewhere — so it built the storage you never asked for. You described what you wanted; it worked out what that needed.
+
+app-anatomy:
+Every app has four parts: a way in, an interface, the rules, and storage. Knowing them helps you point to what's wrong when something breaks — most of the time, you just describe what you want and the AI figures out the rest.
+
+prompt-2:
+Point the AI at something real — your website, your brand — and it gets closer. When it misses, add detail. More context in, better result out.
+
+when-it-doesnt-work:
+When something breaks, name where it went wrong and add detail. The more specific you are about what's off, the closer the fix.
+
+product-requirements:
+Everyone has requirements — the only question is where they live. More detail up front means fewer rounds later. Simple builds can skip straight to the prompt.
+
+build-your-prd:
+Consideration: One way to sharpen your build is to use an AI to help you think through what you want first, then bring that into Replit. A clearer starting point usually means fewer rounds. Some builds are simple enough to just prompt directly — this is a tool, not a rule.
+
+prompt-replit:
+Building the app takes five minutes. The thinking you did to get here was the actual work.
+
+overnight:
+Go break something. There's so little at stake that experimenting is how you get where you want.
+
+showcase:
+A broken build teaches more than a working one. Showing what went wrong is where the learning is.
+
+iteration-mechanics:
+The four parts of an app are also your troubleshooting map — where it breaks tells you which part to fix.
+
+build-sprint:
+The goal is a working app on a link you can share. Deployed and imperfect beats perfect and stuck on your screen.
+
+github-save-point:
+Pushing to GitHub is a save button. Your work now lives somewhere you can get it back from.
+
+closing:
+You can build software by describing it now. The tool got easier; the thinking is still yours.
+
+Note: some of these modules had a "When It Doesn't Work" takeaway that previously mentioned three-strikes and roll-back — that content is intentionally removed, replaced by the shorter text above. Roll-back is taught on Day 2.
+
+Confirm each module's takeaway box shows the new text and no old wording remains.

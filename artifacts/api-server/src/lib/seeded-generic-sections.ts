@@ -69,7 +69,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         variant: "insight",
         title: "The takeaway",
         content:
-          "The middleman changed, not you. Same predictive-text engine you met before — now mapping intention to code instead of intention to prose.",
+          "Building an app used to mean hiring a developer or buying software. Now you describe what you want and the AI builds it. The tool changed, not the skill.",
       },
     ],
   },
@@ -108,7 +108,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         type: "callout",
         variant: "quote",
         content:
-          "You'll come back to this. It's the thing you build before you leave.",
+          "Every build starts with one idea: something to make, or something to replace. Name yours before you prompt.",
       },
     ],
   },
@@ -140,7 +140,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         variant: "insight",
         title: "The takeaway",
         content:
-          "Nobody said remember the registrants. They said I can see a list, and it worked out it needed a database.",
+          "You asked to see a list of who registered. To do that, it had to store those registrations somewhere — so it built the storage you never asked for. You described what you wanted; it worked out what that needed.",
       },
     ],
   },
@@ -185,7 +185,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         variant: "insight",
         title: "The takeaway",
         content:
-          "You describe what you want. The AI works out which parts it needs. You need their names for when something goes wrong.",
+          "Every app has four parts: a way in, an interface, the rules, and storage. Knowing them helps you point to what's wrong when something breaks — most of the time, you just describe what you want and the AI figures out the rest.",
       },
     ],
   },
@@ -230,7 +230,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         variant: "insight",
         title: "The takeaway",
         content:
-          "Point it at something you already have, and it gets closer. When it misses, you say more.",
+          "Point the AI at something real — your website, your brand — and it gets closer. When it misses, add detail. More context in, better result out.",
       },
     ],
   },
@@ -279,7 +279,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         variant: "rule",
         title: "The takeaway",
         content:
-          "Three strikes. Three tries, no fix — stop, roll back, describe it differently. Checkpoints save automatically; going back is the cheapest move you have.",
+          "When something breaks, name where it went wrong and add detail. The more specific you are about what's off, the closer the fix.",
       },
     ],
   },
@@ -316,7 +316,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         variant: "insight",
         title: "The takeaway",
         content:
-          "More detail up front means fewer rounds later. A tradeoff, not a rule.",
+          "Everyone has requirements — the only question is where they live. More detail up front means fewer rounds later. Simple builds can skip straight to the prompt.",
       },
     ],
   },
@@ -390,7 +390,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         variant: "insight",
         title: "The takeaway",
         content:
-          "You already know how to talk to an LLM. Here you use that to prepare a better input for a different AI. Fewer iterations, less credit burn.",
+          "Consideration: One way to sharpen your build is to use an AI to help you think through what you want first, then bring that into Replit. A clearer starting point usually means fewer rounds. Some builds are simple enough to just prompt directly — this is a tool, not a rule.",
       },
     ],
   },
@@ -417,7 +417,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         variant: "quote",
         title: "The takeaway",
         content:
-          "Five minutes of pasting. Everything before it was the work.",
+          "Building the app takes five minutes. The thinking you did to get here was the actual work.",
       },
     ],
   },
@@ -447,7 +447,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         variant: "quote",
         title: "The takeaway",
         content:
-          "Whoever iterates tonight, unsupervised, did the thing this whole workshop exists to produce.",
+          "Go break something. There's so little at stake that experimenting is how you get where you want.",
       },
     ],
   },
@@ -482,7 +482,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         variant: "insight",
         title: "The takeaway",
         content:
-          "A broken build is the most useful thing in the room. Same lesson, higher stakes.",
+          "A broken build teaches more than a working one. Showing what went wrong is where the learning is.",
       },
     ],
   },
@@ -534,7 +534,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         variant: "insight",
         title: "The takeaway",
         content:
-          "The four rooms are also your diagnostic. Where it breaks is where you look.",
+          "The four parts of an app are also your troubleshooting map — where it breaks tells you which part to fix.",
       },
     ],
   },
@@ -581,7 +581,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         variant: "rule",
         title: "The takeaway",
         content:
-          "A working public URL is the goal. Deployed beats perfect.",
+          "The goal is a working app on a link you can share. Deployed and imperfect beats perfect and stuck on your screen.",
       },
     ],
   },
@@ -615,7 +615,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         variant: "quote",
         title: "The takeaway",
         content:
-          "Your code now lives somewhere you can get it back from.",
+          "Pushing to GitHub is a save button. Your work now lives somewhere you can get it back from.",
       },
     ],
   },
@@ -640,7 +640,8 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
       {
         type: "callout",
         variant: "quote",
-        content: "The middleman is gone. The thinking is still yours.",
+        content:
+          "You can build software by describing it now. The tool got easier; the thinking is still yours.",
       },
       {
         type: "link",
