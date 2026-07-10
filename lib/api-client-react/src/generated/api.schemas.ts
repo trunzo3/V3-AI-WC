@@ -102,6 +102,7 @@ export const GenericContentBlockType = {
   link: "link",
   field: "field",
   form: "form",
+  download: "download",
 } as const;
 
 export type GenericContentBlockVariant =
@@ -154,7 +155,7 @@ export interface GenericFormField {
 }
 
 /**
- * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`.
+ * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.
 
  */
 export interface GenericContentBlock {
@@ -178,6 +179,9 @@ export interface GenericContentBlock {
   multiline?: boolean;
   copyStyle?: GenericContentBlockCopyStyle;
   fields?: GenericFormField[];
+  /** For download blocks: the id of a section file (attached to the same section) that the block's button downloads.
+   */
+  fileId?: number;
 }
 
 export type SectionGeneric = {

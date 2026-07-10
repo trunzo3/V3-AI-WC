@@ -526,6 +526,11 @@ const contentBlockSchema = z
       buttonLabel: z.string(),
       copyStyle: z.enum(["labeled", "joined"]),
     }),
+    z.object({
+      type: z.literal("download"),
+      fileId: z.number().int().positive(),
+      label: z.string().optional(),
+    }),
   ])
   .transform((b) => {
     // Sanitize admin-authored rich HTML. Prompt content stays literal — it

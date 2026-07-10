@@ -22,7 +22,7 @@ import type { GenericContentBlockVariant } from "./genericContentBlockVariant";
 import type { GenericFormField } from "./genericFormField";
 
 /**
- * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`.
+ * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.
 
  */
 export interface GenericContentBlock {
@@ -46,4 +46,7 @@ export interface GenericContentBlock {
   multiline?: boolean;
   copyStyle?: GenericContentBlockCopyStyle;
   fields?: GenericFormField[];
+  /** For download blocks: the id of a section file (attached to the same section) that the block's button downloads.
+   */
+  fileId?: number;
 }

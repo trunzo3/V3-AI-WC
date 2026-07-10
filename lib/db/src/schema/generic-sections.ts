@@ -48,7 +48,8 @@ export type GenericContentBlock =
       }>;
       buttonLabel: string;
       copyStyle: "labeled" | "joined";
-    };
+    }
+  | { type: "download"; fileId: number; label?: string };
 
 export const genericSectionsTable = pgTable("generic_sections", {
   id: serial("id").primaryKey(),

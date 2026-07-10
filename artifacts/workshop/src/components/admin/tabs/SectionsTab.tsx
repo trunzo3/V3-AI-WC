@@ -50,7 +50,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X, Eye } from "lucide-react";
+import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X, Eye, Paperclip } from "lucide-react";
+import {
+  SectionFilesDialog,
+  type SectionFile,
+} from "@/components/admin/SectionFilesDialog";
 
 interface Props {
   cohortId: number;
@@ -196,6 +200,40 @@ export function SectionsTab({ cohortId }: Props) {
     null,
   );
 
+  // ---- Per-section file management ----
+  const [filesDialogFor, setFilesDialogFor] = useState<{
+    sectionId: string;
+    title: string;
+  } | null>(null);
+
+  // Files attached to the generic section being edited — feeds the file picker
+  // in "download" blocks. Only loadable for existing sections (new sections
+  // have no sectionId yet, so no files can be attached).
+  const [editorFiles, setEditorFiles] = useState<SectionFile[]>([]);
+  useEffect(() => {
+    if (!genOpen || !editingGeneric) {
+      setEditorFiles([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/admin/files/by-section/generic_${editingGeneric.id}`,
+          { credentials: "include" },
+        );
+        if (!res.ok) return;
+        const body = (await res.json()) as { files: SectionFile[] };
+        if (!cancelled) setEditorFiles(body.files);
+      } catch {
+        // non-fatal: picker just shows "no files"
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [genOpen, editingGeneric]);
+
   // Insert a generic section into the current cohort's section list at the
   // bottom of the chosen level. Reused by the library "Add to level" picker.
   const addGenericToLevel = (g: AdminGenericSection, lvl: number) => {
@@ -295,6 +333,7 @@ export function SectionsTab({ cohortId }: Props) {
       buttonLabel: "",
       copyStyle: "labeled",
     },
+    download: { type: "download", fileId: 0, label: "" },
   };
   const addBlock = (type: string) => {
     const def = BLOCK_DEFAULTS[type];
@@ -1213,6 +1252,74 @@ export function SectionsTab({ cohortId }: Props) {
                               </div>
                             </div>
                           )}
+                          {block.type === "download" && (
+                            <div className="space-y-2">
+                              {!editingGeneric ? (
+                                <div className="text-xs text-muted-foreground border rounded-md p-2">
+                                  Save this section first, then attach files to
+                                  it (paperclip button on the section row) to
+                                  pick one here.
+                                </div>
+                              ) : editorFiles.length === 0 ? (
+                                <div className="text-xs text-muted-foreground border rounded-md p-2">
+                                  No files attached to this section yet. Use the
+                                  paperclip button on the section row to upload
+                                  files, then reopen this editor.
+                                </div>
+                              ) : (
+                                <div>
+                                  <Label className="text-xs">File</Label>
+                                  <Select
+                                    value={block.fileId ? String(block.fileId) : ""}
+                                    onValueChange={(v) => {
+                                      const f = editorFiles.find(
+                                        (x) => String(x.id) === v,
+                                      );
+                                      updateBlock(idx, {
+                                        fileId: Number(v),
+                                        // Default the button label to the
+                                        // filename unless the admin already
+                                        // typed one.
+                                        label:
+                                          (block.label ?? "").trim() !== ""
+                                            ? block.label
+                                            : f?.filename ?? "",
+                                      });
+                                    }}
+                                  >
+                                    <SelectTrigger
+                                      data-testid={`select-download-file-${idx}`}
+                                    >
+                                      <SelectValue placeholder="Pick a file…" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {editorFiles.map((f) => (
+                                        <SelectItem
+                                          key={f.id}
+                                          value={String(f.id)}
+                                        >
+                                          {f.filename}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              )}
+                              <div>
+                                <Label className="text-xs">
+                                  Button label (optional)
+                                </Label>
+                                <Input
+                                  value={block.label ?? ""}
+                                  onChange={(e) =>
+                                    updateBlock(idx, { label: e.target.value })
+                                  }
+                                  placeholder="Download"
+                                  data-testid={`input-download-label-${idx}`}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1233,6 +1340,7 @@ export function SectionsTab({ cohortId }: Props) {
                           <SelectItem value="link">Link</SelectItem>
                           <SelectItem value="field">Input field</SelectItem>
                           <SelectItem value="form">Form (fields + copy button)</SelectItem>
+                          <SelectItem value="download">Download button</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1397,6 +1505,20 @@ export function SectionsTab({ cohortId }: Props) {
                             </label>
                           </div>
                           <div className="col-span-1 flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                setFilesDialogFor({
+                                  sectionId: r.sectionId,
+                                  title,
+                                })
+                              }
+                              title="Manage files"
+                              data-testid={`button-files-${r.sectionId}`}
+                            >
+                              <Paperclip className="w-4 h-4" />
+                            </Button>
                             {isGeneric && (
                               <Button
                                 variant="ghost"
@@ -1639,6 +1761,17 @@ export function SectionsTab({ cohortId }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {filesDialogFor && (
+        <SectionFilesDialog
+          open={true}
+          onOpenChange={(o) => {
+            if (!o) setFilesDialogFor(null);
+          }}
+          sectionId={filesDialogFor.sectionId}
+          sectionTitle={filesDialogFor.title}
+        />
+      )}
     </div>
   );
 }

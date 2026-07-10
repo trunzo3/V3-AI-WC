@@ -3,16 +3,17 @@ import express from "express";
 import { z } from "zod/v4";
 import { and, asc, eq } from "drizzle-orm";
 import { db, sectionFilesTable } from "@workspace/db";
-import { requireAdmin, requireParticipant } from "../middlewares/auth";
+import {
+  requireAdmin,
+  requireParticipant,
+  getParticipantContext,
+} from "../middlewares/auth";
+import { isSectionUnlockedForParticipant } from "../lib/section-access";
 
 const router: IRouter = Router();
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const adminJson = express.json({ limit: "30mb" });
-
-// Allow-list of sectionIds participants are permitted to read files from.
-// Today only Tool Safari uses this; expand intentionally as new features ship.
-const PARTICIPANT_READABLE_SECTIONS = new Set<string>(["tool-safari"]);
 
 const uploadSchema = z.object({
   sectionId: z.string().min(1).max(128),
@@ -128,7 +129,16 @@ router.get(
   requireParticipant,
   async (req, res) => {
     const sectionId = String(req.params.sectionId);
-    if (!PARTICIPANT_READABLE_SECTIONS.has(sectionId)) {
+    const { participantId, cohortId } = getParticipantContext(req);
+    // A participant may read files only from sections that are unlocked for
+    // them in their cohort. Same 404 as "no such section" — don't leak
+    // existence of sections/files outside the participant's scope.
+    const allowed = await isSectionUnlockedForParticipant(
+      participantId,
+      cohortId,
+      sectionId,
+    );
+    if (!allowed) {
       res.status(404).json({ error: "Not found" });
       return;
     }
@@ -164,7 +174,15 @@ router.get("/files/:id/download", requireParticipant, async (req, res) => {
     .from(sectionFilesTable)
     .where(eq(sectionFilesTable.id, id))
     .limit(1);
-  if (!row || !PARTICIPANT_READABLE_SECTIONS.has(row.sectionId)) {
+  const { participantId, cohortId } = getParticipantContext(req);
+  const allowed = row
+    ? await isSectionUnlockedForParticipant(
+        participantId,
+        cohortId,
+        row.sectionId,
+      )
+    : false;
+  if (!row || !allowed) {
     // Same 404 either way — don't leak existence of files outside the
     // participant-readable scope.
     res.status(404).json({ error: "File not found" });

@@ -1,0 +1,29 @@
+Let any section carry file downloads, not just Tool Safari.
+
+Right now the participant file routes in files.ts check a hardcoded allowlist containing one section id, "tool-safari". Everything else — the section_files table, the admin upload route — is already generic.
+
+Replace the allowlist with the rule it was standing in for: a participant may list or download a file only if that file's section is unlocked for them, in their cohort. The unlock rule already exists in the sections route — tier access, or codeActive false, or an explicit unlock. Reuse it rather than reimplementing it. Keep returning the same 404 for both "no such file" and "not allowed to see it", so file ids can't be probed.
+
+Tool Safari keeps working exactly as it does today, including its per-tool file picker. Nothing about that section changes.
+
+Two additions:
+
+Uploading. In the admin Sections tab, each section row gets a way to attach files to it — upload, see what's attached, delete. Same place the admin already edits display name, unlock code, and level. The upload endpoint already accepts any sectionId, so this is UI.
+
+A download block. It names one file and renders one button. If a section has three files, that's three download blocks, so the participant sees exactly what each button gives them. Place it anywhere in the block list. The admin picks the file from those attached to that section.
+
+Two things that are easy to miss:
+
+  The participant sections route narrows the block union independently of the admin route, and the OpenAPI spec and generated client need regenerating after any API shape change.
+
+  renderGenericBlocks in workbook.ts must return an empty string for download blocks, like the other new types. Anything that falls through to its text-block branch prints "undefined".
+
+--- Acceptance check ---
+
+Attach a PDF to the "Block Type Test" section and add a download block pointing at it.
+
+Confirm:
+  - A participant with the section unlocked sees the button and downloads the file.
+  - Locking the section makes the download endpoint return 404 for that participant, even hitting the file id directly.
+  - Tool Safari still lists and downloads its per-tool files.
+  - The workbook PDF still downloads with no "undefined" in it.

@@ -1116,11 +1116,11 @@ components:
         cards uses `columns` + `cards`; steps uses `ordered` + `items`;
         link uses `url` + `label` + `style`; field uses `fieldKey`, `label`,
         `placeholder?`, `helpText?`, `multiline`; form uses `fields` +
-        `buttonLabel` + `copyStyle`.
+        `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.
       properties:
         type:
           type: string
-          enum: [text, prompt, callout, cards, steps, link, field, form]
+          enum: [text, prompt, callout, cards, steps, link, field, form, download]
         content: { type: string }
         label: { type: string }
         buttonLabel: { type: string }
@@ -1156,6 +1156,11 @@ components:
         fields:
           type: array
           items: { $ref: "#/components/schemas/GenericFormField" }
+        fileId:
+          type: integer
+          description: >
+            For download blocks: the id of a section file (attached to the
+            same section) that the block's button downloads.
 
     GenericFormField:
       type: object

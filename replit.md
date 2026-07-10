@@ -78,6 +78,12 @@ Two surface areas:
     in place of the legacy "VESTIBULE" / "Cohort: CODE" label.
   - Tool Safari upload uses a styled "Upload PDF Guide" button that triggers
     a hidden native file input.
+  - Every section row on the Sections tab has a paperclip button that opens
+    `components/admin/SectionFilesDialog.tsx` (generalized from
+    SafariFilesDialog; keyed by `sectionId` only) to upload/list/delete files
+    for that section. The generic-section block editor's "Download button"
+    block picks from files attached to `generic_<id>` and defaults the button
+    label to the chosen filename.
 
 Admin UI consumes the generated client from `@workspace/api-client-react`. Only
 the bulk endpoints `PUT /admin/cohorts/:id/sections` and
@@ -167,11 +173,14 @@ Sections come from two sources:
    section ids (entering the code unlocks all listed sections at once).
 2. **Generic sections** — created by admins, stored in `generic_sections`,
    referenced by id `generic_<id>` from `cohort_sections`. Bodies are stored
-   as a `content_blocks` jsonb array of `{type:"text"|"prompt", content:string}`.
-   Text blocks render as HTML (Tiptap WYSIWYG with bold/italic/underline);
-   prompt blocks render as a navy box with a gold "Prompt N" pill (numbered
-   among prompts only) and a CopyButton. The legacy `content` and
-   `prompt_block` columns have been dropped.
+   as a `content_blocks` jsonb array; block `type` is one of
+   `text | prompt | callout | cards | steps | link | field | form | download`
+   (union in `lib/db/src/schema/generic-sections.ts`, zod validation in
+   `admin.ts`). Text blocks render as HTML (Tiptap WYSIWYG); prompt blocks
+   render as a navy box with a gold "Prompt N" pill and a CopyButton.
+   `download` blocks reference a file attached to the same section
+   (`{type:"download", fileId, label?}`) and render one download button.
+   The legacy `content` and `prompt_block` columns have been dropped.
 
 Running the seed (`pnpm --filter @workspace/api-server run seed`) performs an
 **additive-only** sync: it inserts any sections from `ALL_SECTIONS` that are
@@ -213,8 +222,13 @@ Participant endpoints (require session unless noted):
 - `POST /api/auth/logout`, `GET /api/auth/me`
 - `GET /api/files/by-section/:sectionId` — list files for a section. Returns
   `{ files: [{ id, safariLibraryId, filename, mimeType, sizeBytes }] }`.
+  Gated by the shared section-unlock rule
+  (`artifacts/api-server/src/lib/section-access.ts`): the section must be
+  assigned to the participant's cohort, visible, and unlocked for them.
+  Missing and forbidden both return the same 404 (no existence leak).
 - `GET /api/files/:id/download` — streams the file with the stored mime type
-  and a `Content-Disposition: attachment` header.
+  and a `Content-Disposition: attachment` header. Gated by the same unlock
+  rule via the file's `sectionId`.
 - `GET /api/sections`, `POST /api/sections/unlock`
 - `GET|PUT /api/notes/:sectionId`
 - `GET|PUT /api/workflow-map`

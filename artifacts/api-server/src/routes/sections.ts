@@ -16,6 +16,7 @@ import {
   parseGenericSectionId,
 } from "../lib/sections";
 import { requireParticipant, getParticipantContext } from "../middlewares/auth";
+import { isSectionUnlocked } from "../lib/section-access";
 
 const router: IRouter = Router();
 
@@ -133,13 +134,13 @@ router.get("/sections", requireParticipant, async (req, res) => {
       type = hard.type;
     }
 
-    const tierUnlocked = Boolean(tierAccess[String(cs.level)]);
-    // Section is unlocked when:
-    //  - the participant's tier already grants this level, OR
-    //  - the section doesn't require a code (codeActive=false), OR
-    //  - the participant has explicitly unlocked it via a code.
-    const unlocked =
-      tierUnlocked || !cs.codeActive || unlockedIds.has(cs.sectionId);
+    // Single unlock rule shared with the participant file routes.
+    const unlocked = isSectionUnlocked({
+      tierAccess,
+      level: cs.level,
+      codeActive: cs.codeActive,
+      explicitlyUnlocked: unlockedIds.has(cs.sectionId),
+    });
 
     sections.push({
       id: cs.sectionId,

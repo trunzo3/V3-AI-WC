@@ -4,7 +4,7 @@ import type {
   GenericContentBlock,
   GenericFormField,
 } from "@workspace/api-client-react";
-import { Lock, ExternalLink } from "lucide-react";
+import { Lock, ExternalLink, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   SectionHeader,
@@ -250,6 +250,26 @@ function LinkBlock({
   );
 }
 
+// One file, one button. The file must be attached to the same section; the
+// server enforces that the section is unlocked for this participant before
+// serving the download.
+// Note: root-relative /api/* is correct here — the shared proxy routes it
+// directly to the api-server (see SafariFilesDialog for the same pattern).
+function DownloadBlock({ fileId, label }: { fileId: number; label: string }) {
+  return (
+    <div className="mb-6">
+      <a
+        href={`/api/files/${fileId}/download`}
+        className="inline-flex items-center gap-2 bg-primary text-white font-semibold px-5 py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
+        data-testid={`download-block-${fileId}`}
+      >
+        <Download className="w-4 h-4" />
+        {label || "Download"}
+      </a>
+    </div>
+  );
+}
+
 // A group of auto-saving input fields with one button that copies all current
 // answers at once. Mirrors the RicecoInputFields pattern in Day1.tsx: each
 // child field reports its live value upward into a Map, and the copy button
@@ -470,6 +490,15 @@ function GenericSectionView({
                 fields={block.fields}
                 buttonLabel={block.buttonLabel ?? ""}
                 copyStyle={block.copyStyle === "joined" ? "joined" : "labeled"}
+              />
+            );
+          case "download":
+            if (!block.fileId) return null;
+            return (
+              <DownloadBlock
+                key={i}
+                fileId={block.fileId}
+                label={block.label ?? ""}
               />
             );
           default:

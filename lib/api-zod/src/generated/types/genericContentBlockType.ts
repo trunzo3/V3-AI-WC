@@ -26,4 +26,5 @@ export const GenericContentBlockType = {
   link: "link",
   field: "field",
   form: "form",
+  download: "download",
 } as const;
