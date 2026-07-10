@@ -163,20 +163,20 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         columns: 2,
         cards: [
           {
-            title: "Front of house",
-            body: "What the user sees. Screen, buttons, layout.",
+            title: "The Front Door",
+            body: "Entry and access — who can come in, and how.",
           },
           {
-            title: "The kitchen",
-            body: "The rules. What happens when someone does something.",
+            title: "Dining / Front of House",
+            body: "The experience — what the user sees. Screen, buttons, layout.",
           },
           {
-            title: "The walk-in",
-            body: "What it remembers between visits.",
+            title: "The Kitchen",
+            body: "Functions behind the scenes — the rules. What happens when someone does something.",
           },
           {
-            title: "The front door",
-            body: "Who's allowed in, and how.",
+            title: "Walk-In Freezer",
+            body: "Where things are stored — what the app remembers between visits.",
           },
         ],
       },
@@ -252,10 +252,10 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         type: "cards",
         columns: 2,
         cards: [
-          { title: "Front of house", body: "it looks wrong" },
-          { title: "The kitchen", body: "it does the wrong thing" },
-          { title: "The walk-in", body: "it forgot" },
-          { title: "The front door", body: "nobody can get in" },
+          { title: "The Front Door", body: "nobody can get in" },
+          { title: "Dining / Front of House", body: "it looks wrong" },
+          { title: "The Kitchen", body: "it does the wrong thing" },
+          { title: "Walk-In Freezer", body: "it forgot" },
         ],
       },
       {
@@ -338,7 +338,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         type: "prompt",
         label: "The interview prompt",
         content:
-          "You're going to help me plan an app I'm about to build with AI. I'm not a developer.\n\nInterview me. Ask one question at a time and wait for my answer before asking the next. Keep your questions short and in plain English — no technical terms.\n\nWork through these four things, in this order:\n\n1. What people see and do when they open it\n2. What rules it follows — what happens when someone does something\n3. What it needs to remember between visits\n4. Who's allowed in, and how they get in\n\nIf I don't know an answer, suggest something reasonable and move on. If my idea is getting too big, tell me and help me cut it down to the smallest version worth building.\n\nWhen we're done, write me a short prompt I can paste into Replit. Write it as a person describing what they want — plain sentences, no bullet lists, no technical terms, no mention of databases or components. Six sentences or fewer.\n\nStart by asking me what I want to build.",
+          "You're going to help me plan an app I'm about to build with AI. I'm not a developer.\n\nInterview me. Ask one question at a time and wait for my answer before asking the next. Keep your questions short and in plain English — no technical terms.\n\nWork through these four things, in this order:\n\n1. Who's allowed in, and how they get in\n2. What people see and do when they open it\n3. What rules it follows — what happens when someone does something\n4. What it needs to remember between visits\n\nIf I don't know an answer, suggest something reasonable and move on. If my idea is getting too big, tell me and help me cut it down to the smallest version worth building.\n\nWhen we're done, write me a short prompt I can paste into Replit. Write it as a person describing what they want — plain sentences, no bullet lists, no technical terms, no mention of databases or components. Six sentences or fewer.\n\nStart by asking me what I want to build.",
       },
       {
         type: "link",
@@ -355,6 +355,11 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         type: "form",
         fields: [
           {
+            fieldKey: "who-gets-in",
+            label: "Who gets in, and how?",
+            multiline: true,
+          },
+          {
             fieldKey: "see-and-do",
             label: "What do people see and do?",
             multiline: true,
@@ -367,11 +372,6 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
           {
             fieldKey: "remember",
             label: "What does it need to remember?",
-            multiline: true,
-          },
-          {
-            fieldKey: "who-gets-in",
-            label: "Who gets in, and how?",
             multiline: true,
           },
         ],
