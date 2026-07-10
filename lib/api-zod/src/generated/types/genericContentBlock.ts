@@ -15,12 +15,14 @@ All participant endpoints require an authenticated session cookie
  */
 import type { GenericBlockItem } from "./genericBlockItem";
 import type { GenericContentBlockColumns } from "./genericContentBlockColumns";
+import type { GenericContentBlockCopyStyle } from "./genericContentBlockCopyStyle";
 import type { GenericContentBlockStyle } from "./genericContentBlockStyle";
 import type { GenericContentBlockType } from "./genericContentBlockType";
 import type { GenericContentBlockVariant } from "./genericContentBlockVariant";
+import type { GenericFormField } from "./genericFormField";
 
 /**
- * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`.
+ * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`.
 
  */
 export interface GenericContentBlock {
@@ -39,4 +41,6 @@ export interface GenericContentBlock {
   fieldKey?: string;
   placeholder?: string;
   multiline?: boolean;
+  copyStyle?: GenericContentBlockCopyStyle;
+  fields?: GenericFormField[];
 }

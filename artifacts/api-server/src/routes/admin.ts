@@ -509,6 +509,21 @@ const contentBlockSchema = z
       placeholder: z.string().optional(),
       multiline: z.boolean(),
     }),
+    z.object({
+      type: z.literal("form"),
+      fields: z
+        .array(
+          z.object({
+            fieldKey: z.string().trim().min(1),
+            label: z.string(),
+            placeholder: z.string().optional(),
+            multiline: z.boolean(),
+          }),
+        )
+        .min(1, "A form block must have at least one field."),
+      buttonLabel: z.string(),
+      copyStyle: z.enum(["labeled", "joined"]),
+    }),
   ])
   .transform((b) => {
     // Sanitize admin-authored rich HTML. Prompt content stays literal — it
@@ -533,15 +548,14 @@ const contentBlockSchema = z
     }
   });
 
-// Within one section, all `field` fieldKeys must be unique and none may be
-// "notes" (reserved for the automatic bottom notes field).
+// Within one section, all fieldKeys must be unique — counted across `field`
+// blocks and `form` block fields together — and none may be "notes"
+// (reserved for the automatic bottom notes field).
 function validateFieldKeys(
   blocks: Array<z.infer<typeof contentBlockSchema>>,
 ): string | null {
   const seen = new Set<string>();
-  for (const b of blocks) {
-    if (b.type !== "field") continue;
-    const key = b.fieldKey;
+  const check = (key: string): string | null => {
     if (key === "notes") {
       return 'Field key "notes" is reserved for the automatic notes field.';
     }
@@ -549,6 +563,18 @@ function validateFieldKeys(
       return `Duplicate field key "${key}" — field keys must be unique within a section.`;
     }
     seen.add(key);
+    return null;
+  };
+  for (const b of blocks) {
+    if (b.type === "field") {
+      const err = check(b.fieldKey);
+      if (err) return err;
+    } else if (b.type === "form") {
+      for (const f of b.fields) {
+        const err = check(f.fieldKey);
+        if (err) return err;
+      }
+    }
   }
   return null;
 }

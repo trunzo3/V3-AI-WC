@@ -19,9 +19,13 @@ import { requireParticipant, getParticipantContext } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
+// Mirrors the full admin-authored block union (text, prompt, callout, cards,
+// steps, link, field, form). Kept loose — blocks are stored as JSON and passed
+// through to the client verbatim; narrowing this type here would silently
+// strip newer block types from the participant payload.
 interface GenericContentBlockResponse {
-  type: "text" | "prompt";
-  content: string;
+  type: string;
+  [key: string]: unknown;
 }
 
 interface SectionResponse {

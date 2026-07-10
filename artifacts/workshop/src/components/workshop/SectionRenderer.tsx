@@ -1,4 +1,9 @@
-import type { Section, GenericContentBlock } from "@workspace/api-client-react";
+import { useMemo, useState } from "react";
+import type {
+  Section,
+  GenericContentBlock,
+  GenericFormField,
+} from "@workspace/api-client-react";
 import { Lock, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -245,6 +250,85 @@ function LinkBlock({
   );
 }
 
+// A group of auto-saving input fields with one button that copies all current
+// answers at once. Mirrors the RicecoInputFields pattern in Day1.tsx: each
+// child field reports its live value upward into a Map, and the copy button
+// assembles from what's currently typed (not what was last saved).
+function FormBlock({
+  sectionId,
+  fields,
+  buttonLabel,
+  copyStyle,
+}: {
+  sectionId: string;
+  fields: GenericFormField[];
+  buttonLabel: string;
+  copyStyle: "labeled" | "joined";
+}) {
+  const [copied, setCopied] = useState(false);
+  const valuesRef = useMemo(() => new Map<string, string>(), []);
+
+  const handleValueChange = useMemo(
+    () => (key: string, value: string) => {
+      valuesRef.set(key, value);
+    },
+    [valuesRef],
+  );
+
+  const handleCopyAll = async () => {
+    const parts: string[] = [];
+    for (const f of fields) {
+      if (!f.fieldKey) continue;
+      const v = (valuesRef.get(f.fieldKey) ?? "").trim();
+      if (v.length === 0) continue;
+      parts.push(copyStyle === "labeled" ? `${f.label}: ${v}` : v);
+    }
+    if (parts.length === 0) return;
+    const text = copyStyle === "labeled" ? parts.join("\n") : parts.join(" ");
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const el = document.createElement("textarea");
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="mb-6 space-y-5">
+      {fields.map(
+        (f) =>
+          f.fieldKey && (
+            <NotesField
+              key={f.fieldKey}
+              sectionId={sectionId}
+              fieldKey={f.fieldKey}
+              label={f.label ?? ""}
+              placeholder={f.placeholder}
+              multiline={f.multiline ?? true}
+              onValueChange={handleValueChange}
+            />
+          ),
+      )}
+      <div className="flex justify-center pt-2">
+        <button
+          onClick={handleCopyAll}
+          className="inline-flex items-center gap-2 text-white font-semibold text-sm px-8 py-3 rounded-lg hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: "#1e293b" }}
+          data-testid={`form-copy-${sectionId}`}
+        >
+          📋 {copied ? "Copied!" : buttonLabel || "Copy"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function LockedSection({
   title,
   description,
@@ -374,6 +458,17 @@ function GenericSectionView({
                   multiline={block.multiline ?? true}
                 />
               </div>
+            );
+          case "form":
+            if (!block.fields || block.fields.length === 0) return null;
+            return (
+              <FormBlock
+                key={i}
+                sectionId={section.id}
+                fields={block.fields}
+                buttonLabel={block.buttonLabel ?? ""}
+                copyStyle={block.copyStyle === "joined" ? "joined" : "labeled"}
+              />
             );
           default:
             // Unknown block type from a newer schema version: render nothing.

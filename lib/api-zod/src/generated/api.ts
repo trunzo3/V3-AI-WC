@@ -149,6 +149,7 @@ export const ListSectionsResponse = zod.object({
                   "steps",
                   "link",
                   "field",
+                  "form",
                 ]),
                 content: zod.string().optional(),
                 label: zod.string().optional(),
@@ -180,9 +181,20 @@ export const ListSectionsResponse = zod.object({
                 fieldKey: zod.string().optional(),
                 placeholder: zod.string().optional(),
                 multiline: zod.boolean().optional(),
+                copyStyle: zod.enum(["labeled", "joined"]).optional(),
+                fields: zod
+                  .array(
+                    zod.object({
+                      fieldKey: zod.string(),
+                      label: zod.string(),
+                      placeholder: zod.string().optional(),
+                      multiline: zod.boolean(),
+                    }),
+                  )
+                  .optional(),
               })
               .describe(
-                "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`.\n",
+                "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`.\n",
               ),
           ),
           goalText: zod.string().nullable(),
@@ -643,6 +655,7 @@ export const AdminListGenericSectionsResponse = zod.object({
               "steps",
               "link",
               "field",
+              "form",
             ]),
             content: zod.string().optional(),
             label: zod.string().optional(),
@@ -672,9 +685,20 @@ export const AdminListGenericSectionsResponse = zod.object({
             fieldKey: zod.string().optional(),
             placeholder: zod.string().optional(),
             multiline: zod.boolean().optional(),
+            copyStyle: zod.enum(["labeled", "joined"]).optional(),
+            fields: zod
+              .array(
+                zod.object({
+                  fieldKey: zod.string(),
+                  label: zod.string(),
+                  placeholder: zod.string().optional(),
+                  multiline: zod.boolean(),
+                }),
+              )
+              .optional(),
           })
           .describe(
-            "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`.\n",
+            "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`.\n",
           ),
       ),
       goalText: zod.string().nullish(),
@@ -705,6 +729,7 @@ export const AdminCreateGenericSectionBody = zod.object({
             "steps",
             "link",
             "field",
+            "form",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
@@ -734,9 +759,20 @@ export const AdminCreateGenericSectionBody = zod.object({
           fieldKey: zod.string().optional(),
           placeholder: zod.string().optional(),
           multiline: zod.boolean().optional(),
+          copyStyle: zod.enum(["labeled", "joined"]).optional(),
+          fields: zod
+            .array(
+              zod.object({
+                fieldKey: zod.string(),
+                label: zod.string(),
+                placeholder: zod.string().optional(),
+                multiline: zod.boolean(),
+              }),
+            )
+            .optional(),
         })
         .describe(
-          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`.\n",
+          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`.\n",
         ),
     )
     .optional(),
@@ -774,6 +810,7 @@ export const AdminUpdateGenericSectionBody = zod.object({
             "steps",
             "link",
             "field",
+            "form",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
@@ -803,9 +840,20 @@ export const AdminUpdateGenericSectionBody = zod.object({
           fieldKey: zod.string().optional(),
           placeholder: zod.string().optional(),
           multiline: zod.boolean().optional(),
+          copyStyle: zod.enum(["labeled", "joined"]).optional(),
+          fields: zod
+            .array(
+              zod.object({
+                fieldKey: zod.string(),
+                label: zod.string(),
+                placeholder: zod.string().optional(),
+                multiline: zod.boolean(),
+              }),
+            )
+            .optional(),
         })
         .describe(
-          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`.\n",
+          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`.\n",
         ),
     )
     .optional(),
@@ -837,6 +885,7 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             "steps",
             "link",
             "field",
+            "form",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
@@ -866,9 +915,20 @@ export const AdminUpdateGenericSectionResponse = zod.object({
           fieldKey: zod.string().optional(),
           placeholder: zod.string().optional(),
           multiline: zod.boolean().optional(),
+          copyStyle: zod.enum(["labeled", "joined"]).optional(),
+          fields: zod
+            .array(
+              zod.object({
+                fieldKey: zod.string(),
+                label: zod.string(),
+                placeholder: zod.string().optional(),
+                multiline: zod.boolean(),
+              }),
+            )
+            .optional(),
         })
         .describe(
-          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`.\n",
+          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`.\n",
         ),
     ),
     goalText: zod.string().nullish(),

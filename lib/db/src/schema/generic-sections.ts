@@ -35,6 +35,17 @@ export type GenericContentBlock =
       label: string;
       placeholder?: string;
       multiline: boolean;
+    }
+  | {
+      type: "form";
+      fields: Array<{
+        fieldKey: string;
+        label: string;
+        placeholder?: string;
+        multiline: boolean;
+      }>;
+      buttonLabel: string;
+      copyStyle: "labeled" | "joined";
     };
 
 export const genericSectionsTable = pgTable("generic_sections", {

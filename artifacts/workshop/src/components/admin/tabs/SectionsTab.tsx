@@ -286,6 +286,12 @@ export function SectionsTab({ cohortId }: Props) {
       placeholder: "",
       multiline: true,
     },
+    form: {
+      type: "form",
+      fields: [{ fieldKey: "", label: "", placeholder: "", multiline: true }],
+      buttonLabel: "",
+      copyStyle: "labeled",
+    },
   };
   const addBlock = (type: string) => {
     const def = BLOCK_DEFAULTS[type];
@@ -368,6 +374,55 @@ export function SectionsTab({ cohortId }: Props) {
       return { ...f, contentBlocks: next };
     });
   };
+
+  // Add / remove / reorder / update for `fields` of form blocks.
+  type FormFieldSpec = {
+    fieldKey: string;
+    label: string;
+    placeholder?: string;
+    multiline: boolean;
+  };
+  const withFormFields = (
+    blockIdx: number,
+    fn: (list: FormFieldSpec[]) => FormFieldSpec[] | null,
+  ) => {
+    setGenForm((f) => {
+      const next = f.contentBlocks.slice();
+      const block = { ...next[blockIdx]! } as GenericContentBlock;
+      const list =
+        ((block as unknown as Record<string, unknown>).fields as
+          | FormFieldSpec[]
+          | undefined)?.slice() ?? [];
+      const updated = fn(list);
+      if (updated === null) return f;
+      (block as unknown as Record<string, unknown>).fields = updated;
+      next[blockIdx] = block;
+      return { ...f, contentBlocks: next };
+    });
+  };
+  const updateFormField = (
+    blockIdx: number,
+    fieldIdx: number,
+    patch: Partial<FormFieldSpec>,
+  ) =>
+    withFormFields(blockIdx, (list) => {
+      list[fieldIdx] = { ...list[fieldIdx]!, ...patch };
+      return list;
+    });
+  const addFormField = (blockIdx: number) =>
+    withFormFields(blockIdx, (list) => {
+      list.push({ fieldKey: "", label: "", placeholder: "", multiline: true });
+      return list;
+    });
+  const removeFormField = (blockIdx: number, fieldIdx: number) =>
+    withFormFields(blockIdx, (list) => list.filter((_, i) => i !== fieldIdx));
+  const moveFormField = (blockIdx: number, fieldIdx: number, dir: -1 | 1) =>
+    withFormFields(blockIdx, (list) => {
+      const target = fieldIdx + dir;
+      if (target < 0 || target >= list.length) return null;
+      [list[fieldIdx], list[target]] = [list[target]!, list[fieldIdx]!];
+      return list;
+    });
 
   const openCreateGeneric = () => {
     setEditingGeneric(null);
@@ -964,6 +1019,162 @@ export function SectionsTab({ cohortId }: Props) {
                               </div>
                             </div>
                           )}
+                          {block.type === "form" && (
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Copy button label</Label>
+                                  <Input
+                                    value={block.buttonLabel ?? ""}
+                                    onChange={(e) =>
+                                      updateBlock(idx, { buttonLabel: e.target.value })
+                                    }
+                                    placeholder="Copy Full Prompt"
+                                    data-testid={`input-generic-block-form-button-${idx}`}
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Copy style</Label>
+                                  <Select
+                                    value={block.copyStyle ?? "labeled"}
+                                    onValueChange={(v) =>
+                                      updateBlock(idx, {
+                                        copyStyle: v as "labeled" | "joined",
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger
+                                      data-testid={`select-generic-block-form-style-${idx}`}
+                                    >
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="labeled">
+                                        Labeled — "Label: answer" per line
+                                      </SelectItem>
+                                      <SelectItem value="joined">
+                                        Joined — answers only, one paragraph
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                {(block.fields ?? []).map((field, fIdx) => {
+                                  const fieldCount = (block.fields ?? []).length;
+                                  return (
+                                    <div
+                                      key={fIdx}
+                                      className="border rounded-md p-2 space-y-2 bg-background"
+                                      data-testid={`generic-block-form-field-${idx}-${fIdx}`}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                          Field {fIdx + 1}
+                                        </span>
+                                        <div className="flex items-center gap-1">
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6"
+                                            disabled={fIdx === 0}
+                                            onClick={() => moveFormField(idx, fIdx, -1)}
+                                            data-testid={`button-form-field-up-${idx}-${fIdx}`}
+                                            aria-label="Move field up"
+                                          >
+                                            <ArrowUp className="w-3 h-3" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6"
+                                            disabled={fIdx === fieldCount - 1}
+                                            onClick={() => moveFormField(idx, fIdx, 1)}
+                                            data-testid={`button-form-field-down-${idx}-${fIdx}`}
+                                            aria-label="Move field down"
+                                          >
+                                            <ArrowDown className="w-3 h-3" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6"
+                                            disabled={fieldCount <= 1}
+                                            onClick={() => removeFormField(idx, fIdx)}
+                                            data-testid={`button-form-field-remove-${idx}-${fIdx}`}
+                                            aria-label="Remove field"
+                                          >
+                                            <X className="w-3 h-3 text-destructive" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                          <Label className="text-xs">
+                                            Field key (unique, not "notes")
+                                          </Label>
+                                          <Input
+                                            value={field.fieldKey ?? ""}
+                                            onChange={(e) =>
+                                              updateFormField(idx, fIdx, {
+                                                fieldKey: e.target.value,
+                                              })
+                                            }
+                                            placeholder="my-field-key"
+                                            data-testid={`input-form-field-key-${idx}-${fIdx}`}
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label className="text-xs">Label</Label>
+                                          <Input
+                                            value={field.label ?? ""}
+                                            onChange={(e) =>
+                                              updateFormField(idx, fIdx, {
+                                                label: e.target.value,
+                                              })
+                                            }
+                                            data-testid={`input-form-field-label-${idx}-${fIdx}`}
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label className="text-xs">
+                                            Placeholder (optional)
+                                          </Label>
+                                          <Input
+                                            value={field.placeholder ?? ""}
+                                            onChange={(e) =>
+                                              updateFormField(idx, fIdx, {
+                                                placeholder: e.target.value,
+                                              })
+                                            }
+                                            data-testid={`input-form-field-placeholder-${idx}-${fIdx}`}
+                                          />
+                                        </div>
+                                        <div className="flex items-center gap-2 pt-5">
+                                          <Switch
+                                            checked={field.multiline ?? true}
+                                            onCheckedChange={(v) =>
+                                              updateFormField(idx, fIdx, { multiline: v })
+                                            }
+                                            data-testid={`switch-form-field-multiline-${idx}-${fIdx}`}
+                                          />
+                                          <Label className="text-xs">Multiline</Label>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => addFormField(idx)}
+                                  data-testid={`button-form-field-add-${idx}`}
+                                >
+                                  <Plus className="w-3.5 h-3.5 mr-1" /> Add field
+                                </Button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -983,6 +1194,7 @@ export function SectionsTab({ cohortId }: Props) {
                           <SelectItem value="steps">Steps</SelectItem>
                           <SelectItem value="link">Link</SelectItem>
                           <SelectItem value="field">Input field</SelectItem>
+                          <SelectItem value="form">Form (fields + copy button)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

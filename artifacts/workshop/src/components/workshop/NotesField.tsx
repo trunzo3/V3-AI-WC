@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,10 +13,16 @@ interface NotesFieldProps {
   className?: string;
   minHeight?: string;
   multiline?: boolean;
+  /** Reports the current value upward on every change (used by form blocks to assemble copy text). */
+  onValueChange?: (fieldKey: string, value: string) => void;
 }
 
-export function NotesField({ sectionId, fieldKey, label, placeholder, initialValue = "", className = "", minHeight = "min-h-[100px]", multiline = true }: NotesFieldProps) {
+export function NotesField({ sectionId, fieldKey, label, placeholder, initialValue = "", className = "", minHeight = "min-h-[100px]", multiline = true, onValueChange }: NotesFieldProps) {
   const [value, setValue, flushSave] = useAutoSave(sectionId, fieldKey, initialValue);
+
+  useEffect(() => {
+    onValueChange?.(fieldKey, value);
+  }, [value, fieldKey, onValueChange]);
 
   return (
     <div className={`space-y-2 ${className}`}>

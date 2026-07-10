@@ -101,6 +101,7 @@ export const GenericContentBlockType = {
   steps: "steps",
   link: "link",
   field: "field",
+  form: "form",
 } as const;
 
 export type GenericContentBlockVariant =
@@ -134,8 +135,23 @@ export const GenericContentBlockStyle = {
   text: "text",
 } as const;
 
+export type GenericContentBlockCopyStyle =
+  (typeof GenericContentBlockCopyStyle)[keyof typeof GenericContentBlockCopyStyle];
+
+export const GenericContentBlockCopyStyle = {
+  labeled: "labeled",
+  joined: "joined",
+} as const;
+
+export interface GenericFormField {
+  fieldKey: string;
+  label: string;
+  placeholder?: string;
+  multiline: boolean;
+}
+
 /**
- * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`.
+ * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`.
 
  */
 export interface GenericContentBlock {
@@ -154,6 +170,8 @@ export interface GenericContentBlock {
   fieldKey?: string;
   placeholder?: string;
   multiline?: boolean;
+  copyStyle?: GenericContentBlockCopyStyle;
+  fields?: GenericFormField[];
 }
 
 export type SectionGeneric = {

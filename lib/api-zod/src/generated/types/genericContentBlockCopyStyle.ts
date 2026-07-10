@@ -14,16 +14,10 @@ All participant endpoints require an authenticated session cookie
  * OpenAPI spec version: 0.1.0
  */
 
-export type GenericContentBlockType =
-  (typeof GenericContentBlockType)[keyof typeof GenericContentBlockType];
+export type GenericContentBlockCopyStyle =
+  (typeof GenericContentBlockCopyStyle)[keyof typeof GenericContentBlockCopyStyle];
 
-export const GenericContentBlockType = {
-  text: "text",
-  prompt: "prompt",
-  callout: "callout",
-  cards: "cards",
-  steps: "steps",
-  link: "link",
-  field: "field",
-  form: "form",
+export const GenericContentBlockCopyStyle = {
+  labeled: "labeled",
+  joined: "joined",
 } as const;

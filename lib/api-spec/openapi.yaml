@@ -1115,11 +1115,12 @@ components:
         text/prompt use `content`; callout uses `variant`, `title?`, `content`;
         cards uses `columns` + `cards`; steps uses `ordered` + `items`;
         link uses `url` + `label` + `style`; field uses `fieldKey`, `label`,
-        `placeholder?`, `multiline`.
+        `placeholder?`, `multiline`; form uses `fields` + `buttonLabel` +
+        `copyStyle`.
       properties:
         type:
           type: string
-          enum: [text, prompt, callout, cards, steps, link, field]
+          enum: [text, prompt, callout, cards, steps, link, field, form]
         content: { type: string }
         label: { type: string }
         buttonLabel: { type: string }
@@ -1142,6 +1143,21 @@ components:
           type: string
           enum: [button, text]
         fieldKey: { type: string }
+        placeholder: { type: string }
+        multiline: { type: boolean }
+        copyStyle:
+          type: string
+          enum: [labeled, joined]
+        fields:
+          type: array
+          items: { $ref: "#/components/schemas/GenericFormField" }
+
+    GenericFormField:
+      type: object
+      required: [fieldKey, label, multiline]
+      properties:
+        fieldKey: { type: string }
+        label: { type: string }
         placeholder: { type: string }
         multiline: { type: boolean }
 

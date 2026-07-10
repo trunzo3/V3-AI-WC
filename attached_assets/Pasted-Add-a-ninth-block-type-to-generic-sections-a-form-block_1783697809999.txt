@@ -1,0 +1,34 @@
+Add a ninth block type to generic sections: a form block.
+
+It's a group of input fields with a single button underneath that copies all the answers at once. The "Copy Full Prompt" button in Draft with RICECO (RicecoDrafting, in Day1.tsx) already works exactly this way — lifting current values from child fields and assembling them on click. Follow that pattern rather than writing a new one. Note that NotesField doesn't report its value upward, so it needs a way to.
+
+An admin authoring a form block sets: the fields (label, placeholder, whether it's multiline), the button label, and one of two copy styles.
+
+The two copy styles:
+
+  Labeled — one line per field, "Label: answer", newline separated.
+  Joined  — the answers only, trimmed and joined with a single space. No labels, no line breaks. The result reads like a paragraph someone wrote.
+
+Both styles skip any field the participant left blank. If every field is blank, the button does nothing. Assemble from what's currently typed in the inputs, not from what was last saved to the server.
+
+Each form field saves and reloads exactly like the existing field block.
+
+Two things that are easy to miss:
+
+  The participant-facing sections route narrows the block union independently of the admin route. It needs widening too, or the admin can author form blocks that participants never receive. The same goes for the OpenAPI spec and the regenerated client.
+
+  renderGenericBlocks in workbook.ts must return an empty string for form blocks. Anything that falls through to its text-block branch prints "undefined", because form blocks have no content property.
+
+Validation: a form block with no fields is invalid. fieldKeys must be unique within a section, counted across both field blocks and form fields together, and "notes" stays reserved.
+
+--- Acceptance check ---
+
+Add a form block with three fields to the existing "Block Type Test" section.
+
+Confirm:
+  - Values survive a page refresh.
+  - Joined style puts the three answers on the clipboard as one space-joined sentence with no labels.
+  - Labeled style produces one labeled line per field.
+  - Leaving the middle field blank omits it from both styles.
+  - A form field with fieldKey "notes" is rejected, as is one that collides with a field block elsewhere in the section.
+  - The workbook PDF still downloads with no "undefined" in it.
