@@ -323,6 +323,7 @@ export function SectionsTab({ cohortId }: Props) {
       label: "",
       placeholder: "",
       helpText: "",
+      prefill: "",
       multiline: true,
     },
     form: {
@@ -1077,6 +1078,23 @@ export function SectionsTab({ cohortId }: Props) {
                                   minHeight={60}
                                   testId={`input-generic-block-field-help-${idx}`}
                                 />
+                              </div>
+                              <div>
+                                <Label className="text-xs">
+                                  Starting text (optional)
+                                </Label>
+                                <Textarea
+                                  value={block.prefill ?? ""}
+                                  onChange={(e) =>
+                                    updateBlock(idx, { prefill: e.target.value })
+                                  }
+                                  placeholder="Pre-fills the field. Use {{section-id:field-key}} to insert the participant's answer from another section."
+                                  rows={2}
+                                  data-testid={`input-generic-block-field-prefill-${idx}`}
+                                />
+                                <p className="text-[11px] text-muted-foreground mt-1">
+                                  {"Placeholders like {{section-id:field-key}} are replaced with that participant's saved answer (empty if they haven't answered)."}
+                                </p>
                               </div>
                             </div>
                           )}

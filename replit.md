@@ -180,6 +180,14 @@ Sections come from two sources:
    render as a navy box with a gold "Prompt N" pill and a CopyButton.
    `download` blocks reference a file attached to the same section
    (`{type:"download", fileId, label?}`) and render one download button.
+   Prompt `content` and field `prefill` (the field's optional starting text)
+   may contain `{{sectionId:fieldKey}}` placeholders that resolve to the
+   participant's own saved answer from another section (empty string if
+   unsaved, never raw `{{...}}` on screen). Resolution happens client-side
+   via `hooks/use-resolve-template.ts` (same GET /notes/:sectionId read the
+   fields already use) and server-side in `workbook.ts` for the PDF. A
+   field's prefill only seeds the input; edits save to that field normally
+   and never write back to the referenced source field.
    The legacy `content` and `prompt_block` columns have been dropped.
    Hardcoded sections don't use download blocks: `SectionRenderer` appends
    `components/workshop/SectionAttachedFiles.tsx` below every hardcoded

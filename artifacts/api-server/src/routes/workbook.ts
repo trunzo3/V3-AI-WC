@@ -458,6 +458,23 @@ function renderWorkflowMap(data: unknown): string {
   return `<div class="workflows">${cards}</div>`;
 }
 
+// Matches {{sectionId:fieldKey}} — same pattern the participant app resolves
+// client-side (use-resolve-template.ts). Values come from the participant's
+// own notes; unsaved references become an empty string.
+const TEMPLATE_PLACEHOLDER_RE = /\{\{\s*([^:{}\s]+)\s*:\s*([^{}]*?)\s*\}\}/g;
+
+function resolvePlaceholders(
+  text: string,
+  notesBySection: Map<string, Array<{ fieldKey: string; content: string }>>,
+): string {
+  return text.replace(
+    TEMPLATE_PLACEHOLDER_RE,
+    (_all, sectionId: string, fieldKey: string) =>
+      notesBySection.get(sectionId)?.find((n) => n.fieldKey === fieldKey)
+        ?.content ?? "",
+  );
+}
+
 function renderGenericBlocks(blocks: Array<{ type: string; content?: string }>): string {
   if (!blocks || blocks.length === 0) return "";
   return blocks
@@ -1079,10 +1096,19 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
       if (!title) title = g.title;
       type = g.sectionType;
       isGeneric = true;
+      const blocks = Array.isArray(g.contentBlocks)
+        ? (g.contentBlocks as Array<{ type: string; content: string }>)
+        : [];
       generic = {
-        contentBlocks: Array.isArray(g.contentBlocks)
-          ? (g.contentBlocks as Array<{ type: string; content: string }>)
-          : [],
+        // Prompt blocks may contain {{sectionId:fieldKey}} placeholders;
+        // resolve them to this participant's saved answers (empty string if
+        // unsaved) so raw {{...}} never reaches the PDF — mirrors the
+        // client-side resolution in the participant app.
+        contentBlocks: blocks.map((b) =>
+          b.type === "prompt" && typeof b.content === "string"
+            ? { ...b, content: resolvePlaceholders(b.content, notesBySection) }
+            : b,
+        ),
         goalText: g.goalText,
       };
     } else {

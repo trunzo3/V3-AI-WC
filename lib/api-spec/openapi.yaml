@@ -1115,8 +1115,12 @@ components:
         text/prompt use `content`; callout uses `variant`, `title?`, `content`;
         cards uses `columns` + `cards`; steps uses `ordered` + `items`;
         link uses `url` + `label` + `style`; field uses `fieldKey`, `label`,
-        `placeholder?`, `helpText?`, `multiline`; form uses `fields` +
-        `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.
+        `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses
+        `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` +
+        `label?`. Prompt `content` and field `prefill` may contain
+        `{{sectionId:fieldKey}}` placeholders, resolved client-side to the
+        participant's own saved answer in that section/field (empty string
+        if unsaved).
       properties:
         type:
           type: string
@@ -1150,6 +1154,13 @@ components:
             Optional rich-text help shown between the field's label and its
             input. Sanitized server-side like text block content.
         multiline: { type: boolean }
+        prefill:
+          type: string
+          description: >
+            For field blocks: the field's starting text. May contain
+            {{sectionId:fieldKey}} placeholders resolved to the
+            participant's own saved answers. The participant can edit the
+            result; edits save to this field normally.
         copyStyle:
           type: string
           enum: [labeled, joined]

@@ -15,6 +15,7 @@ import {
 } from "./SectionHeader";
 import { NotesField } from "./NotesField";
 import { SectionAttachedFiles } from "./SectionAttachedFiles";
+import { useResolveTemplate } from "@/hooks/use-resolve-template";
 import { CopyButton } from "./CopyButton";
 import {
   VerificationTest,
@@ -78,6 +79,9 @@ function PromptBlock({
   pill: string;
   buttonLabel?: string;
 }) {
+  // {{sectionId:fieldKey}} placeholders resolve to the participant's own
+  // saved answers before the prompt is shown or copied.
+  const resolved = useResolveTemplate(text);
   return (
     <div
       className="bg-primary rounded-lg p-6 text-white mb-6"
@@ -87,9 +91,45 @@ function PromptBlock({
         {pill}
       </span>
       <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono">
-        {text}
+        {resolved}
       </pre>
-      <CopyButton text={text} label={buttonLabel || "Copy Prompt"} />
+      <CopyButton text={resolved} label={buttonLabel || "Copy Prompt"} />
+    </div>
+  );
+}
+
+// A field block whose starting text (prefill) may reference the
+// participant's answers from other sections. The resolved value only seeds
+// the field; the participant edits and saves to this field normally.
+function FieldBlock({
+  sectionId,
+  fieldKey,
+  label,
+  placeholder,
+  helpText,
+  prefill,
+  multiline,
+}: {
+  sectionId: string;
+  fieldKey: string;
+  label: string;
+  placeholder?: string;
+  helpText?: string;
+  prefill?: string;
+  multiline: boolean;
+}) {
+  const resolvedPrefill = useResolveTemplate(prefill ?? "");
+  return (
+    <div className="mb-6">
+      <NotesField
+        sectionId={sectionId}
+        fieldKey={fieldKey}
+        label={label}
+        placeholder={placeholder}
+        helpText={helpText}
+        initialValue={resolvedPrefill}
+        multiline={multiline}
+      />
     </div>
   );
 }
@@ -471,16 +511,16 @@ function GenericSectionView({
           case "field":
             if (!block.fieldKey) return null;
             return (
-              <div key={i} className="mb-6">
-                <NotesField
-                  sectionId={section.id}
-                  fieldKey={block.fieldKey}
-                  label={block.label ?? ""}
-                  placeholder={block.placeholder}
-                  helpText={block.helpText}
-                  multiline={block.multiline ?? true}
-                />
-              </div>
+              <FieldBlock
+                key={i}
+                sectionId={section.id}
+                fieldKey={block.fieldKey}
+                label={block.label ?? ""}
+                placeholder={block.placeholder}
+                helpText={block.helpText}
+                prefill={block.prefill}
+                multiline={block.multiline ?? true}
+              />
             );
           case "form":
             if (!block.fields || block.fields.length === 0) return null;

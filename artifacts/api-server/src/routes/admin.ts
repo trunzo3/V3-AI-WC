@@ -508,6 +508,7 @@ const contentBlockSchema = z
       label: z.string(),
       placeholder: z.string().optional(),
       helpText: z.string().optional(),
+      prefill: z.string().optional(),
       multiline: z.boolean(),
     }),
     z.object({

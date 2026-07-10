@@ -188,6 +188,12 @@ export const ListSectionsResponse = zod.object({
                     "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
                   ),
                 multiline: zod.boolean().optional(),
+                prefill: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "For field blocks: the field's starting text. May contain {{sectionId:fieldKey}} placeholders resolved to the participant's own saved answers. The participant can edit the result; edits save to this field normally.\n",
+                  ),
                 copyStyle: zod.enum(["labeled", "joined"]).optional(),
                 fields: zod
                   .array(
@@ -213,7 +219,7 @@ export const ListSectionsResponse = zod.object({
                   ),
               })
               .describe(
-                "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.\n",
+                "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`. Prompt `content` and field `prefill` may contain `{{sectionId:fieldKey}}` placeholders, resolved client-side to the participant's own saved answer in that section\/field (empty string if unsaved).\n",
               ),
           ),
           goalText: zod.string().nullable(),
@@ -711,6 +717,12 @@ export const AdminListGenericSectionsResponse = zod.object({
                 "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
               ),
             multiline: zod.boolean().optional(),
+            prefill: zod
+              .string()
+              .optional()
+              .describe(
+                "For field blocks: the field's starting text. May contain {{sectionId:fieldKey}} placeholders resolved to the participant's own saved answers. The participant can edit the result; edits save to this field normally.\n",
+              ),
             copyStyle: zod.enum(["labeled", "joined"]).optional(),
             fields: zod
               .array(
@@ -736,7 +748,7 @@ export const AdminListGenericSectionsResponse = zod.object({
               ),
           })
           .describe(
-            "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.\n",
+            "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`. Prompt `content` and field `prefill` may contain `{{sectionId:fieldKey}}` placeholders, resolved client-side to the participant's own saved answer in that section\/field (empty string if unsaved).\n",
           ),
       ),
       goalText: zod.string().nullish(),
@@ -804,6 +816,12 @@ export const AdminCreateGenericSectionBody = zod.object({
               "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
             ),
           multiline: zod.boolean().optional(),
+          prefill: zod
+            .string()
+            .optional()
+            .describe(
+              "For field blocks: the field's starting text. May contain {{sectionId:fieldKey}} placeholders resolved to the participant's own saved answers. The participant can edit the result; edits save to this field normally.\n",
+            ),
           copyStyle: zod.enum(["labeled", "joined"]).optional(),
           fields: zod
             .array(
@@ -829,7 +847,7 @@ export const AdminCreateGenericSectionBody = zod.object({
             ),
         })
         .describe(
-          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.\n",
+          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`. Prompt `content` and field `prefill` may contain `{{sectionId:fieldKey}}` placeholders, resolved client-side to the participant's own saved answer in that section\/field (empty string if unsaved).\n",
         ),
     )
     .optional(),
@@ -904,6 +922,12 @@ export const AdminUpdateGenericSectionBody = zod.object({
               "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
             ),
           multiline: zod.boolean().optional(),
+          prefill: zod
+            .string()
+            .optional()
+            .describe(
+              "For field blocks: the field's starting text. May contain {{sectionId:fieldKey}} placeholders resolved to the participant's own saved answers. The participant can edit the result; edits save to this field normally.\n",
+            ),
           copyStyle: zod.enum(["labeled", "joined"]).optional(),
           fields: zod
             .array(
@@ -929,7 +953,7 @@ export const AdminUpdateGenericSectionBody = zod.object({
             ),
         })
         .describe(
-          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.\n",
+          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`. Prompt `content` and field `prefill` may contain `{{sectionId:fieldKey}}` placeholders, resolved client-side to the participant's own saved answer in that section\/field (empty string if unsaved).\n",
         ),
     )
     .optional(),
@@ -998,6 +1022,12 @@ export const AdminUpdateGenericSectionResponse = zod.object({
               "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
             ),
           multiline: zod.boolean().optional(),
+          prefill: zod
+            .string()
+            .optional()
+            .describe(
+              "For field blocks: the field's starting text. May contain {{sectionId:fieldKey}} placeholders resolved to the participant's own saved answers. The participant can edit the result; edits save to this field normally.\n",
+            ),
           copyStyle: zod.enum(["labeled", "joined"]).optional(),
           fields: zod
             .array(
@@ -1023,7 +1053,7 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             ),
         })
         .describe(
-          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.\n",
+          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`. Prompt `content` and field `prefill` may contain `{{sectionId:fieldKey}}` placeholders, resolved client-side to the participant's own saved answer in that section\/field (empty string if unsaved).\n",
         ),
     ),
     goalText: zod.string().nullish(),

@@ -35,6 +35,9 @@ export type GenericContentBlock =
       label: string;
       placeholder?: string;
       helpText?: string;
+      // Starting text; may contain {{sectionId:fieldKey}} placeholders
+      // resolved client-side to the participant's own saved answers.
+      prefill?: string;
       multiline: boolean;
     }
   | {
