@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { isAdminAuthError } from "@/lib/auth";
 import {
   useAdminListSettings,
   useAdminUpsertSetting,
@@ -56,8 +57,10 @@ export function SettingsTab() {
           toast({ title: `Saved ${key}` });
           refresh();
         },
-        onError: () =>
-          toast({ title: "Save failed", variant: "destructive" }),
+        onError: (err) => {
+          if (isAdminAuthError(err)) return;
+          toast({ title: "Save failed", variant: "destructive" });
+        },
       },
     );
   };

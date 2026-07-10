@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isAdminAuthError } from "@/lib/auth";
 import {
   useAdminListLlmTools,
   useAdminCreateLlmTool,
@@ -126,8 +127,10 @@ export function LlmToolsTab() {
             refresh();
             setOpen(false);
           },
-          onError: () =>
-            toast({ title: "Update failed", variant: "destructive" }),
+          onError: (err) => {
+            if (isAdminAuthError(err)) return;
+            toast({ title: "Update failed", variant: "destructive" });
+          },
         },
       );
     } else {
@@ -139,8 +142,10 @@ export function LlmToolsTab() {
             refresh();
             setOpen(false);
           },
-          onError: () =>
-            toast({ title: "Create failed", variant: "destructive" }),
+          onError: (err) => {
+            if (isAdminAuthError(err)) return;
+            toast({ title: "Create failed", variant: "destructive" });
+          },
         },
       );
     }
@@ -154,8 +159,10 @@ export function LlmToolsTab() {
           toast({ title: "Tool removed" });
           refresh();
         },
-        onError: () =>
-          toast({ title: "Delete failed", variant: "destructive" }),
+        onError: (err) => {
+          if (isAdminAuthError(err)) return;
+          toast({ title: "Delete failed", variant: "destructive" });
+        },
       },
     );
   };

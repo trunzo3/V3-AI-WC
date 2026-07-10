@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isAdminAuthError } from "@/lib/auth";
 import {
   useAdminListCohorts,
   useAdminCreateCohort,
@@ -118,6 +119,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
           refresh();
         },
         onError: (err: any) => {
+          if (isAdminAuthError(err)) return;
           const msg =
             err?.error ||
             err?.message ||
@@ -168,6 +170,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
             refresh();
           },
           onError: (err: unknown) => {
+            if (isAdminAuthError(err)) return;
             const message = err instanceof Error ? err.message : "Failed to update cohort";
             toast({ title: message, variant: "destructive" });
           },
@@ -184,6 +187,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
             if (res?.cohort?.id) onSelectCohort(res.cohort.id);
           },
           onError: (err: unknown) => {
+            if (isAdminAuthError(err)) return;
             const message = err instanceof Error ? err.message : "Failed to create cohort";
             toast({ title: message, variant: "destructive" });
           },

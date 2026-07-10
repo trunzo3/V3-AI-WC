@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { isAdminAuthError } from "@/lib/auth";
 import {
   useAdminListCohortSections,
   useAdminBulkUpdateCohortSections,
@@ -158,8 +159,10 @@ export function SectionsTab({ cohortId }: Props) {
           });
           setDirty(false);
         },
-        onError: () =>
-          toast({ title: "Save failed", variant: "destructive" }),
+        onError: (err) => {
+          if (isAdminAuthError(err)) return;
+          toast({ title: "Save failed", variant: "destructive" });
+        },
       },
     );
   };
@@ -175,8 +178,10 @@ export function SectionsTab({ cohortId }: Props) {
             description: `Created ${res?.inserted ?? 0} unlock rows.`,
           });
         },
-        onError: () =>
-          toast({ title: "Unlock-all failed", variant: "destructive" }),
+        onError: (err) => {
+          if (isAdminAuthError(err)) return;
+          toast({ title: "Unlock-all failed", variant: "destructive" });
+        },
       },
     );
   };
@@ -424,8 +429,10 @@ export function SectionsTab({ cohortId }: Props) {
             });
             setGenOpen(false);
           },
-          onError: () =>
-            toast({ title: "Update failed", variant: "destructive" }),
+          onError: (err) => {
+            if (isAdminAuthError(err)) return;
+            toast({ title: "Update failed", variant: "destructive" });
+          },
         },
       );
     } else {
@@ -464,8 +471,10 @@ export function SectionsTab({ cohortId }: Props) {
             });
             setGenOpen(false);
           },
-          onError: () =>
-            toast({ title: "Create failed", variant: "destructive" }),
+          onError: (err) => {
+            if (isAdminAuthError(err)) return;
+            toast({ title: "Create failed", variant: "destructive" });
+          },
         },
       );
     }
@@ -484,8 +493,10 @@ export function SectionsTab({ cohortId }: Props) {
             queryKey: getAdminListCohortSectionsQueryKey(cohortId),
           });
         },
-        onError: () =>
-          toast({ title: "Delete failed", variant: "destructive" }),
+        onError: (err) => {
+          if (isAdminAuthError(err)) return;
+          toast({ title: "Delete failed", variant: "destructive" });
+        },
       },
     );
   };

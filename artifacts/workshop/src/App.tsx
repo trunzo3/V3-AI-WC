@@ -1,7 +1,13 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  QueryCache,
+  MutationCache,
+} from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { handleAdminAuthError } from "@/lib/auth";
 import NotFound from "@/pages/not-found";
 
 import Login from "@/pages/login";
@@ -12,6 +18,16 @@ import AdminLogin from "@/pages/admin/login";
 import AdminDashboard from "@/pages/admin/dashboard";
 
 const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => {
+      handleAdminAuthError(error);
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      handleAdminAuthError(error);
+    },
+  }),
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,

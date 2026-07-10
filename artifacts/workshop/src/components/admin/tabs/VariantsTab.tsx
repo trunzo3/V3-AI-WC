@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { isAdminAuthError } from "@/lib/auth";
 import {
   useAdminListCohortVariants,
   useAdminUpsertCohortVariant,
@@ -50,7 +51,7 @@ function SlotEditor({ cohortId, sectionId, slot, current }: SlotEditorProps) {
           });
           toast({ title: val === "" ? "Override cleared" : "Override saved" });
         },
-        onError: () => toast({ title: "Save failed", variant: "destructive" }),
+        onError: (err) => { if (isAdminAuthError(err)) return; toast({ title: "Save failed", variant: "destructive" }); },
       },
     );
   };
@@ -66,7 +67,7 @@ function SlotEditor({ cohortId, sectionId, slot, current }: SlotEditorProps) {
           });
           toast({ title: "Override cleared — defaults restored" });
         },
-        onError: () => toast({ title: "Clear failed", variant: "destructive" }),
+        onError: (err) => { if (isAdminAuthError(err)) return; toast({ title: "Clear failed", variant: "destructive" }); },
       },
     );
   };

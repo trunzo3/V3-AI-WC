@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { isAdminAuthError } from "@/lib/auth";
 import {
   useAdminListCohortSafariTabs,
   useAdminBulkUpdateCohortSafariTabs,
@@ -81,8 +82,10 @@ export function SafariLineupTab({ cohortId }: Props) {
           });
           setDirty(false);
         },
-        onError: () =>
-          toast({ title: "Save failed", variant: "destructive" }),
+        onError: (err) => {
+          if (isAdminAuthError(err)) return;
+          toast({ title: "Save failed", variant: "destructive" });
+        },
       },
     );
   };

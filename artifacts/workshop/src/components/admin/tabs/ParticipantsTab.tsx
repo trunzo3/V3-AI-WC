@@ -1,3 +1,4 @@
+import { isAdminAuthError } from "@/lib/auth";
 import {
   useAdminListCohortParticipants,
   useAdminSetParticipantActive,
@@ -63,8 +64,10 @@ export function ParticipantsTab({ cohortId }: Props) {
       { id, data: { isActive: active } },
       {
         onSuccess: () => refresh(),
-        onError: () =>
-          toast({ title: "Update failed", variant: "destructive" }),
+        onError: (err) => {
+          if (isAdminAuthError(err)) return;
+          toast({ title: "Update failed", variant: "destructive" });
+        },
       },
     );
   };
@@ -77,8 +80,10 @@ export function ParticipantsTab({ cohortId }: Props) {
           toast({ title: `Deleted ${name}` });
           refresh();
         },
-        onError: () =>
-          toast({ title: "Delete failed", variant: "destructive" }),
+        onError: (err) => {
+          if (isAdminAuthError(err)) return;
+          toast({ title: "Delete failed", variant: "destructive" });
+        },
       },
     );
   };

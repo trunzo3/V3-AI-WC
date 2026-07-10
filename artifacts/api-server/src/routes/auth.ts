@@ -144,8 +144,8 @@ router.post("/auth/login", async (req, res) => {
   req.session = req.session ?? {};
   req.session.participantId = participant.id;
   req.session.cohortId = participant.cohortId;
-  // Clear any stale admin flag on a participant login.
-  delete req.session.isAdmin;
+  // Deliberately preserve any admin flag: the admin and participant
+  // identities are independent facts about the same browser session.
 
   res.set("Cache-Control", "no-store");
   res.json({ participant, isNew });
@@ -169,7 +169,12 @@ router.get("/auth/me", async (req, res) => {
     .limit(1);
 
   if (!row) {
-    req.session = null;
+    // Clear only the participant identity; an admin flag on the same
+    // browser session is independent and must survive.
+    if (req.session) {
+      delete req.session.participantId;
+      delete req.session.cohortId;
+    }
     res.status(401).json({ error: "Not authenticated." });
     return;
   }
@@ -205,7 +210,12 @@ router.get("/auth/me", async (req, res) => {
 });
 
 router.post("/auth/logout", (req, res) => {
-  req.session = null;
+  // Clear only the participant identity; an admin flag on the same
+  // browser session is independent and must survive.
+  if (req.session) {
+    delete req.session.participantId;
+    delete req.session.cohortId;
+  }
   res.json({ success: true });
 });
 

@@ -10,7 +10,11 @@ import {
   adminListCohortParticipants,
   adminListFeedback,
 } from "@workspace/api-client-react";
-import { getAdminAuth, setAdminAuth } from "@/lib/auth";
+import {
+  getAdminAuth,
+  setAdminAuth,
+  ADMIN_SESSION_EXPIRED_EVENT,
+} from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LogOut } from "lucide-react";
@@ -98,6 +102,14 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!isAdmin) setLocation("/admin/login");
   }, [isAdmin, setLocation]);
+
+  // Redirect to login when any admin API call comes back 401.
+  useEffect(() => {
+    const onExpired = () => setLocation("/admin/login");
+    window.addEventListener(ADMIN_SESSION_EXPIRED_EVENT, onExpired);
+    return () =>
+      window.removeEventListener(ADMIN_SESSION_EXPIRED_EVENT, onExpired);
+  }, [setLocation]);
 
   const [selectedCohortId, setSelectedCohortId] = useState<number | null>(
     readSelectedCohort(),

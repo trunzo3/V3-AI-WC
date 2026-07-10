@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isAdminAuthError } from "@/lib/auth";
 import {
   useAdminListSafariLibrary,
   useAdminCreateSafariLibraryItem,
@@ -91,8 +92,10 @@ export function SafariLibraryTab() {
             refresh();
             setOpen(false);
           },
-          onError: () =>
-            toast({ title: "Update failed", variant: "destructive" }),
+          onError: (err) => {
+            if (isAdminAuthError(err)) return;
+            toast({ title: "Update failed", variant: "destructive" });
+          },
         },
       );
     } else {
@@ -104,8 +107,10 @@ export function SafariLibraryTab() {
             refresh();
             setOpen(false);
           },
-          onError: () =>
-            toast({ title: "Create failed", variant: "destructive" }),
+          onError: (err) => {
+            if (isAdminAuthError(err)) return;
+            toast({ title: "Create failed", variant: "destructive" });
+          },
         },
       );
     }
@@ -119,8 +124,10 @@ export function SafariLibraryTab() {
           toast({ title: "Tool removed" });
           refresh();
         },
-        onError: () =>
-          toast({ title: "Delete failed", variant: "destructive" }),
+        onError: (err) => {
+          if (isAdminAuthError(err)) return;
+          toast({ title: "Delete failed", variant: "destructive" });
+        },
       },
     );
   };

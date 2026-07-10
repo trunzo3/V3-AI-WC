@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { isAdminAuthError } from "@/lib/auth";
 import {
   useAdminListFeedback,
   useAdminListCohorts,
@@ -102,8 +103,10 @@ export function FeedbackTab() {
             refreshCats();
             setCatOpen(false);
           },
-          onError: () =>
-            toast({ title: "Update failed", variant: "destructive" }),
+          onError: (err) => {
+            if (isAdminAuthError(err)) return;
+            toast({ title: "Update failed", variant: "destructive" });
+          },
         },
       );
     } else {
@@ -115,8 +118,10 @@ export function FeedbackTab() {
             refreshCats();
             setCatOpen(false);
           },
-          onError: () =>
-            toast({ title: "Create failed", variant: "destructive" }),
+          onError: (err) => {
+            if (isAdminAuthError(err)) return;
+            toast({ title: "Create failed", variant: "destructive" });
+          },
         },
       );
     }
@@ -237,11 +242,13 @@ export function FeedbackTab() {
                           toast({ title: "Category deleted" });
                           refreshCats();
                         },
-                        onError: () =>
+                        onError: (err) => {
+                          if (isAdminAuthError(err)) return;
                           toast({
                             title: "Delete failed",
                             variant: "destructive",
-                          }),
+                          });
+                        },
                       },
                     )
                   }
