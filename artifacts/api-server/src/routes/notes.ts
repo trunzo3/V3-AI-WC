@@ -1,14 +1,35 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod/v4";
 import { and, eq } from "drizzle-orm";
-import { db, notesTable } from "@workspace/db";
+import { db, notesTable, genericSectionsTable } from "@workspace/db";
 import { requireParticipant, getParticipantContext } from "../middlewares/auth";
+import {
+  isGenericSectionId,
+  genericSectionId,
+  getHardcodedSection,
+} from "../lib/sections";
 
 const router: IRouter = Router();
 
+/**
+ * Prefill placeholders may reference a seeded generic section by its stable
+ * slug ({{prefill-source:note}}) instead of its numeric id form
+ * ({{generic_7:note}}). Notes are always stored under the generic_N id, so
+ * map a slug ref to that id. Known section-id forms skip the extra query.
+ */
+async function resolveSectionRef(ref: string): Promise<string> {
+  if (isGenericSectionId(ref) || getHardcodedSection(ref)) return ref;
+  const [row] = await db
+    .select({ id: genericSectionsTable.id })
+    .from(genericSectionsTable)
+    .where(eq(genericSectionsTable.slug, ref))
+    .limit(1);
+  return row ? genericSectionId(row.id) : ref;
+}
+
 router.get("/notes/:sectionId", requireParticipant, async (req, res) => {
   const { participantId } = getParticipantContext(req);
-  const sectionId = String(req.params.sectionId);
+  const sectionId = await resolveSectionRef(String(req.params.sectionId));
 
   const rows = await db
     .select()

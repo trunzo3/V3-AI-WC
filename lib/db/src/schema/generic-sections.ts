@@ -56,6 +56,10 @@ export type GenericContentBlock =
 
 export const genericSectionsTable = pgTable("generic_sections", {
   id: serial("id").primaryKey(),
+  // Stable, author-defined key for seeded modules (e.g. "prefill-source").
+  // Set by the seed, never derived from the row id; admin-created sections
+  // have no slug. Prefill placeholders may reference a section by slug.
+  slug: text("slug").unique(),
   title: text("title").notNull(),
   contentBlocks: jsonb("content_blocks")
     .$type<GenericContentBlock[]>()

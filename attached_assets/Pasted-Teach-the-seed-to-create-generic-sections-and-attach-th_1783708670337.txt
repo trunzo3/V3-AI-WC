@@ -1,0 +1,25 @@
+Teach the seed to create generic sections and attach them to a level, so a set of modules can ship with the repo instead of being hand-added in the admin panel. Build the capability and prove it on ONE module. I'll load the full set in the next step.
+
+The problem this solves: generic sections today only exist if an admin creates them by hand, and they live only in that database. Fork the app and they're gone. I want a defined set of modules that seed automatically, survive a fork, and remain editable in the admin panel afterward.
+
+Two things make this more than a plain insert:
+
+1. Stable identity across reseeds. Generic sections are keyed by an auto-incrementing id (generic_1, generic_2...). If the seed runs twice, or the set changes, those ids shift and any cross-section reference breaks. Add a stable, author-defined key to each seeded module — a permanent slug like "prompt-1" or "app-anatomy", set by hand in the seed and never derived from the row id. Seeding is idempotent on that slug: rerunning the seed updates the matching module in place rather than creating a duplicate. Modules created by hand in the admin panel have no slug and are untouched by the seed.
+
+2. Cross-section prefill by slug. The prefill placeholder you built resolves {{section-id:field-key}}. Seeded modules must be able to reference each other by slug — {{readiness-check:org-website}} — and that must keep working regardless of the underlying numeric id. Resolve a slug reference to the same participant's saved value, exactly as the id-based reference does now.
+
+Where it goes:
+  - A seed module list: an array of { slug, title, badgeLabel, showNotesField, level, sortOrder, contentBlocks } authored in the seed source.
+  - The seed inserts or updates each by slug, then ensures a cohort_sections row exists attaching it to its level in the default cohort — locked by default (requires code, code as specified per module), consistent with how hardcoded sections seed.
+  - Prefill resolution accepts a slug or a numeric id on the left side of the placeholder.
+
+Prove it on TWO linked modules now, so the slug reference is actually exercised:
+  - slug "prefill-source", title "Prefill Source", level 3, locked, one field block (fieldKey "note").
+  - slug "prefill-demo", title "Prefill Demo", level 3, locked, one field block (fieldKey "note") and one prompt block containing "Saved: {{prefill-source:note}}".
+
+Acceptance check:
+  - After seeding, both modules appear in Level 3 of the default cohort, locked.
+  - Running the seed twice produces exactly one row per slug, not duplicates.
+  - Editing "prefill-demo" content in the admin panel, then reseeding, restores the seeded content by slug without creating a duplicate.
+  - A participant who unlocks both, types "hello" in Prefill Source's field, then opens Prefill Demo, sees the prompt block copy "Saved: hello" — confirming the slug reference {{prefill-source:note}} resolves, not just the numeric id form.
+  - No raw {{...}} ever appears on screen or in the workbook PDF.
