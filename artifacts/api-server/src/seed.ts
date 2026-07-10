@@ -22,6 +22,7 @@ import {
 import { eq, sql } from "drizzle-orm";
 import { logger } from "./lib/logger";
 import { seedCohortSections, addMissingSectionsForCohort } from "./lib/cohort-sections";
+import { ensureSeededGenericSections } from "./lib/seeded-generic-sections";
 
 const DEFAULT_COHORT_CODE = "WORKSHOP";
 
@@ -200,6 +201,7 @@ async function main(): Promise<void> {
   await ensureDefaultCohort();
   await backfillTierAccess();
   await addMissingSectionsAllCohorts();
+  await ensureSeededGenericSections();
   await ensureLlmTools();
   await ensureSafariLibrary();
   await ensureFeedbackCategories();

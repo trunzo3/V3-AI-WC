@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { execSync } from "node:child_process";
 import puppeteer, { type Browser } from "puppeteer-core";
 import {
@@ -14,6 +14,7 @@ import {
   contentVariantsTable,
 } from "@workspace/db";
 import {
+  genericSectionId,
   getHardcodedSection,
   isGenericSectionId,
   parseGenericSectionId,
@@ -466,12 +467,22 @@ const TEMPLATE_PLACEHOLDER_RE = /\{\{\s*([^:{}\s]+)\s*:\s*([^{}]*?)\s*\}\}/g;
 function resolvePlaceholders(
   text: string,
   notesBySection: Map<string, Array<{ fieldKey: string; content: string }>>,
+  sectionIdBySlug: Map<string, string>,
 ): string {
   return text.replace(
     TEMPLATE_PLACEHOLDER_RE,
-    (_all, sectionId: string, fieldKey: string) =>
-      notesBySection.get(sectionId)?.find((n) => n.fieldKey === fieldKey)
-        ?.content ?? "",
+    (_all, ref: string, fieldKey: string) => {
+      // The left side may be a section id (generic_7, prompt-lab) or a seeded
+      // module slug (prefill-source); slugs map to their generic_N id, under
+      // which the participant's notes are stored.
+      const sectionId = isGenericSectionId(ref)
+        ? ref
+        : (sectionIdBySlug.get(ref) ?? ref);
+      return (
+        notesBySection.get(sectionId)?.find((n) => n.fieldKey === fieldKey)
+          ?.content ?? ""
+      );
+    },
   );
 }
 
@@ -1024,6 +1035,19 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     : [];
   const genericById = new Map(genericRows.map((g) => [g.id, g] as const));
 
+  // Slug → generic_N id map for resolving slug-based prefill placeholders.
+  // Queried across all generic sections (not just this cohort's) so a slug
+  // reference resolves even if the source section's cohort row differs.
+  const slugRows = await db
+    .select({ id: genericSectionsTable.id, slug: genericSectionsTable.slug })
+    .from(genericSectionsTable)
+    .where(isNotNull(genericSectionsTable.slug));
+  const sectionIdBySlug = new Map(
+    slugRows
+      .filter((r): r is { id: number; slug: string } => r.slug !== null)
+      .map((r) => [r.slug, genericSectionId(r.id)] as const),
+  );
+
   // Load explicit per-participant unlocks.
   const unlockedRows = await db
     .select({ sectionId: unlockedSectionsTable.sectionId })
@@ -1106,7 +1130,14 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
         // client-side resolution in the participant app.
         contentBlocks: blocks.map((b) =>
           b.type === "prompt" && typeof b.content === "string"
-            ? { ...b, content: resolvePlaceholders(b.content, notesBySection) }
+            ? {
+                ...b,
+                content: resolvePlaceholders(
+                  b.content,
+                  notesBySection,
+                  sectionIdBySlug,
+                ),
+              }
             : b,
         ),
         goalText: g.goalText,

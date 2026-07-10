@@ -183,11 +183,27 @@ Sections come from two sources:
    Prompt `content` and field `prefill` (the field's optional starting text)
    may contain `{{sectionId:fieldKey}}` placeholders that resolve to the
    participant's own saved answer from another section (empty string if
-   unsaved, never raw `{{...}}` on screen). Resolution happens client-side
-   via `hooks/use-resolve-template.ts` (same GET /notes/:sectionId read the
-   fields already use) and server-side in `workbook.ts` for the PDF. A
-   field's prefill only seeds the input; edits save to that field normally
-   and never write back to the referenced source field.
+   unsaved, never raw `{{...}}` on screen). The left side accepts a section
+   id (`generic_7`, hardcoded id) or a seeded module slug
+   (`{{prefill-source:note}}`). Resolution happens client-side via
+   `hooks/use-resolve-template.ts` (the GET /notes/:ref route maps a slug to
+   its generic_N id server-side) and server-side in `workbook.ts` for the
+   PDF (slug→id map built from `generic_sections.slug`). A field's prefill
+   only seeds the input; edits save to that field normally and never write
+   back to the referenced source field.
+   Seeded generic modules: `generic_sections.slug` is a stable,
+   author-defined key (unique, null for admin-created sections). The module
+   list lives in `api-server/src/lib/seeded-generic-sections.ts`
+   (`SEEDED_GENERIC_MODULES`: slug, title, badgeLabel, showNotesField,
+   level, sortOrder, code, contentBlocks). `pnpm --filter
+   @workspace/api-server run seed` upserts each module by slug (reseeding
+   restores seeded content in place — never duplicates, never renumbers)
+   and ensures a cohort_sections row in the default WORKSHOP cohort at the
+   module's level, locked (`code_active=true`) behind the module's code;
+   existing cohort_sections rows are never modified, so admin placement
+   changes survive reseeds. Current seeded modules: `prefill-source` and
+   `prefill-demo` (level 3, code PREFILL) — a linked pair proving slug-based
+   prefill.
    The legacy `content` and `prompt_block` columns have been dropped.
    Hardcoded sections don't use download blocks: `SectionRenderer` appends
    `components/workshop/SectionAttachedFiles.tsx` below every hardcoded

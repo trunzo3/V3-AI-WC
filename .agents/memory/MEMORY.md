@@ -2,3 +2,4 @@
 - [zod v3/v4 hoisting break](zod-hoisting-hookform.md) — tools pulling zod v4 break @hookform/resolvers types; fixed via packageExtensions peer dep in pnpm-workspace.yaml.
 - [Workshop e2e routing](workshop-e2e-routing.md) — browser tests must use localhost:80 (shared proxy); admin is at /admin/login, /workshop is a wouter route not a base path.
 - [API server hot-reload](api-server-reload.md) — dev server doesn't reliably pick up edits; restart the workflow after server-side changes or new zod fields get silently stripped.
+- [DB schema change workflow](db-schema-change-workflow.md) — after editing lib/db schema: `tsc -b lib/db` (stale composite types) + apply DDL via psql (drizzle push prompts interactively and silently no-ops non-TTY).
