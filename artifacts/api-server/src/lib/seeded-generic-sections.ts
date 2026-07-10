@@ -114,7 +114,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
   },
   {
     slug: "prompt-1",
-    title: "Prompt 1",
+    title: "Start Your App Build",
     badgeLabel: "Exercise",
     showNotesField: true,
     level: 3,
@@ -129,12 +129,6 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         type: "prompt",
         content:
           "Build an event registration app for a nonprofit. People can sign up for an event, and I can see a list of everyone who registered.",
-      },
-      {
-        type: "callout",
-        variant: "stop",
-        title: "Stop here and wait",
-        content: "It takes a few minutes. We'll talk while it works.",
       },
       {
         type: "text",
@@ -196,13 +190,13 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     ],
   },
   {
-    slug: "make-it-yours",
+    slug: "prompt-2",
     title: "Make It Yours",
     badgeLabel: "Exercise",
     showNotesField: true,
     level: 3,
     sortOrder: 5,
-    code: "YOURS",
+    code: "TWO",
     contentBlocks: [
       {
         type: "text",
@@ -211,44 +205,25 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
       },
       {
         type: "field",
-        fieldKey: "make-it-yours-idea",
+        fieldKey: "make-it-yours-details",
         label: "What would make it yours?",
         helpText:
-          "Name it before you prompt. This is what you're about to ask for.",
+          "If you drop your website in below, you don't need to describe your colors — the app will pull those. Use this for anything else: tone, wording, the feel.",
         multiline: true,
       },
       {
-        type: "callout",
-        variant: "quote",
-        content:
-          "The colors and the logo came out of the room first. You wrote the next prompt without knowing it.",
+        type: "field",
+        fieldKey: "org-website",
+        label: "Your organization's website",
+        helpText:
+          "Enter your own site. If you'd rather match a different style, use any site whose look you like.",
+        placeholder: "https://",
+        multiline: false,
       },
-    ],
-  },
-  {
-    slug: "prompt-2",
-    title: "Prompt 2",
-    badgeLabel: "Exercise",
-    showNotesField: true,
-    level: 3,
-    sortOrder: 6,
-    code: "TWO",
-    contentBlocks: [
       {
         type: "prompt",
         content:
-          "Look at {{readiness-check:org-website}} and restyle the app to match — same colors, fonts, and logo.",
-      },
-      {
-        type: "callout",
-        variant: "stop",
-        title: "Stop here and wait",
-        content: "",
-      },
-      {
-        type: "text",
-        content:
-          "Did it get your branding? What did it get right? What did it miss?",
+          "Look at {{prompt-2:org-website}} and restyle the app to match — same colors, fonts, and logo. {{prompt-2:make-it-yours-details}}",
       },
       {
         type: "callout",
@@ -265,7 +240,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Reference",
     showNotesField: true,
     level: 3,
-    sortOrder: 7,
+    sortOrder: 6,
     code: "FIX",
     contentBlocks: [
       {
@@ -314,7 +289,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Reference",
     showNotesField: false,
     level: 3,
-    sortOrder: 8,
+    sortOrder: 7,
     code: "REQ",
     contentBlocks: [
       {
@@ -351,7 +326,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Flagship Exercise",
     showNotesField: false,
     level: 3,
-    sortOrder: 9,
+    sortOrder: 8,
     code: "PRD",
     contentBlocks: [
       {
@@ -425,7 +400,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Exercise",
     showNotesField: false,
     level: 3,
-    sortOrder: 10,
+    sortOrder: 9,
     code: "BUILD",
     contentBlocks: [
       {
@@ -452,7 +427,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Exercise",
     showNotesField: true,
     level: 3,
-    sortOrder: 11,
+    sortOrder: 10,
     code: "OVERNIGHT",
     contentBlocks: [
       {
@@ -482,7 +457,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Exercise",
     showNotesField: true,
     level: 3,
-    sortOrder: 12,
+    sortOrder: 11,
     code: "SHOW",
     contentBlocks: [
       {
@@ -517,7 +492,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Reference",
     showNotesField: false,
     level: 3,
-    sortOrder: 13,
+    sortOrder: 12,
     code: "MECH",
     contentBlocks: [
       {
@@ -569,7 +544,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Exercise",
     showNotesField: true,
     level: 3,
-    sortOrder: 14,
+    sortOrder: 13,
     code: "SPRINT",
     contentBlocks: [
       {
@@ -616,7 +591,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Exercise",
     showNotesField: false,
     level: 3,
-    sortOrder: 15,
+    sortOrder: 14,
     code: "SAVE",
     contentBlocks: [
       {
@@ -650,7 +625,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Orientation",
     showNotesField: false,
     level: 3,
-    sortOrder: 16,
+    sortOrder: 15,
     code: "SHIP",
     contentBlocks: [
       {

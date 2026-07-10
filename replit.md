@@ -201,20 +201,22 @@ Sections come from two sources:
    and ensures a cohort_sections row in the default WORKSHOP cohort at the
    module's level, locked (`code_active=true`) behind the module's code;
    existing cohort_sections rows are never modified, so admin placement
-   changes survive reseeds. Current seeded modules: the sixteen "AI
-   Builder" Level 3 modules (sortOrder 1–16, each behind its own code):
-   `what-vibe-coding-is` (PATH), `the-idea` (IDEA), `prompt-1` (ONE),
-   `app-anatomy` (ANATOMY), `make-it-yours` (YOURS), `prompt-2` (TWO),
-   `when-it-doesnt-work` (FIX), `product-requirements` (REQ),
-   `build-your-prd` (PRD), `prompt-replit` (BUILD), `overnight`
+   changes survive reseeds. Current seeded modules: the fifteen "AI
+   Builder" Level 3 modules (sortOrder 1–15, each behind its own code):
+   `what-vibe-coding-is` (PATH), `the-idea` (IDEA), `prompt-1` "Start
+   Your App Build" (ONE), `app-anatomy` (ANATOMY), `prompt-2` "Make It
+   Yours" (TWO), `when-it-doesnt-work` (FIX), `product-requirements`
+   (REQ), `build-your-prd` (PRD), `prompt-replit` (BUILD), `overnight`
    (OVERNIGHT), `showcase` (SHOW), `iteration-mechanics` (MECH),
    `build-sprint` (SPRINT), `github-save-point` (SAVE), `closing` (SHIP).
-   `prompt-2` references `{{readiness-check:org-website}}` — that section
-   is NOT seeded; the admin must create a section holding an `org-website`
-   field and it needs the `readiness-check` slug to resolve. Known gap:
-   the admin UI has no way to set a slug on an admin-created section, so
-   the placeholder stays blank until slug support is added (or the section
-   is seeded).
+   `prompt-2` is self-contained: its prompt references its own fields
+   (`{{prompt-2:org-website}}` and `{{prompt-2:make-it-yours-details}}`),
+   both saved in the same module. Every note save (debounced mutation,
+   blur, and unmount keepalive paths in `hooks/use-auto-save.ts`)
+   invalidates ALL `/api/notes/*` react-query entries, because the same
+   section's notes may be cached under both its numeric id and its slug —
+   this keeps placeholder resolution live while the participant types
+   without navigating away.
    The legacy `content` and `prompt_block` columns have been dropped.
    Hardcoded sections don't use download blocks: `SectionRenderer` appends
    `components/workshop/SectionAttachedFiles.tsx` below every hardcoded

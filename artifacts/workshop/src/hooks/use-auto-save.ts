@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useUpsertNote, useGetNotes, getGetNotesQueryKey } from "@workspace/api-client-react";
 
 const PREFIX = (import.meta as any).env?.BASE_URL?.replace(/\/$/, "") ?? "";
@@ -19,15 +20,38 @@ function clearCached(sectionId: string, fieldKey: string) {
   pendingNotes.get(sectionId)?.delete(fieldKey);
 }
 
-// keepalive: true ensures the request completes even if the page navigates away immediately.
-function saveNoteDirectly(sectionId: string, fieldKey: string, content: string) {
-  fetch(`${PREFIX}/api/notes/${sectionId}`, {
+// Notes queries are keyed by the request path, which may be a numeric section
+// id (/api/notes/generic_17) or a module slug (/api/notes/prompt-2) that maps
+// to the same section server-side. A save can't know which aliases are in
+// use, so invalidate every notes query — this keeps {{slug:fieldKey}}
+// placeholder resolution (prompt blocks, prefills) live as the participant
+// types in the same section.
+function invalidateAllNotesQueries(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({
+    predicate: (q) =>
+      typeof q.queryKey[0] === "string" &&
+      q.queryKey[0].startsWith("/api/notes/"),
+  });
+}
+
+// keepalive: true ensures the request completes even if the page navigates
+// away immediately. Resolves to whether the save actually succeeded so
+// callers can skip cache invalidation after a failed save (invalidating then
+// would refetch server state and could clobber unsaved local text).
+function saveNoteDirectly(
+  sectionId: string,
+  fieldKey: string,
+  content: string,
+): Promise<boolean> {
+  return fetch(`${PREFIX}/api/notes/${sectionId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     keepalive: true,
     body: JSON.stringify({ fieldKey, content }),
-  }).catch(() => {});
+  })
+    .then((res) => res.ok)
+    .catch(() => false);
 }
 
 export function useAutoSave(sectionId: string, fieldKey: string, defaultValue: string = "") {
@@ -36,6 +60,11 @@ export function useAutoSave(sectionId: string, fieldKey: string, defaultValue: s
   });
 
   const { mutate: saveNote } = useUpsertNote();
+  const queryClient = useQueryClient();
+  const queryClientRef = useRef(queryClient);
+  useEffect(() => {
+    queryClientRef.current = queryClient;
+  }, [queryClient]);
 
   const lastSavedRef = useRef<string>("");
   const currentValueRef = useRef<string>(value);
@@ -94,7 +123,10 @@ export function useAutoSave(sectionId: string, fieldKey: string, defaultValue: s
     if (value === lastSavedRef.current) return;
     if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
     pendingTimerRef.current = setTimeout(() => {
-      saveNote({ sectionId, data: { fieldKey, content: value } });
+      saveNote(
+        { sectionId, data: { fieldKey, content: value } },
+        { onSuccess: () => invalidateAllNotesQueries(queryClientRef.current) },
+      );
       lastSavedRef.current = value;
       clearCached(sectionId, fieldKey);
       pendingTimerRef.current = null;
@@ -115,7 +147,11 @@ export function useAutoSave(sectionId: string, fieldKey: string, defaultValue: s
         pendingTimerRef.current = null;
       }
       setCached(sectionIdRef.current, fieldKeyRef.current, curr);
-      saveNoteDirectly(sectionIdRef.current, fieldKeyRef.current, curr);
+      void saveNoteDirectly(sectionIdRef.current, fieldKeyRef.current, curr).then(
+        (ok) => {
+          if (ok) invalidateAllNotesQueries(queryClientRef.current);
+        },
+      );
       lastSavedRef.current = curr;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -131,7 +167,11 @@ export function useAutoSave(sectionId: string, fieldKey: string, defaultValue: s
       pendingTimerRef.current = null;
     }
     setCached(sectionIdRef.current, fieldKeyRef.current, curr);
-    saveNoteDirectly(sectionIdRef.current, fieldKeyRef.current, curr);
+    void saveNoteDirectly(sectionIdRef.current, fieldKeyRef.current, curr).then(
+      (ok) => {
+        if (ok) invalidateAllNotesQueries(queryClientRef.current);
+      },
+    );
     lastSavedRef.current = curr;
   }, []);
 
