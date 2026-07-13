@@ -52,15 +52,15 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
       },
       {
         type: "cards",
-        columns: 2,
+        columns: 1,
         cards: [
           {
-            title: "The old path",
-            body: "Idea → Developer → App. Or Idea → Vendor → Buy. Someone sits between you and the thing.",
+            title: "The Old Path",
+            body: "<p><strong>Idea → Developer → App</strong></p><p>Someone sits between you and the thing — a six-figure skill set or a vendor's price tag.</p>",
           },
           {
-            title: "The new path",
-            body: "Idea → AI → App. The app is the same. You're the same. The middleman changed.",
+            title: "The New Path",
+            body: "<p><strong>Idea → AI → App</strong></p><p>The app is the same. You're the same. The middleman changed.</p>",
           },
         ],
       },

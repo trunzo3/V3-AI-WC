@@ -488,7 +488,7 @@ const contentBlockSchema = z
     }),
     z.object({
       type: z.literal("cards"),
-      columns: z.union([z.literal(2), z.literal(3)]),
+      columns: z.union([z.literal(1), z.literal(2), z.literal(3)]),
       cards: z.array(blockItemSchema),
     }),
     z.object({

@@ -193,14 +193,18 @@ function CardsBlock({
   columns,
   cards,
 }: {
-  columns: 2 | 3;
+  columns: 1 | 2 | 3;
   cards: Array<{ title: string; body: string }>;
 }) {
   return (
     <div
       className={cn(
         "grid grid-cols-1 gap-4 mb-6",
-        columns === 3 ? "md:grid-cols-2 lg:grid-cols-3" : "md:grid-cols-2",
+        columns === 3
+          ? "md:grid-cols-2 lg:grid-cols-3"
+          : columns === 2
+            ? "md:grid-cols-2"
+            : "",
       )}
       data-testid="generic-cards-block"
     >
@@ -516,7 +520,7 @@ function GenericSectionView({
             return (
               <CardsBlock
                 key={i}
-                columns={block.columns === 3 ? 3 : 2}
+                columns={block.columns === 1 ? 1 : block.columns === 3 ? 3 : 2}
                 cards={block.cards ?? []}
               />
             );

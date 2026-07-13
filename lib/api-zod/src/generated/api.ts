@@ -159,7 +159,9 @@ export const ListSectionsResponse = zod.object({
                   .enum(["stop", "insight", "rule", "quote"])
                   .optional(),
                 title: zod.string().optional(),
-                columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+                columns: zod
+                  .union([zod.literal(1), zod.literal(2), zod.literal(3)])
+                  .optional(),
                 cards: zod
                   .array(
                     zod.object({
@@ -694,7 +696,9 @@ export const AdminListGenericSectionsResponse = zod.object({
             buttonLabel: zod.string().optional(),
             variant: zod.enum(["stop", "insight", "rule", "quote"]).optional(),
             title: zod.string().optional(),
-            columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+            columns: zod
+              .union([zod.literal(1), zod.literal(2), zod.literal(3)])
+              .optional(),
             cards: zod
               .array(
                 zod.object({
@@ -799,7 +803,9 @@ export const AdminCreateGenericSectionBody = zod.object({
           buttonLabel: zod.string().optional(),
           variant: zod.enum(["stop", "insight", "rule", "quote"]).optional(),
           title: zod.string().optional(),
-          columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+          columns: zod
+            .union([zod.literal(1), zod.literal(2), zod.literal(3)])
+            .optional(),
           cards: zod
             .array(
               zod.object({
@@ -911,7 +917,9 @@ export const AdminUpdateGenericSectionBody = zod.object({
           buttonLabel: zod.string().optional(),
           variant: zod.enum(["stop", "insight", "rule", "quote"]).optional(),
           title: zod.string().optional(),
-          columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+          columns: zod
+            .union([zod.literal(1), zod.literal(2), zod.literal(3)])
+            .optional(),
           cards: zod
             .array(
               zod.object({
@@ -1017,7 +1025,9 @@ export const AdminUpdateGenericSectionResponse = zod.object({
           buttonLabel: zod.string().optional(),
           variant: zod.enum(["stop", "insight", "rule", "quote"]).optional(),
           title: zod.string().optional(),
-          columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+          columns: zod
+            .union([zod.literal(1), zod.literal(2), zod.literal(3)])
+            .optional(),
           cards: zod
             .array(
               zod.object({

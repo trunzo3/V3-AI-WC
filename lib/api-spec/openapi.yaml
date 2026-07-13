@@ -1134,7 +1134,7 @@ components:
         title: { type: string }
         columns:
           type: integer
-          enum: [2, 3]
+          enum: [1, 2, 3]
         cards:
           type: array
           items: { $ref: "#/components/schemas/GenericBlockItem" }

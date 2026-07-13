@@ -119,6 +119,7 @@ export type GenericContentBlockColumns =
   (typeof GenericContentBlockColumns)[keyof typeof GenericContentBlockColumns];
 
 export const GenericContentBlockColumns = {
+  NUMBER_1: 1,
   NUMBER_2: 2,
   NUMBER_3: 3,
 } as const;

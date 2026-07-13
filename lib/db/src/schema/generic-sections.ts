@@ -20,7 +20,7 @@ export type GenericContentBlock =
     }
   | {
       type: "cards";
-      columns: 2 | 3;
+      columns: 1 | 2 | 3;
       cards: Array<{ title: string; body: string }>;
     }
   | {
