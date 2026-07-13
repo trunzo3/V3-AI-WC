@@ -3,7 +3,7 @@
 - [Generic content block types](generic-content-block-types.md) — a new block type must be added in 3 hand-written places (db $type, admin zod union, openapi enum) + codegen + restart both workflows.
 - [Live template previews](live-template-previews.md) — generic prompt previews update per-keystroke via LiveValuesProvider; overlay keyed by fieldKey only (cross-section caveat).
 - [Workshop seed behavior](workshop-seed-behavior.md) — seed is upsert-by-slug, never deletes; removing a module needs manual DB detach, repeated on production.
-- [Prod data seeding](prod-data-seeding.md) — prod rows only reach prod via Publish "overwrite data" (wholesale); agent can't write prod; seed attaches generic modules to codes in SEEDED_MODULE_COHORT_CODES, env-specific ids.
+- [Prod data seeding](prod-data-seeding.md) — prod rows only reach prod via Publish "overwrite data" (wholesale); agent can't write prod; seed attaches generic Level 3 modules to EVERY cohort (+ admin-created ones), env-specific ids.
 - [Restart Vite after codegen](monorepo-codegen-build-boundaries.md) — orval codegen breaks the running workshop Vite server mid-HMR; restart the workshop workflow before UI testing.
 - [Workshop e2e routing](workshop-e2e-routing.md) — browser tests must use localhost:80 (shared proxy); admin is at /admin/login, /workshop is a wouter route not a base path.
 - [API server hot-reload](api-server-reload.md) — dev server doesn't reliably pick up edits; restart the workflow after server-side changes or new zod fields get silently stripped.

@@ -24,15 +24,15 @@ import { logger } from "./lib/logger";
 import { seedCohortSections, addMissingSectionsForCohort } from "./lib/cohort-sections";
 import {
   ensureSeededGenericSections,
-  SEEDED_MODULE_COHORT_CODES,
+  BASE_COHORT_CODES,
 } from "./lib/seeded-generic-sections";
 
 /**
- * Per-cohort creation settings for the cohorts that receive the seeded generic
- * modules. WORKSHOP uses the default tier access; LIVE2026 is the dedicated
+ * Per-cohort creation settings for the baseline cohorts the seed always ensures
+ * exist. WORKSHOP uses the default tier access; LIVE2026 is the dedicated
  * live-event cohort and unlocks Level 3 so its attached modules are visible.
- * Any code in SEEDED_MODULE_COHORT_CODES without an entry here falls back to a
- * name equal to the code and DEFAULT_TIER_ACCESS.
+ * Any code in BASE_COHORT_CODES without an entry here falls back to a name equal
+ * to the code and DEFAULT_TIER_ACCESS.
  */
 const COHORT_SETUP: Record<
   string,
@@ -80,7 +80,7 @@ const DEFAULT_APP_SETTINGS: Array<{ key: string; value: string }> = [
 ];
 
 async function ensureSeedCohorts(): Promise<void> {
-  for (const code of SEEDED_MODULE_COHORT_CODES) {
+  for (const code of BASE_COHORT_CODES) {
     const [existing] = await db
       .select()
       .from(cohortsTable)

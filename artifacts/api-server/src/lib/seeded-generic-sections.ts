@@ -621,36 +621,59 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
 ];
 
 /**
- * Cohort codes that receive the full set of seeded generic modules. WORKSHOP is
- * the default workshop cohort; LIVE2026 is the dedicated live-event cohort. Both
- * get every module attached identically (same slug-derived section id, level,
- * and sort order).
+ * Baseline cohort codes the seed always ensures exist (WORKSHOP is the default
+ * workshop cohort; LIVE2026 is the dedicated live-event cohort). Note: seeded
+ * generic modules are NOT limited to these codes — every cohort in the database,
+ * plus any created later, receives the full set (see ensureSeededGenericSections
+ * and attachSeededGenericSectionsToCohort).
  */
-export const SEEDED_MODULE_COHORT_CODES = ["WORKSHOP", "LIVE2026"] as const;
+export const BASE_COHORT_CODES = ["WORKSHOP", "LIVE2026"] as const;
+
+/**
+ * Attach every seeded generic module to a single cohort. Looks up each module's
+ * generic_sections row by its stable slug and inserts a cohort_sections
+ * attachment (insert-only via onConflictDoNothing, so existing placement/code/
+ * visibility survive). Modules whose content row does not exist yet are skipped
+ * — run the full seed (ensureSeededGenericSections) to create them. Use this for
+ * cohorts created at runtime (e.g. via the admin API).
+ */
+export async function attachSeededGenericSectionsToCohort(
+  cohortId: number,
+): Promise<void> {
+  for (const m of SEEDED_GENERIC_MODULES) {
+    const [row] = await db
+      .select({ id: genericSectionsTable.id })
+      .from(genericSectionsTable)
+      .where(eq(genericSectionsTable.slug, m.slug))
+      .limit(1);
+    if (!row) continue;
+    await db
+      .insert(cohortSectionsTable)
+      .values({
+        cohortId,
+        sectionId: genericSectionId(row.id),
+        level: m.level,
+        sortOrder: m.sortOrder,
+        displayName: null,
+        visible: true,
+        code: m.code,
+        codeActive: true,
+      })
+      .onConflictDoNothing();
+  }
+}
 
 /**
  * Idempotent: upsert each module into generic_sections by slug (rerunning
  * restores seeded content in place — exactly one row per slug), then ensure a
- * cohort_sections attachment exists in every cohort listed in
- * SEEDED_MODULE_COHORT_CODES. The attachment is insert-only
- * (onConflictDoNothing) so admin changes to placement, code, or visibility are
- * preserved.
+ * cohort_sections attachment exists in EVERY cohort in the database. The
+ * attachment is insert-only (onConflictDoNothing) so admin changes to
+ * placement, code, or visibility are preserved.
  */
 export async function ensureSeededGenericSections(): Promise<void> {
-  const targetCohorts: Array<{ code: string; id: number }> = [];
-  for (const code of SEEDED_MODULE_COHORT_CODES) {
-    const [cohort] = await db
-      .select({ id: cohortsTable.id })
-      .from(cohortsTable)
-      .where(sql`lower(${cohortsTable.cohortCode}) = ${code.toLowerCase()}`)
-      .limit(1);
-    if (!cohort) {
-      throw new Error(
-        `Cohort "${code}" not found; seed cohorts before generic modules.`,
-      );
-    }
-    targetCohorts.push({ code, id: cohort.id });
-  }
+  const targetCohorts = await db
+    .select({ code: cohortsTable.cohortCode, id: cohortsTable.id })
+    .from(cohortsTable);
 
   for (const m of SEEDED_GENERIC_MODULES) {
     const [row] = await db

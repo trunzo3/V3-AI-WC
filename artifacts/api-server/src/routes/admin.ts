@@ -22,6 +22,7 @@ import {
 } from "@workspace/db";
 import { requireAdmin } from "../middlewares/auth";
 import { seedCohortSections } from "../lib/cohort-sections";
+import { attachSeededGenericSectionsToCohort } from "../lib/seeded-generic-sections";
 import { getHardcodedSection } from "../lib/sections";
 import { sanitizeRichHtml, sanitizeRichHtmlNullable } from "../lib/sanitize";
 
@@ -119,6 +120,7 @@ router.post("/admin/cohorts", requireAdmin, async (req, res) => {
       .returning();
     if (!created) throw new Error("Failed to create cohort.");
     await seedCohortSections(created.id);
+    await attachSeededGenericSectionsToCohort(created.id);
     res.set("Cache-Control", "no-store");
     res.status(201).json({ cohort: created });
   } catch (err) {
