@@ -1,0 +1,44 @@
+Two changes: fix the GitHub module to handle account creation, and add a new image block type.
+
+═══ 1. "github-save-point" — add account creation first ═══
+
+Connecting Replit's Git panel to GitHub authenticates an existing GitHub account — it does not create one. A participant with no GitHub account gets stuck. So account creation has to come first.
+
+Restructure the module's steps so the first step is creating an account, then the connect steps:
+
+  1. Create a free GitHub account if you don't have one — include a link to https://github.com/ (opens in a new tab). If you already have one, skip to the next step.
+  2. In Replit, open the Git panel.
+  3. Connect your GitHub account.
+  4. Create a repository.
+  5. Push.
+
+Keep the existing takeaway. The link to github.com should be a real link block or a link inside the step, opening in a new tab with rel="noopener noreferrer".
+
+═══ 2. New block type: image ═══
+
+Add an "image" block to the block system, available in the "Add a block" dropdown for generic/custom sections, alongside the existing block types.
+
+An image block displays an image that's attached to the section — same source model as the download block: the admin uploads images to the section via the Sections-tab attachments, and the image block references one of them. (It does not upload directly in the block editor; it picks from the section's attached files, matching how the download block works.)
+
+Block properties the admin sets:
+  - which attached image to display
+  - width: a number the admin types (in pixels). This is treated as a MAXIMUM width — the image renders at that width on a wide screen, but shrinks responsively to fit if the screen or window is narrower. Cap the effective width at the full width of the content column — an image can never render wider than the column it sits in.
+  - alignment: left, center, or right
+  - caption: optional text shown beneath the image
+  - alt text: optional description, used as the img alt attribute (screen readers, and shown if the image fails to load)
+
+Rendering:
+  - participant view: renders the image at the chosen max-width, responsive, aligned as set, with the caption beneath if present, and the alt text on the img element.
+  - if the referenced image is missing, render nothing (or the alt text) — never a broken-image icon or raw error.
+  - workbook PDF: return empty for image blocks for now, consistent with the other newer block types — PDF rendering comes in the workbook pass.
+
+The image is served the same gated way section attachments already are (the participant must have the section unlocked), reusing the existing file-serving path.
+
+Admin editor: the image block gets its own editor form in the block list — a picker for the attached image, a width number input, an alignment control, a caption field, and an alt-text field — with the existing move-up/move-down/delete controls.
+
+═══ Confirm ═══
+- GitHub module's first step is creating an account with a working link to github.com, followed by the connect/push steps.
+- The "Add a block" dropdown includes Image.
+- An image block placed in a custom section displays an attached image at a set max-width that shrinks on a narrow window, honors left/center/right alignment, shows an optional caption, and carries alt text.
+- A missing image renders cleanly, not as a broken icon.
+- The workbook PDF still downloads without error.

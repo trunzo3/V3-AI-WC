@@ -365,6 +365,66 @@ function DownloadBlock({ fileId, label }: { fileId: number; label: string }) {
   );
 }
 
+// One attached image, rendered at a chosen max-width that shrinks responsively
+// with the content column and never exceeds it. Alignment is handled with auto
+// margins on the figure. The image is served through the same gated
+// /api/files/:id/download path the download block uses (the server enforces the
+// section is unlocked for this participant). A missing/blocked image renders
+// cleanly — its alt text if present, otherwise nothing — never a broken icon.
+function ImageBlock({
+  fileId,
+  width,
+  alignment,
+  caption,
+  altText,
+}: {
+  fileId: number;
+  width?: number;
+  alignment: "left" | "center" | "right";
+  caption?: string;
+  altText?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (!fileId) return null;
+  const alignClass =
+    alignment === "left"
+      ? "mr-auto"
+      : alignment === "right"
+        ? "ml-auto"
+        : "mx-auto";
+  const maxWidth = width && width > 0 ? `${width}px` : undefined;
+  if (failed) {
+    if (!altText) return null;
+    return (
+      <div className="mb-6">
+        <figure className={cn("m-0", alignClass)} style={{ maxWidth }}>
+          <figcaption className="text-sm text-muted-foreground italic">
+            {altText}
+          </figcaption>
+        </figure>
+      </div>
+    );
+  }
+  return (
+    <div className="mb-6">
+      <figure className={cn("m-0", alignClass)} style={{ maxWidth }}>
+        <img
+          src={`/api/files/${fileId}/download`}
+          alt={altText ?? ""}
+          onError={() => setFailed(true)}
+          className="block w-full h-auto rounded-lg border border-border"
+          data-testid={`image-block-${fileId}`}
+        />
+        {caption && (
+          <figcaption className="mt-2 text-sm text-muted-foreground text-center">
+            {caption}
+          </figcaption>
+        )}
+      </figure>
+    </div>
+  );
+}
+
 // A group of auto-saving input fields whose current answers are assembled into
 // one copyable prompt. Each child field reports its live value upward into React
 // state, so the assembled text (skipping empty fields) reflects what's currently
@@ -626,6 +686,24 @@ function GenericSectionView({
                 key={i}
                 fileId={block.fileId}
                 label={block.label ?? ""}
+              />
+            );
+          case "image":
+            if (!block.fileId) return null;
+            return (
+              <ImageBlock
+                key={i}
+                fileId={block.fileId}
+                width={block.width}
+                alignment={
+                  block.alignment === "left"
+                    ? "left"
+                    : block.alignment === "right"
+                      ? "right"
+                      : "center"
+                }
+                caption={block.caption}
+                altText={block.altText}
               />
             );
           case "recap":

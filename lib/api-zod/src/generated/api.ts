@@ -152,6 +152,7 @@ export const ListSectionsResponse = zod.object({
                   "form",
                   "download",
                   "recap",
+                  "image",
                 ]),
                 content: zod.string().optional(),
                 label: zod.string().optional(),
@@ -224,7 +225,31 @@ export const ListSectionsResponse = zod.object({
                   .number()
                   .optional()
                   .describe(
-                    "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
+                    "For download blocks: the id of a section file (attached to the same section) that the block's button downloads. For image blocks: the id of the attached section image to display.\n",
+                  ),
+                width: zod
+                  .number()
+                  .optional()
+                  .describe(
+                    "For image blocks: the maximum render width in pixels. The image shrinks responsively below this on narrow screens and never exceeds the content column width.\n",
+                  ),
+                alignment: zod
+                  .enum(["left", "center", "right"])
+                  .optional()
+                  .describe(
+                    "For image blocks: horizontal alignment of the image within the content column.\n",
+                  ),
+                caption: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "For image blocks: optional caption text shown beneath the image.\n",
+                  ),
+                altText: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "For image blocks: optional alternative text for the img element (used by screen readers and shown if the image fails to load).\n",
                   ),
                 source: zod
                   .string()
@@ -709,6 +734,7 @@ export const AdminListGenericSectionsResponse = zod.object({
               "form",
               "download",
               "recap",
+              "image",
             ]),
             content: zod.string().optional(),
             label: zod.string().optional(),
@@ -779,7 +805,31 @@ export const AdminListGenericSectionsResponse = zod.object({
               .number()
               .optional()
               .describe(
-                "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
+                "For download blocks: the id of a section file (attached to the same section) that the block's button downloads. For image blocks: the id of the attached section image to display.\n",
+              ),
+            width: zod
+              .number()
+              .optional()
+              .describe(
+                "For image blocks: the maximum render width in pixels. The image shrinks responsively below this on narrow screens and never exceeds the content column width.\n",
+              ),
+            alignment: zod
+              .enum(["left", "center", "right"])
+              .optional()
+              .describe(
+                "For image blocks: horizontal alignment of the image within the content column.\n",
+              ),
+            caption: zod
+              .string()
+              .optional()
+              .describe(
+                "For image blocks: optional caption text shown beneath the image.\n",
+              ),
+            altText: zod
+              .string()
+              .optional()
+              .describe(
+                "For image blocks: optional alternative text for the img element (used by screen readers and shown if the image fails to load).\n",
               ),
             source: zod
               .string()
@@ -834,6 +884,7 @@ export const AdminCreateGenericSectionBody = zod.object({
             "form",
             "download",
             "recap",
+            "image",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
@@ -904,7 +955,31 @@ export const AdminCreateGenericSectionBody = zod.object({
             .number()
             .optional()
             .describe(
-              "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
+              "For download blocks: the id of a section file (attached to the same section) that the block's button downloads. For image blocks: the id of the attached section image to display.\n",
+            ),
+          width: zod
+            .number()
+            .optional()
+            .describe(
+              "For image blocks: the maximum render width in pixels. The image shrinks responsively below this on narrow screens and never exceeds the content column width.\n",
+            ),
+          alignment: zod
+            .enum(["left", "center", "right"])
+            .optional()
+            .describe(
+              "For image blocks: horizontal alignment of the image within the content column.\n",
+            ),
+          caption: zod
+            .string()
+            .optional()
+            .describe(
+              "For image blocks: optional caption text shown beneath the image.\n",
+            ),
+          altText: zod
+            .string()
+            .optional()
+            .describe(
+              "For image blocks: optional alternative text for the img element (used by screen readers and shown if the image fails to load).\n",
             ),
           source: zod
             .string()
@@ -966,6 +1041,7 @@ export const AdminUpdateGenericSectionBody = zod.object({
             "form",
             "download",
             "recap",
+            "image",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
@@ -1036,7 +1112,31 @@ export const AdminUpdateGenericSectionBody = zod.object({
             .number()
             .optional()
             .describe(
-              "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
+              "For download blocks: the id of a section file (attached to the same section) that the block's button downloads. For image blocks: the id of the attached section image to display.\n",
+            ),
+          width: zod
+            .number()
+            .optional()
+            .describe(
+              "For image blocks: the maximum render width in pixels. The image shrinks responsively below this on narrow screens and never exceeds the content column width.\n",
+            ),
+          alignment: zod
+            .enum(["left", "center", "right"])
+            .optional()
+            .describe(
+              "For image blocks: horizontal alignment of the image within the content column.\n",
+            ),
+          caption: zod
+            .string()
+            .optional()
+            .describe(
+              "For image blocks: optional caption text shown beneath the image.\n",
+            ),
+          altText: zod
+            .string()
+            .optional()
+            .describe(
+              "For image blocks: optional alternative text for the img element (used by screen readers and shown if the image fails to load).\n",
             ),
           source: zod
             .string()
@@ -1092,6 +1192,7 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             "form",
             "download",
             "recap",
+            "image",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
@@ -1162,7 +1263,31 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             .number()
             .optional()
             .describe(
-              "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
+              "For download blocks: the id of a section file (attached to the same section) that the block's button downloads. For image blocks: the id of the attached section image to display.\n",
+            ),
+          width: zod
+            .number()
+            .optional()
+            .describe(
+              "For image blocks: the maximum render width in pixels. The image shrinks responsively below this on narrow screens and never exceeds the content column width.\n",
+            ),
+          alignment: zod
+            .enum(["left", "center", "right"])
+            .optional()
+            .describe(
+              "For image blocks: horizontal alignment of the image within the content column.\n",
+            ),
+          caption: zod
+            .string()
+            .optional()
+            .describe(
+              "For image blocks: optional caption text shown beneath the image.\n",
+            ),
+          altText: zod
+            .string()
+            .optional()
+            .describe(
+              "For image blocks: optional alternative text for the img element (used by screen readers and shown if the image fails to load).\n",
             ),
           source: zod
             .string()

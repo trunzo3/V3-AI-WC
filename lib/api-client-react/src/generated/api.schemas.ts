@@ -104,6 +104,7 @@ export const GenericContentBlockType = {
   form: "form",
   download: "download",
   recap: "recap",
+  image: "image",
 } as const;
 
 export type GenericContentBlockVariant =
@@ -156,6 +157,19 @@ export interface GenericFormField {
   multiline: boolean;
 }
 
+/**
+ * For image blocks: horizontal alignment of the image within the content column.
+
+ */
+export type GenericContentBlockAlignment =
+  (typeof GenericContentBlockAlignment)[keyof typeof GenericContentBlockAlignment];
+
+export const GenericContentBlockAlignment = {
+  left: "left",
+  center: "center",
+  right: "right",
+} as const;
+
 export interface RecapField {
   fieldKey: string;
   label: string;
@@ -192,9 +206,21 @@ export interface GenericContentBlock {
   /** For form blocks: when true, the assembled answers appear in a live-updating prompt box (with the copy button attached to it) instead of a bare copy button. The box updates as the participant types and skips empty fields, matching the copy output.
    */
   preview?: boolean;
-  /** For download blocks: the id of a section file (attached to the same section) that the block's button downloads.
+  /** For download blocks: the id of a section file (attached to the same section) that the block's button downloads. For image blocks: the id of the attached section image to display.
    */
   fileId?: number;
+  /** For image blocks: the maximum render width in pixels. The image shrinks responsively below this on narrow screens and never exceeds the content column width.
+   */
+  width?: number;
+  /** For image blocks: horizontal alignment of the image within the content column.
+   */
+  alignment?: GenericContentBlockAlignment;
+  /** For image blocks: optional caption text shown beneath the image.
+   */
+  caption?: string;
+  /** For image blocks: optional alternative text for the img element (used by screen readers and shown if the image fails to load).
+   */
+  altText?: string;
   /** For recap blocks: the slug (or generic_N id) of the section whose saved answers are shown read-only.
    */
   source?: string;

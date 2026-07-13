@@ -499,9 +499,10 @@ function renderGenericBlocks(blocks: Array<{ type: string; content?: string }>):
         // browser renders <p>, <ol>, <li>, <a>, <strong>, etc.
         return `<div class="text-block">${b.content ?? ""}</div>`;
       }
-      // callout / cards / steps / link / field / form / download: intentionally
-      // omitted from the PDF for now. Rendering them is a later pass — returning
-      // empty avoids printing "undefined" for shapes without a `content` property.
+      // callout / cards / steps / link / field / form / download / recap /
+      // image: intentionally omitted from the PDF for now. Rendering them is a
+      // later pass — returning empty avoids printing "undefined" for shapes
+      // without a `content` property.
       return "";
     })
     .join("");

@@ -1124,7 +1124,7 @@ components:
       properties:
         type:
           type: string
-          enum: [text, prompt, callout, cards, steps, link, field, form, download, recap]
+          enum: [text, prompt, callout, cards, steps, link, field, form, download, recap, image]
         content: { type: string }
         label: { type: string }
         buttonLabel: { type: string }
@@ -1179,7 +1179,29 @@ components:
           type: integer
           description: >
             For download blocks: the id of a section file (attached to the
-            same section) that the block's button downloads.
+            same section) that the block's button downloads. For image blocks:
+            the id of the attached section image to display.
+        width:
+          type: integer
+          description: >
+            For image blocks: the maximum render width in pixels. The image
+            shrinks responsively below this on narrow screens and never
+            exceeds the content column width.
+        alignment:
+          type: string
+          enum: [left, center, right]
+          description: >
+            For image blocks: horizontal alignment of the image within the
+            content column.
+        caption:
+          type: string
+          description: >
+            For image blocks: optional caption text shown beneath the image.
+        altText:
+          type: string
+          description: >
+            For image blocks: optional alternative text for the img element
+            (used by screen readers and shown if the image fails to load).
         source:
           type: string
           description: >

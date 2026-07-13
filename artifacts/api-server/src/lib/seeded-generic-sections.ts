@@ -567,8 +567,12 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         type: "steps",
         ordered: true,
         items: [
-          { title: "Open the Git panel", body: "" },
-          { title: "Connect GitHub", body: "" },
+          {
+            title: "Create a GitHub account",
+            body: 'Connecting Replit signs you in to an existing account — it does not make one. If you don\'t have a GitHub account yet, <a href="https://github.com/" target="_blank" rel="noopener noreferrer">create a free one at github.com</a> first. Already have one? Skip to the next step.',
+          },
+          { title: "Open the Git panel", body: "In Replit, open the Git panel." },
+          { title: "Connect your GitHub account", body: "" },
           { title: "Create a repository", body: "" },
           { title: "Push", body: "" },
         ],

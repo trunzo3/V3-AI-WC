@@ -533,6 +533,14 @@ const contentBlockSchema = z
       label: z.string().optional(),
     }),
     z.object({
+      type: z.literal("image"),
+      fileId: z.number().int().positive(),
+      width: z.number().int().positive().optional(),
+      alignment: z.enum(["left", "center", "right"]),
+      caption: z.string().optional(),
+      altText: z.string().optional(),
+    }),
+    z.object({
       type: z.literal("recap"),
       title: z.string(),
       source: z.string().trim().min(1),

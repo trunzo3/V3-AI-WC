@@ -14,19 +14,15 @@ All participant endpoints require an authenticated session cookie
  * OpenAPI spec version: 0.1.0
  */
 
-export type GenericContentBlockType =
-  (typeof GenericContentBlockType)[keyof typeof GenericContentBlockType];
+/**
+ * For image blocks: horizontal alignment of the image within the content column.
 
-export const GenericContentBlockType = {
-  text: "text",
-  prompt: "prompt",
-  callout: "callout",
-  cards: "cards",
-  steps: "steps",
-  link: "link",
-  field: "field",
-  form: "form",
-  download: "download",
-  recap: "recap",
-  image: "image",
+ */
+export type GenericContentBlockAlignment =
+  (typeof GenericContentBlockAlignment)[keyof typeof GenericContentBlockAlignment];
+
+export const GenericContentBlockAlignment = {
+  left: "left",
+  center: "center",
+  right: "right",
 } as const;

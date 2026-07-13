@@ -55,6 +55,14 @@ export type GenericContentBlock =
     }
   | { type: "download"; fileId: number; label?: string }
   | {
+      type: "image";
+      fileId: number;
+      width?: number;
+      alignment: "left" | "center" | "right";
+      caption?: string;
+      altText?: string;
+    }
+  | {
       type: "recap";
       title: string;
       // Slug (or generic_N id) of the section whose saved answers to show.

@@ -83,6 +83,7 @@ export * from "./feedbackResponse";
 export * from "./feedbackUpsertRequest";
 export * from "./genericBlockItem";
 export * from "./genericContentBlock";
+export * from "./genericContentBlockAlignment";
 export * from "./genericContentBlockColumns";
 export * from "./genericContentBlockCopyStyle";
 export * from "./genericContentBlockStyle";

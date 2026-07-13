@@ -363,6 +363,14 @@ export function SectionsTab({ cohortId }: Props) {
       copyStyle: "labeled",
     },
     download: { type: "download", fileId: 0, label: "" },
+    image: {
+      type: "image",
+      fileId: 0,
+      width: 800,
+      alignment: "center",
+      caption: "",
+      altText: "",
+    },
   };
   const addBlock = (type: string) => {
     const def = BLOCK_DEFAULTS[type];
@@ -1366,6 +1374,125 @@ export function SectionsTab({ cohortId }: Props) {
                               </div>
                             </div>
                           )}
+                          {block.type === "image" && (
+                            <div className="space-y-2">
+                              {!editingGeneric ? (
+                                <div className="text-xs text-muted-foreground border rounded-md p-2">
+                                  Save this section first, then attach images to
+                                  it (paperclip button on the section row) to
+                                  pick one here.
+                                </div>
+                              ) : editorFiles.filter((f) =>
+                                  (f.mimeType ?? "").startsWith("image/"),
+                                ).length === 0 ? (
+                                <div className="text-xs text-muted-foreground border rounded-md p-2">
+                                  No images attached to this section yet. Use the
+                                  paperclip button on the section row to upload
+                                  images, then reopen this editor.
+                                </div>
+                              ) : (
+                                <div>
+                                  <Label className="text-xs">Image</Label>
+                                  <Select
+                                    value={block.fileId ? String(block.fileId) : ""}
+                                    onValueChange={(v) =>
+                                      updateBlock(idx, { fileId: Number(v) })
+                                    }
+                                  >
+                                    <SelectTrigger
+                                      data-testid={`select-image-file-${idx}`}
+                                    >
+                                      <SelectValue placeholder="Pick an image…" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {editorFiles
+                                        .filter((f) =>
+                                          (f.mimeType ?? "").startsWith("image/"),
+                                        )
+                                        .map((f) => (
+                                          <SelectItem
+                                            key={f.id}
+                                            value={String(f.id)}
+                                          >
+                                            {f.filename}
+                                          </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              )}
+                              <div>
+                                <Label className="text-xs">Max width (px)</Label>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  value={block.width ?? ""}
+                                  onChange={(e) =>
+                                    updateBlock(idx, {
+                                      width:
+                                        e.target.value === ""
+                                          ? undefined
+                                          : Math.max(
+                                              1,
+                                              Math.round(Number(e.target.value)),
+                                            ),
+                                    })
+                                  }
+                                  placeholder="800"
+                                  data-testid={`input-image-width-${idx}`}
+                                />
+                                <p className="text-[11px] text-muted-foreground mt-1">
+                                  Maximum width on a wide screen. The image
+                                  shrinks to fit narrower screens and never
+                                  exceeds the content column.
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="text-xs">Alignment</Label>
+                                <Select
+                                  value={block.alignment ?? "center"}
+                                  onValueChange={(v) =>
+                                    updateBlock(idx, {
+                                      alignment: v as "left" | "center" | "right",
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger
+                                    data-testid={`select-image-align-${idx}`}
+                                  >
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="left">Left</SelectItem>
+                                    <SelectItem value="center">Center</SelectItem>
+                                    <SelectItem value="right">Right</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <Label className="text-xs">Caption (optional)</Label>
+                                <Input
+                                  value={block.caption ?? ""}
+                                  onChange={(e) =>
+                                    updateBlock(idx, { caption: e.target.value })
+                                  }
+                                  placeholder="Shown beneath the image"
+                                  data-testid={`input-image-caption-${idx}`}
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Alt text (optional)</Label>
+                                <Input
+                                  value={block.altText ?? ""}
+                                  onChange={(e) =>
+                                    updateBlock(idx, { altText: e.target.value })
+                                  }
+                                  placeholder="Description for screen readers"
+                                  data-testid={`input-image-alt-${idx}`}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1387,6 +1514,7 @@ export function SectionsTab({ cohortId }: Props) {
                           <SelectItem value="field">Input field</SelectItem>
                           <SelectItem value="form">Form (fields + copy button)</SelectItem>
                           <SelectItem value="download">Download button</SelectItem>
+                          <SelectItem value="image">Image</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
