@@ -32,11 +32,6 @@ export default function Home() {
 
   if (!session) return null;
 
-  const level1 = sections.filter((s) => s.level === 1);
-  const unlockedCount = level1.filter((s) => s.unlocked).length;
-  const totalCount = level1.length;
-  const progressPct = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0;
-
   const talkUrl = (settings as Record<string, string> | undefined)?.["talk_with_anthony_url"] || "https://talkwithanthony.com";
 
   const handleDownloadWorkbook = async () => {
@@ -131,19 +126,6 @@ export default function Home() {
               This is your home base between sessions. Begin by getting your bearings, then enter the workshop when you're ready.
             </p>
           )}
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-sm font-bold uppercase tracking-wider text-primary">Your Progress</div>
-            <div className="text-xs text-muted-foreground">{unlockedCount} of {totalCount} unlocked</div>
-          </div>
-          <div className="h-3 bg-secondary rounded-full overflow-hidden">
-            <div
-              className="h-full bg-accent rounded-full transition-all"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
         </div>
 
         {facilitatorMessage && (
