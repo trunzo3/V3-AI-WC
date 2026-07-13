@@ -19,7 +19,7 @@ import { logger } from "./logger";
  * modified, so admin-configured placement/codes survive reseeds.
  *
  * Cross-module prefill placeholders should reference modules by slug
- * ({{build-your-prd:replit-prompt}}), which keeps working regardless of numeric ids.
+ * ({{prompt-2:org-website}}), which keeps working regardless of numeric ids.
  */
 export type SeededGenericModule = {
   slug: string;
@@ -377,13 +377,14 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
         ],
         buttonLabel: "Copy",
         copyStyle: "labeled",
+        preview: true,
       },
       {
-        type: "field",
-        fieldKey: "replit-prompt",
-        label: "Your Replit prompt",
-        helpText: "Paste what Claude gave you here. You'll need it next.",
-        multiline: true,
+        type: "callout",
+        variant: "quote",
+        title: "The takeaway",
+        content:
+          "Building the app takes five minutes. The thinking you did to get here was the actual work.",
       },
       {
         type: "callout",
@@ -395,39 +396,12 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     ],
   },
   {
-    slug: "prompt-replit",
-    title: "Prompt Replit",
-    badgeLabel: "Exercise",
-    showNotesField: false,
-    level: 3,
-    sortOrder: 9,
-    code: "BUILD",
-    contentBlocks: [
-      {
-        type: "text",
-        content:
-          "Your prompt, from the last section. Copy it. Paste it into a new Replit project. Run it.",
-      },
-      {
-        type: "prompt",
-        content: "{{build-your-prd:replit-prompt}}",
-      },
-      {
-        type: "callout",
-        variant: "quote",
-        title: "The takeaway",
-        content:
-          "Building the app takes five minutes. The thinking you did to get here was the actual work.",
-      },
-    ],
-  },
-  {
     slug: "overnight",
     title: "Overnight",
     badgeLabel: "Exercise",
     showNotesField: true,
     level: 3,
-    sortOrder: 10,
+    sortOrder: 9,
     code: "OVERNIGHT",
     contentBlocks: [
       {
@@ -457,7 +431,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Exercise",
     showNotesField: true,
     level: 3,
-    sortOrder: 11,
+    sortOrder: 10,
     code: "SHOW",
     contentBlocks: [
       {
@@ -492,7 +466,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Reference",
     showNotesField: false,
     level: 3,
-    sortOrder: 12,
+    sortOrder: 11,
     code: "MECH",
     contentBlocks: [
       {
@@ -544,7 +518,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Exercise",
     showNotesField: true,
     level: 3,
-    sortOrder: 13,
+    sortOrder: 12,
     code: "SPRINT",
     contentBlocks: [
       {
@@ -591,7 +565,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Exercise",
     showNotesField: false,
     level: 3,
-    sortOrder: 14,
+    sortOrder: 13,
     code: "SAVE",
     contentBlocks: [
       {
@@ -625,7 +599,7 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
     badgeLabel: "Orientation",
     showNotesField: false,
     level: 3,
-    sortOrder: 15,
+    sortOrder: 14,
     code: "SHIP",
     contentBlocks: [
       {

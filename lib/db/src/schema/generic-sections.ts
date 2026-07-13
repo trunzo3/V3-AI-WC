@@ -51,6 +51,7 @@ export type GenericContentBlock =
       }>;
       buttonLabel: string;
       copyStyle: "labeled" | "joined";
+      preview?: boolean;
     }
   | { type: "download"; fileId: number; label?: string };
 

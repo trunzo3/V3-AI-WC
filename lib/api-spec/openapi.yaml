@@ -1167,6 +1167,14 @@ components:
         fields:
           type: array
           items: { $ref: "#/components/schemas/GenericFormField" }
+        preview:
+          type: boolean
+          description: >
+            For form blocks: when true, the assembled answers appear in a
+            live-updating prompt box (with the copy button attached to it)
+            instead of a bare copy button. The box updates as the
+            participant types and skips empty fields, matching the copy
+            output.
         fileId:
           type: integer
           description: >

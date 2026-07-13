@@ -211,6 +211,12 @@ export const ListSectionsResponse = zod.object({
                     }),
                   )
                   .optional(),
+                preview: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "For form blocks: when true, the assembled answers appear in a live-updating prompt box (with the copy button attached to it) instead of a bare copy button. The box updates as the participant types and skips empty fields, matching the copy output.\n",
+                  ),
                 fileId: zod
                   .number()
                   .optional()
@@ -740,6 +746,12 @@ export const AdminListGenericSectionsResponse = zod.object({
                 }),
               )
               .optional(),
+            preview: zod
+              .boolean()
+              .optional()
+              .describe(
+                "For form blocks: when true, the assembled answers appear in a live-updating prompt box (with the copy button attached to it) instead of a bare copy button. The box updates as the participant types and skips empty fields, matching the copy output.\n",
+              ),
             fileId: zod
               .number()
               .optional()
@@ -839,6 +851,12 @@ export const AdminCreateGenericSectionBody = zod.object({
               }),
             )
             .optional(),
+          preview: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks: when true, the assembled answers appear in a live-updating prompt box (with the copy button attached to it) instead of a bare copy button. The box updates as the participant types and skips empty fields, matching the copy output.\n",
+            ),
           fileId: zod
             .number()
             .optional()
@@ -945,6 +963,12 @@ export const AdminUpdateGenericSectionBody = zod.object({
               }),
             )
             .optional(),
+          preview: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks: when true, the assembled answers appear in a live-updating prompt box (with the copy button attached to it) instead of a bare copy button. The box updates as the participant types and skips empty fields, matching the copy output.\n",
+            ),
           fileId: zod
             .number()
             .optional()
@@ -1045,6 +1069,12 @@ export const AdminUpdateGenericSectionResponse = zod.object({
               }),
             )
             .optional(),
+          preview: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks: when true, the assembled answers appear in a live-updating prompt box (with the copy button attached to it) instead of a bare copy button. The box updates as the participant types and skips empty fields, matching the copy output.\n",
+            ),
           fileId: zod
             .number()
             .optional()

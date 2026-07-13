@@ -311,46 +311,60 @@ function DownloadBlock({ fileId, label }: { fileId: number; label: string }) {
   );
 }
 
-// A group of auto-saving input fields with one button that copies all current
-// answers at once. Mirrors the RicecoInputFields pattern in Day1.tsx: each
-// child field reports its live value upward into a Map, and the copy button
-// assembles from what's currently typed (not what was last saved).
+// A group of auto-saving input fields whose current answers are assembled into
+// one copyable prompt. Each child field reports its live value upward into React
+// state, so the assembled text (skipping empty fields) reflects what's currently
+// typed, not what was last saved. When `preview` is set the assembled text is
+// shown in a live preview box with the copy button attached; otherwise a single
+// centered Copy button copies the same assembled text.
 function FormBlock({
   sectionId,
   fields,
   buttonLabel,
   copyStyle,
+  preview,
 }: {
   sectionId: string;
   fields: GenericFormField[];
   buttonLabel: string;
   copyStyle: "labeled" | "joined";
+  preview: boolean;
 }) {
   const [copied, setCopied] = useState(false);
-  const valuesRef = useMemo(() => new Map<string, string>(), []);
+  // Live values, keyed by fieldKey. State (not a ref) so the assembled
+  // preview re-renders as the participant types.
+  const [values, setValues] = useState<Record<string, string>>({});
 
   const handleValueChange = useMemo(
     () => (key: string, value: string) => {
-      valuesRef.set(key, value);
+      setValues((prev) =>
+        prev[key] === value ? prev : { ...prev, [key]: value },
+      );
     },
-    [valuesRef],
+    [],
   );
 
-  const handleCopyAll = async () => {
+  // Assemble the answers exactly as the copy output does: skip empty fields,
+  // label each answer for "labeled", join with newlines (labeled) or spaces
+  // (joined).
+  const assembled = useMemo(() => {
     const parts: string[] = [];
     for (const f of fields) {
       if (!f.fieldKey) continue;
-      const v = (valuesRef.get(f.fieldKey) ?? "").trim();
+      const v = (values[f.fieldKey] ?? "").trim();
       if (v.length === 0) continue;
       parts.push(copyStyle === "labeled" ? `${f.label}: ${v}` : v);
     }
-    if (parts.length === 0) return;
-    const text = copyStyle === "labeled" ? parts.join("\n") : parts.join(" ");
+    return copyStyle === "labeled" ? parts.join("\n") : parts.join(" ");
+  }, [fields, values, copyStyle]);
+
+  const handleCopyAll = async () => {
+    if (assembled.length === 0) return;
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(assembled);
     } catch {
       const el = document.createElement("textarea");
-      el.value = text;
+      el.value = assembled;
       document.body.appendChild(el);
       el.select();
       document.execCommand("copy");
@@ -377,16 +391,32 @@ function FormBlock({
             />
           ),
       )}
-      <div className="flex justify-center pt-2">
-        <button
-          onClick={handleCopyAll}
-          className="inline-flex items-center gap-2 text-white font-semibold text-sm px-8 py-3 rounded-lg hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: "#1e293b" }}
-          data-testid={`form-copy-${sectionId}`}
+      {preview ? (
+        <div
+          className="bg-primary rounded-lg p-6 text-white"
+          data-testid="generic-prompt-block"
         >
-          📋 {copied ? "Copied!" : buttonLabel || "Copy"}
-        </button>
-      </div>
+          <span className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded mb-4">
+            Your prompt
+          </span>
+          <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono min-h-[1.5rem]">
+            {assembled ||
+              "Fill in the fields above and your prompt will assemble here."}
+          </pre>
+          <CopyButton text={assembled} label={buttonLabel || "Copy"} />
+        </div>
+      ) : (
+        <div className="flex justify-center pt-2">
+          <button
+            onClick={handleCopyAll}
+            className="inline-flex items-center gap-2 text-white font-semibold text-sm px-8 py-3 rounded-lg hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: "#1e293b" }}
+            data-testid={`form-copy-${sectionId}`}
+          >
+            📋 {copied ? "Copied!" : buttonLabel || "Copy"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -531,6 +561,7 @@ function GenericSectionView({
                 fields={block.fields}
                 buttonLabel={block.buttonLabel ?? ""}
                 copyStyle={block.copyStyle === "joined" ? "joined" : "labeled"}
+                preview={block.preview ?? false}
               />
             );
           case "download":

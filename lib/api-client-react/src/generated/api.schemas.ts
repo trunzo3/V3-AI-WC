@@ -182,6 +182,9 @@ export interface GenericContentBlock {
   prefill?: string;
   copyStyle?: GenericContentBlockCopyStyle;
   fields?: GenericFormField[];
+  /** For form blocks: when true, the assembled answers appear in a live-updating prompt box (with the copy button attached to it) instead of a bare copy button. The box updates as the participant types and skips empty fields, matching the copy output.
+   */
+  preview?: boolean;
   /** For download blocks: the id of a section file (attached to the same section) that the block's button downloads.
    */
   fileId?: number;

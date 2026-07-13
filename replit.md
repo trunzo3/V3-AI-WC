@@ -185,7 +185,7 @@ Sections come from two sources:
    participant's own saved answer from another section (empty string if
    unsaved, never raw `{{...}}` on screen). The left side accepts a section
    id (`generic_7`, hardcoded id) or a seeded module slug
-   (`{{build-your-prd:replit-prompt}}`). Resolution happens client-side via
+   (`{{prompt-2:org-website}}`). Resolution happens client-side via
    `hooks/use-resolve-template.ts` (the GET /notes/:ref route maps a slug to
    its generic_N id server-side) and server-side in `workbook.ts` for the
    PDF (slug→id map built from `generic_sections.slug`). A field's prefill
@@ -201,14 +201,22 @@ Sections come from two sources:
    and ensures a cohort_sections row in the default WORKSHOP cohort at the
    module's level, locked (`code_active=true`) behind the module's code;
    existing cohort_sections rows are never modified, so admin placement
-   changes survive reseeds. Current seeded modules: the fifteen "AI
-   Builder" Level 3 modules (sortOrder 1–15, each behind its own code):
+   changes survive reseeds. Reseeding never deletes modules — removing a
+   module from `SEEDED_GENERIC_MODULES` stops it being recreated, but its
+   existing `generic_sections`/`cohort_sections` rows must be deleted by
+   hand and the remaining cohort_sections `sort_order` gap closed by SQL.
+   Current seeded modules: the fourteen "AI Builder" Level 3 modules
+   (sortOrder 1–14, each behind its own code):
    `what-vibe-coding-is` (PATH), `the-idea` (IDEA), `prompt-1` "Start
    Your App Build" (ONE), `app-anatomy` (ANATOMY), `prompt-2` "Make It
    Yours" (TWO), `when-it-doesnt-work` (FIX), `product-requirements`
-   (REQ), `build-your-prd` (PRD), `prompt-replit` (BUILD), `overnight`
+   (REQ), `build-your-prd` (PRD), `overnight`
    (OVERNIGHT), `showcase` (SHOW), `iteration-mechanics` (MECH),
    `build-sprint` (SPRINT), `github-save-point` (SAVE), `closing` (SHIP).
+   `build-your-prd` uses a `form` block with `preview: true`: its four
+   fields assemble into a live preview box (labeled `${label}: ${value}`,
+   empty fields skipped) that updates as the participant types, with the
+   copy button attached to that box.
    `prompt-2` is self-contained: its prompt references its own fields
    (`{{prompt-2:org-website}}` and `{{prompt-2:make-it-yours-details}}`),
    both saved in the same module. Every note save (debounced mutation,
