@@ -620,27 +620,36 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
   },
 ];
 
-const DEFAULT_COHORT_CODE = "WORKSHOP";
+/**
+ * Cohort codes that receive the full set of seeded generic modules. WORKSHOP is
+ * the default workshop cohort; LIVE2026 is the dedicated live-event cohort. Both
+ * get every module attached identically (same slug-derived section id, level,
+ * and sort order).
+ */
+export const SEEDED_MODULE_COHORT_CODES = ["WORKSHOP", "LIVE2026"] as const;
 
 /**
  * Idempotent: upsert each module into generic_sections by slug (rerunning
  * restores seeded content in place — exactly one row per slug), then ensure a
- * cohort_sections attachment exists in the default cohort. The attachment is
- * insert-only (onConflictDoNothing) so admin changes to placement, code, or
- * visibility are preserved.
+ * cohort_sections attachment exists in every cohort listed in
+ * SEEDED_MODULE_COHORT_CODES. The attachment is insert-only
+ * (onConflictDoNothing) so admin changes to placement, code, or visibility are
+ * preserved.
  */
 export async function ensureSeededGenericSections(): Promise<void> {
-  const [cohort] = await db
-    .select({ id: cohortsTable.id })
-    .from(cohortsTable)
-    .where(
-      sql`lower(${cohortsTable.cohortCode}) = ${DEFAULT_COHORT_CODE.toLowerCase()}`,
-    )
-    .limit(1);
-  if (!cohort) {
-    throw new Error(
-      "Default cohort not found; seed cohorts before generic modules.",
-    );
+  const targetCohorts: Array<{ code: string; id: number }> = [];
+  for (const code of SEEDED_MODULE_COHORT_CODES) {
+    const [cohort] = await db
+      .select({ id: cohortsTable.id })
+      .from(cohortsTable)
+      .where(sql`lower(${cohortsTable.cohortCode}) = ${code.toLowerCase()}`)
+      .limit(1);
+    if (!cohort) {
+      throw new Error(
+        `Cohort "${code}" not found; seed cohorts before generic modules.`,
+      );
+    }
+    targetCohorts.push({ code, id: cohort.id });
   }
 
   for (const m of SEEDED_GENERIC_MODULES) {
@@ -670,22 +679,29 @@ export async function ensureSeededGenericSections(): Promise<void> {
       .returning({ id: genericSectionsTable.id });
     if (!row) throw new Error(`Failed to upsert seeded module "${m.slug}".`);
 
-    await db
-      .insert(cohortSectionsTable)
-      .values({
-        cohortId: cohort.id,
-        sectionId: genericSectionId(row.id),
-        level: m.level,
-        sortOrder: m.sortOrder,
-        displayName: null,
-        visible: true,
-        code: m.code,
-        codeActive: true,
-      })
-      .onConflictDoNothing();
+    for (const cohort of targetCohorts) {
+      await db
+        .insert(cohortSectionsTable)
+        .values({
+          cohortId: cohort.id,
+          sectionId: genericSectionId(row.id),
+          level: m.level,
+          sortOrder: m.sortOrder,
+          displayName: null,
+          visible: true,
+          code: m.code,
+          codeActive: true,
+        })
+        .onConflictDoNothing();
+    }
 
     logger.info(
-      { slug: m.slug, sectionId: genericSectionId(row.id), level: m.level },
+      {
+        slug: m.slug,
+        sectionId: genericSectionId(row.id),
+        level: m.level,
+        cohorts: targetCohorts.map((c) => c.code),
+      },
       "Seeded generic module.",
     );
   }

@@ -15,10 +15,12 @@ data with development data" option** — a user action, wholesale and destructiv
 trigger it; guide the user to select it and warn that a plain publish won't copy rows.
 
 **Why the seed can't surgically fix prod even conceptually:**
-- `ensureSeededGenericSections()` attaches generic modules ONLY to the cohort whose
-  `cohort_code` == `WORKSHOP` (DEFAULT_COHORT_CODE) and throws if absent. A prod
-  cohort with any other code (e.g. `TEST123`) would get a NEW parallel WORKSHOP
-  cohort, leaving the real cohort's Level 3 still empty.
+- `ensureSeededGenericSections()` attaches generic modules to every cohort code in
+  `SEEDED_MODULE_COHORT_CODES` (currently `WORKSHOP` + `LIVE2026`) and throws if any
+  is missing; `ensureSeedCohorts()` in seed.ts creates each of those codes first.
+  A prod cohort with a code NOT in that list (e.g. `TEST123`) still gets nothing —
+  the seed only ever attaches to its configured codes, so add the code to
+  `SEEDED_MODULE_COHORT_CODES` (+ `COHORT_SETUP` for tier access) to target it.
 - `cohort_sections.section_id` for generic sections is `generic_${numericRowId}`,
   and those numeric ids are assigned per-DB (upsert is by slug, not id). So dev ids
   (e.g. generic_12..27) will NOT match prod ids if prod already has other
