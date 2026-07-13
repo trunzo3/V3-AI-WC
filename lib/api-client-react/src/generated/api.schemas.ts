@@ -103,6 +103,7 @@ export const GenericContentBlockType = {
   field: "field",
   form: "form",
   download: "download",
+  recap: "recap",
 } as const;
 
 export type GenericContentBlockVariant =
@@ -155,6 +156,11 @@ export interface GenericFormField {
   multiline: boolean;
 }
 
+export interface RecapField {
+  fieldKey: string;
+  label: string;
+}
+
 /**
  * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`. Prompt `content` and field `prefill` may contain `{{sectionId:fieldKey}}` placeholders, resolved client-side to the participant's own saved answer in that section/field (empty string if unsaved).
 
@@ -189,6 +195,12 @@ export interface GenericContentBlock {
   /** For download blocks: the id of a section file (attached to the same section) that the block's button downloads.
    */
   fileId?: number;
+  /** For recap blocks: the slug (or generic_N id) of the section whose saved answers are shown read-only.
+   */
+  source?: string;
+  /** For recap blocks: the fields to display from the source section. Empty answers are omitted at render time.
+   */
+  recapFields?: RecapField[];
 }
 
 export type SectionGeneric = {

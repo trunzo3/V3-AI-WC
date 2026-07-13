@@ -151,6 +151,7 @@ export const ListSectionsResponse = zod.object({
                   "field",
                   "form",
                   "download",
+                  "recap",
                 ]),
                 content: zod.string().optional(),
                 label: zod.string().optional(),
@@ -224,6 +225,23 @@ export const ListSectionsResponse = zod.object({
                   .optional()
                   .describe(
                     "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
+                  ),
+                source: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "For recap blocks: the slug (or generic_N id) of the section whose saved answers are shown read-only.\n",
+                  ),
+                recapFields: zod
+                  .array(
+                    zod.object({
+                      fieldKey: zod.string(),
+                      label: zod.string(),
+                    }),
+                  )
+                  .optional()
+                  .describe(
+                    "For recap blocks: the fields to display from the source section. Empty answers are omitted at render time.\n",
                   ),
               })
               .describe(
@@ -690,6 +708,7 @@ export const AdminListGenericSectionsResponse = zod.object({
               "field",
               "form",
               "download",
+              "recap",
             ]),
             content: zod.string().optional(),
             label: zod.string().optional(),
@@ -762,6 +781,23 @@ export const AdminListGenericSectionsResponse = zod.object({
               .describe(
                 "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
               ),
+            source: zod
+              .string()
+              .optional()
+              .describe(
+                "For recap blocks: the slug (or generic_N id) of the section whose saved answers are shown read-only.\n",
+              ),
+            recapFields: zod
+              .array(
+                zod.object({
+                  fieldKey: zod.string(),
+                  label: zod.string(),
+                }),
+              )
+              .optional()
+              .describe(
+                "For recap blocks: the fields to display from the source section. Empty answers are omitted at render time.\n",
+              ),
           })
           .describe(
             "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`. Prompt `content` and field `prefill` may contain `{{sectionId:fieldKey}}` placeholders, resolved client-side to the participant's own saved answer in that section\/field (empty string if unsaved).\n",
@@ -797,6 +833,7 @@ export const AdminCreateGenericSectionBody = zod.object({
             "field",
             "form",
             "download",
+            "recap",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
@@ -868,6 +905,23 @@ export const AdminCreateGenericSectionBody = zod.object({
             .optional()
             .describe(
               "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
+            ),
+          source: zod
+            .string()
+            .optional()
+            .describe(
+              "For recap blocks: the slug (or generic_N id) of the section whose saved answers are shown read-only.\n",
+            ),
+          recapFields: zod
+            .array(
+              zod.object({
+                fieldKey: zod.string(),
+                label: zod.string(),
+              }),
+            )
+            .optional()
+            .describe(
+              "For recap blocks: the fields to display from the source section. Empty answers are omitted at render time.\n",
             ),
         })
         .describe(
@@ -911,6 +965,7 @@ export const AdminUpdateGenericSectionBody = zod.object({
             "field",
             "form",
             "download",
+            "recap",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
@@ -982,6 +1037,23 @@ export const AdminUpdateGenericSectionBody = zod.object({
             .optional()
             .describe(
               "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
+            ),
+          source: zod
+            .string()
+            .optional()
+            .describe(
+              "For recap blocks: the slug (or generic_N id) of the section whose saved answers are shown read-only.\n",
+            ),
+          recapFields: zod
+            .array(
+              zod.object({
+                fieldKey: zod.string(),
+                label: zod.string(),
+              }),
+            )
+            .optional()
+            .describe(
+              "For recap blocks: the fields to display from the source section. Empty answers are omitted at render time.\n",
             ),
         })
         .describe(
@@ -1019,6 +1091,7 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             "field",
             "form",
             "download",
+            "recap",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
@@ -1090,6 +1163,23 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             .optional()
             .describe(
               "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
+            ),
+          source: zod
+            .string()
+            .optional()
+            .describe(
+              "For recap blocks: the slug (or generic_N id) of the section whose saved answers are shown read-only.\n",
+            ),
+          recapFields: zod
+            .array(
+              zod.object({
+                fieldKey: zod.string(),
+                label: zod.string(),
+              }),
+            )
+            .optional()
+            .describe(
+              "For recap blocks: the fields to display from the source section. Empty answers are omitted at render time.\n",
             ),
         })
         .describe(

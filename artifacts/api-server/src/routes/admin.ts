@@ -532,6 +532,17 @@ const contentBlockSchema = z
       fileId: z.number().int().positive(),
       label: z.string().optional(),
     }),
+    z.object({
+      type: z.literal("recap"),
+      title: z.string(),
+      source: z.string().trim().min(1),
+      recapFields: z.array(
+        z.object({
+          fieldKey: z.string().trim().min(1),
+          label: z.string(),
+        }),
+      ),
+    }),
   ])
   .transform((b) => {
     // Sanitize admin-authored rich HTML. Prompt content stays literal — it

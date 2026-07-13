@@ -53,7 +53,14 @@ export type GenericContentBlock =
       copyStyle: "labeled" | "joined";
       preview?: boolean;
     }
-  | { type: "download"; fileId: number; label?: string };
+  | { type: "download"; fileId: number; label?: string }
+  | {
+      type: "recap";
+      title: string;
+      // Slug (or generic_N id) of the section whose saved answers to show.
+      source: string;
+      recapFields: Array<{ fieldKey: string; label: string }>;
+    };
 
 export const genericSectionsTable = pgTable("generic_sections", {
   id: serial("id").primaryKey(),

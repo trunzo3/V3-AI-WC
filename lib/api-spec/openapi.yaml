@@ -1124,7 +1124,7 @@ components:
       properties:
         type:
           type: string
-          enum: [text, prompt, callout, cards, steps, link, field, form, download]
+          enum: [text, prompt, callout, cards, steps, link, field, form, download, recap]
         content: { type: string }
         label: { type: string }
         buttonLabel: { type: string }
@@ -1180,6 +1180,24 @@ components:
           description: >
             For download blocks: the id of a section file (attached to the
             same section) that the block's button downloads.
+        source:
+          type: string
+          description: >
+            For recap blocks: the slug (or generic_N id) of the section whose
+            saved answers are shown read-only.
+        recapFields:
+          type: array
+          description: >
+            For recap blocks: the fields to display from the source section.
+            Empty answers are omitted at render time.
+          items: { $ref: "#/components/schemas/RecapField" }
+
+    RecapField:
+      type: object
+      required: [fieldKey, label]
+      properties:
+        fieldKey: { type: string }
+        label: { type: string }
 
     GenericFormField:
       type: object

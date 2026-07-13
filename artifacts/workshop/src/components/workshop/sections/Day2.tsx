@@ -170,9 +170,7 @@ export function Closing({ sectionId, title }: SectionProps) {
         </div>
       </div>
 
-      <NotesField sectionId={sectionId} fieldKey="notes" label="Your Notes" />
-
-      <div className="flex justify-center pt-8 mt-8 border-t">
+      <div className="flex justify-center pb-8 mb-8 border-b">
         <Button
           size="lg"
           className="h-14 px-8 text-lg font-bold shadow-md hover:shadow-lg transition-shadow"
@@ -183,6 +181,8 @@ export function Closing({ sectionId, title }: SectionProps) {
           </a>
         </Button>
       </div>
+
+      <NotesField sectionId={sectionId} fieldKey="notes" label="Your Notes" />
     </div>
   );
 }

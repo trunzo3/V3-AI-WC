@@ -102,6 +102,7 @@ export * from "./notesResponse";
 export * from "./noteUpsertRequest";
 export * from "./notFoundResponse";
 export * from "./participant";
+export * from "./recapField";
 export * from "./safariTab";
 export * from "./safariTabsResponse";
 export * from "./section";

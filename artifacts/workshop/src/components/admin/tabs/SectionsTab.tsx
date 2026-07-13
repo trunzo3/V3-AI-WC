@@ -50,7 +50,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X, Eye, Paperclip } from "lucide-react";
+import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X, Eye, Paperclip, ChevronRight, ChevronDown } from "lucide-react";
 import {
   SectionFilesDialog,
   type SectionFile,
@@ -61,6 +61,11 @@ interface Props {
 }
 
 type Row = AdminCohortSection & { __title?: string };
+
+// Per-browser key for remembering which level groups are collapsed in the
+// admin Sections tab. Admin app is not a sandboxed artifact, so localStorage
+// is appropriate here.
+const LEVEL_COLLAPSE_KEY = "admin-sections-collapsed-levels";
 
 function titleFor(row: AdminCohortSection): string {
   if (row.displayName) return row.displayName;
@@ -76,6 +81,29 @@ export function SectionsTab({ cohortId }: Props) {
 
   const [rows, setRows] = useState<Row[]>([]);
   const [dirty, setDirty] = useState(false);
+
+  // Per-browser collapsed/expanded state for the level groupings. Defaults to
+  // all expanded on first load (no stored value). Persisted so a collapsed
+  // level stays collapsed across reloads and sessions.
+  const [collapsedLevels, setCollapsedLevels] = useState<Record<number, boolean>>(
+    () => {
+      try {
+        const raw = localStorage.getItem(LEVEL_COLLAPSE_KEY);
+        return raw ? (JSON.parse(raw) as Record<number, boolean>) : {};
+      } catch {
+        return {};
+      }
+    },
+  );
+  useEffect(() => {
+    try {
+      localStorage.setItem(LEVEL_COLLAPSE_KEY, JSON.stringify(collapsedLevels));
+    } catch {
+      // Ignore storage write failures (e.g. private mode quota).
+    }
+  }, [collapsedLevels]);
+  const toggleLevel = (lvl: number) =>
+    setCollapsedLevels((prev) => ({ ...prev, [lvl]: !prev[lvl] }));
 
   useEffect(() => {
     if (sectionsQ.data?.sections) {
@@ -1416,12 +1444,28 @@ export function SectionsTab({ cohortId }: Props) {
           {sectionsQ.isLoading ? (
             <div className="text-sm text-muted-foreground">Loading…</div>
           ) : (
-            ([1, 2, 3, 4] as const).map((lvl) => (
+            ([1, 2, 3, 4] as const).map((lvl) => {
+              const collapsed = !!collapsedLevels[lvl];
+              const count = grouped[lvl].length;
+              return (
               <div key={lvl}>
-                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
-                  Level {lvl}
-                </div>
-                {grouped[lvl].length === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => toggleLevel(lvl)}
+                  className="flex items-center gap-2 w-full text-left mb-2 group"
+                  data-testid={`level-toggle-${lvl}`}
+                  aria-expanded={!collapsed}
+                >
+                  {collapsed ? (
+                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                  )}
+                  <span className="text-xs uppercase tracking-widest text-muted-foreground group-hover:text-foreground">
+                    Level {lvl} — {count}
+                  </span>
+                </button>
+                {collapsed ? null : count === 0 ? (
                   <div className="text-sm text-muted-foreground italic">
                     No sections at this level.
                   </div>
@@ -1568,7 +1612,8 @@ export function SectionsTab({ cohortId }: Props) {
                   </div>
                 )}
               </div>
-            ))
+              );
+            })
           )}
         </CardContent>
       </Card>

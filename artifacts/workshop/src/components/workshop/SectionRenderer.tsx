@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type {
   Section,
   GenericContentBlock,
   GenericFormField,
 } from "@workspace/api-client-react";
+import { getNotes, getGetNotesQueryKey } from "@workspace/api-client-react";
 import { Lock, ExternalLink, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -130,6 +132,53 @@ function FieldBlock({
         initialValue={resolvedPrefill}
         multiline={multiline}
       />
+    </div>
+  );
+}
+
+// A read-only recap of the participant's own saved answers in another
+// section (referenced by slug or generic_N id). Empty answers are omitted;
+// if nothing is saved, the whole block renders nothing. Not editable and
+// does not pre-fill anything downstream.
+function RecapBlock({
+  title,
+  source,
+  recapFields,
+}: {
+  title: string;
+  source: string;
+  recapFields: Array<{ fieldKey: string; label: string }>;
+}) {
+  const { data } = useQuery({
+    queryKey: getGetNotesQueryKey(source),
+    queryFn: () => getNotes(source),
+    staleTime: 0,
+  });
+  const byKey = new Map(
+    (data?.notes ?? []).map((n) => [n.fieldKey, (n.content ?? "").trim()]),
+  );
+  const rows = recapFields
+    .map((f) => ({ label: f.label, value: byKey.get(f.fieldKey) ?? "" }))
+    .filter((r) => r.value !== "");
+  if (rows.length === 0) return null;
+  return (
+    <div
+      className="bg-muted/40 border rounded-lg p-6 mb-6"
+      data-testid="generic-recap-block"
+    >
+      <h4 className="font-bold text-accent uppercase text-xs tracking-wider mb-4">
+        {title}
+      </h4>
+      <dl className="space-y-4">
+        {rows.map((r, i) => (
+          <div key={i}>
+            <dt className="text-xs font-medium text-muted-foreground mb-1">
+              {r.label}
+            </dt>
+            <dd className="text-foreground whitespace-pre-wrap">{r.value}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }
@@ -575,6 +624,16 @@ function GenericSectionView({
                 key={i}
                 fileId={block.fileId}
                 label={block.label ?? ""}
+              />
+            );
+          case "recap":
+            if (!block.source || !block.recapFields?.length) return null;
+            return (
+              <RecapBlock
+                key={i}
+                title={block.title ?? ""}
+                source={block.source}
+                recapFields={block.recapFields}
               />
             );
           default:
