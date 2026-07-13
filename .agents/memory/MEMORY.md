@@ -1,5 +1,6 @@
 - [Package firewall blocks](package-firewall-blocks.md) — sanitize-html 2.17.3 is 403-blocked by the Replit package firewall; pinned 2.17.0 instead.
 - [zod v3/v4 hoisting break](zod-hoisting-hookform.md) — tools pulling zod v4 break @hookform/resolvers types; fixed via packageExtensions peer dep in pnpm-workspace.yaml.
+- [Live template previews](live-template-previews.md) — generic prompt previews update per-keystroke via LiveValuesProvider; overlay keyed by fieldKey only (cross-section caveat).
 - [Workshop seed behavior](workshop-seed-behavior.md) — seed is upsert-by-slug, never deletes; removing a module needs manual DB detach, repeated on production.
 - [Restart Vite after codegen](monorepo-codegen-build-boundaries.md) — orval codegen breaks the running workshop Vite server mid-HMR; restart the workshop workflow before UI testing.
 - [Workshop e2e routing](workshop-e2e-routing.md) — browser tests must use localhost:80 (shared proxy); admin is at /admin/login, /workshop is a wouter route not a base path.

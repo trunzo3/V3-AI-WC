@@ -487,8 +487,8 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
             body: "Click the text, change the text. No prompt, no credits.",
           },
           {
-            title: "Three strikes",
-            body: "Three tries, no fix? Stop. Roll back. Say it differently.",
+            title: "Roll back",
+            body: "Every change is saved automatically. If something breaks, return to the last version that worked — going back is the cheapest fix you have.",
           },
           {
             title: "One or a list",
@@ -524,10 +524,6 @@ export const SEEDED_GENERIC_MODULES: SeededGenericModule[] = [
             body: "Return to the last version that worked.",
           },
           { title: "Say more", body: "Be specific about what's wrong." },
-          {
-            title: "Three strikes",
-            body: "Three tries, then change approach.",
-          },
           {
             title: "Raise your hand",
             body: "Someone is walking the room.",

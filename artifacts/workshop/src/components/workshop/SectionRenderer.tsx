@@ -18,6 +18,7 @@ import {
 import { NotesField } from "./NotesField";
 import { SectionAttachedFiles } from "./SectionAttachedFiles";
 import { useResolveTemplate } from "@/hooks/use-resolve-template";
+import { LiveValuesProvider } from "@/hooks/use-live-values";
 import { CopyButton } from "./CopyButton";
 import {
   VerificationTest,
@@ -528,7 +529,8 @@ function GenericSectionView({
   let promptCounter = 0;
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <LiveValuesProvider>
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <SectionHeader
         title={title}
         type={section.type}
@@ -647,7 +649,8 @@ function GenericSectionView({
           <NotesField sectionId={section.id} fieldKey="notes" label="Your Notes" />
         </div>
       )}
-    </div>
+      </div>
+    </LiveValuesProvider>
   );
 }
 

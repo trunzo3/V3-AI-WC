@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { getNotes, getGetNotesQueryKey } from "@workspace/api-client-react";
+import { useLiveValues } from "./use-live-values";
 
 // Matches {{sectionId:fieldKey}} — sectionId has no colon/whitespace/braces,
 // fieldKey is anything up to the closing braces.
@@ -20,6 +21,7 @@ function extractSectionIds(text: string): string[] {
  * read (and react-query cache) that fields already use for their own section.
  */
 export function useResolveTemplate(text: string): string {
+  const live = useLiveValues();
   const sectionIds = useMemo(() => extractSectionIds(text), [text]);
 
   const results = useQueries({
@@ -44,7 +46,13 @@ export function useResolveTemplate(text: string): string {
   });
   return text.replace(
     PLACEHOLDER_RE,
-    (_all, sectionId: string, fieldKey: string) =>
-      valueBySection.get(sectionId)?.get(fieldKey) ?? "",
+    (_all, sectionId: string, fieldKey: string) => {
+      // Prefer the participant's currently-typed value for a field in the
+      // active section so the preview updates on every keystroke; fall back to
+      // the saved answer (this section, or another referenced section).
+      const liveVal = live?.values[fieldKey];
+      if (liveVal !== undefined) return liveVal;
+      return valueBySection.get(sectionId)?.get(fieldKey) ?? "";
+    },
   );
 }
