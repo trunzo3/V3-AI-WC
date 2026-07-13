@@ -10,7 +10,6 @@
 
 import {
   db,
-  pool,
   cohortsTable,
   llmToolsTable,
   safariLibraryTable,
@@ -81,20 +80,15 @@ const DEFAULT_APP_SETTINGS: Array<{ key: string; value: string }> = [
 
 async function ensureSeedCohorts(): Promise<void> {
   for (const code of BASE_COHORT_CODES) {
-    const [existing] = await db
-      .select()
-      .from(cohortsTable)
-      .where(sql`lower(${cohortsTable.cohortCode}) = ${code.toLowerCase()}`)
-      .limit(1);
-    if (existing) {
-      logger.info({ cohortId: existing.id, code }, "Cohort already exists.");
-      continue;
-    }
     const setup = COHORT_SETUP[code] ?? {
       name: code,
       tierAccess: DEFAULT_TIER_ACCESS,
     };
-    const [created] = await db
+    // Insert-if-missing that is safe against concurrent boots (autoscale cold
+    // starts can run this seed in several instances at once). onConflictDoNothing
+    // makes a losing racer a no-op instead of throwing on the cohort_code unique
+    // index; the re-select below then resolves the existing row either way.
+    await db
       .insert(cohortsTable)
       .values({
         name: setup.name,
@@ -103,9 +97,14 @@ async function ensureSeedCohorts(): Promise<void> {
         facilitatorMessage: DEFAULT_FACILITATOR_MESSAGE,
         tierAccess: setup.tierAccess,
       })
-      .returning();
-    if (!created) throw new Error(`Failed to create cohort "${code}".`);
-    logger.info({ cohortId: created.id, code }, "Created cohort.");
+      .onConflictDoNothing();
+    const [existing] = await db
+      .select({ id: cohortsTable.id })
+      .from(cohortsTable)
+      .where(sql`lower(${cohortsTable.cohortCode}) = ${code.toLowerCase()}`)
+      .limit(1);
+    if (!existing) throw new Error(`Failed to ensure cohort "${code}".`);
+    logger.info({ cohortId: existing.id, code }, "Cohort ensured.");
   }
 }
 
@@ -216,7 +215,14 @@ async function ensureAppSettings(): Promise<void> {
   }
 }
 
-async function main(): Promise<void> {
+/**
+ * Idempotent, additive-only seed. Every step inserts-if-missing or upserts by a
+ * stable key and never deletes admin-configured data, so it is safe to run both
+ * as a CLI (see seed-cli.ts) and on every server startup (see index.ts). This is
+ * what keeps production self-healing: the seeded content (incl. all 13 Level 3
+ * modules) and cohort attachments are guaranteed to exist on each deploy.
+ */
+export async function runSeed(): Promise<void> {
   logger.info("Running seed...");
   await ensureSeedCohorts();
   await backfillTierAccess();
@@ -228,12 +234,3 @@ async function main(): Promise<void> {
   await ensureAppSettings();
   logger.info("Seed complete.");
 }
-
-main()
-  .catch((err) => {
-    logger.error({ err }, "Seed failed.");
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await pool.end();
-  });

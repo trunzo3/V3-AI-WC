@@ -1,18 +1,28 @@
 ---
 name: Getting seed/content DATA into the production database
-description: Why the workshop seed cannot fix a mis-seeded prod DB from the agent side, and the only supported path (Publish "overwrite data").
+description: How prod self-heals seeded content via startup seeding, plus the wholesale Publish "overwrite data" path and why the agent can't write prod directly.
 ---
 
-**Production DB rows are NOT copied by a normal Publish.** Publish diffs and applies
-SCHEMA only (see database-migrations-on-publish reference). The agent's
-`executeSql({environment:"production"})` is READ-ONLY (SELECT), and the agent must
-not script/hook/DDL around that guard. Therefore the agent has NO tool that writes
-rows to production.
+**Prod now self-heals seeded content on every boot.** `src/index.ts` awaits
+`runSeed()` (exported from `seed.ts`) inside a try/catch BEFORE `app.listen`, so each
+deploy/restart reconciles cohorts + all seeded generic sections (incl. every Level 3
+module) additively. `runSeed()` is idempotent (insert-if-missing / onConflictDoNothing
+/ additive tier_access merge) and never deletes admin/participant data; a seed failure
+is logged but does not stop the server. CLI seeding lives in `seed-cli.ts`
+(`pnpm run seed`), which is the only place that calls `pool.end()`. `ensureSeedCohorts`
+uses bare `onConflictDoNothing()` + re-select so concurrent autoscale cold-starts don't
+throw on the `cohorts_cohort_code_unique` (lower(cohort_code)) index.
+**Why:** the deploy runs `node dist/index.mjs` (never the seed script) and a plain
+Publish copies code+schema, not rows — so before startup seeding, prod never received
+the 13 Level 3 module rows and new prod cohorts got 0 Level 3.
 
-The ONLY supported way to push dev DATA into prod is the **Publish UI "Overwrite
-data with development data" option** — a user action, wholesale and destructive
-(replaces ALL prod rows, incl. participants/notes, with dev's). The agent cannot
-trigger it; guide the user to select it and warn that a plain publish won't copy rows.
+**Production DB rows are still NOT copied by a normal Publish** (schema only; see
+database-migrations-on-publish reference). The agent's
+`executeSql({environment:"production"})` is READ-ONLY (SELECT). The startup seed is the
+agent-shipped path to get *seeded content* into prod. To mirror ALL dev data (or reset
+extra cohorts/participants), the user uses the **Publish UI "Overwrite data with
+development data" option** — wholesale and destructive (replaces ALL prod rows incl.
+participants/notes). The agent cannot trigger it.
 
 **Why the seed can't surgically fix prod even conceptually:**
 - `ensureSeededGenericSections()` attaches every seeded generic module to EVERY
