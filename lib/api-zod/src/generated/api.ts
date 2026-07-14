@@ -219,7 +219,13 @@ export const ListSectionsResponse = zod.object({
                   .boolean()
                   .optional()
                   .describe(
-                    "For form blocks: when true, the assembled answers appear in a live-updating prompt box (with the copy button attached to it) instead of a bare copy button. The box updates as the participant types and skips empty fields, matching the copy output.\n",
+                    "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+                  ),
+                template: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.\n",
                   ),
                 fileId: zod
                   .number()
@@ -799,7 +805,13 @@ export const AdminListGenericSectionsResponse = zod.object({
               .boolean()
               .optional()
               .describe(
-                "For form blocks: when true, the assembled answers appear in a live-updating prompt box (with the copy button attached to it) instead of a bare copy button. The box updates as the participant types and skips empty fields, matching the copy output.\n",
+                "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+              ),
+            template: zod
+              .string()
+              .optional()
+              .describe(
+                "For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.\n",
               ),
             fileId: zod
               .number()
@@ -949,7 +961,13 @@ export const AdminCreateGenericSectionBody = zod.object({
             .boolean()
             .optional()
             .describe(
-              "For form blocks: when true, the assembled answers appear in a live-updating prompt box (with the copy button attached to it) instead of a bare copy button. The box updates as the participant types and skips empty fields, matching the copy output.\n",
+              "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+            ),
+          template: zod
+            .string()
+            .optional()
+            .describe(
+              "For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.\n",
             ),
           fileId: zod
             .number()
@@ -1106,7 +1124,13 @@ export const AdminUpdateGenericSectionBody = zod.object({
             .boolean()
             .optional()
             .describe(
-              "For form blocks: when true, the assembled answers appear in a live-updating prompt box (with the copy button attached to it) instead of a bare copy button. The box updates as the participant types and skips empty fields, matching the copy output.\n",
+              "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+            ),
+          template: zod
+            .string()
+            .optional()
+            .describe(
+              "For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.\n",
             ),
           fileId: zod
             .number()
@@ -1257,7 +1281,13 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             .boolean()
             .optional()
             .describe(
-              "For form blocks: when true, the assembled answers appear in a live-updating prompt box (with the copy button attached to it) instead of a bare copy button. The box updates as the participant types and skips empty fields, matching the copy output.\n",
+              "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+            ),
+          template: zod
+            .string()
+            .optional()
+            .describe(
+              "For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.\n",
             ),
           fileId: zod
             .number()

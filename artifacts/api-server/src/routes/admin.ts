@@ -528,6 +528,7 @@ const contentBlockSchema = z
         .min(1, "A form block must have at least one field."),
       buttonLabel: z.string(),
       copyStyle: z.enum(["labeled", "joined"]),
+      template: z.string().optional(),
     }),
     z.object({
       type: z.literal("download"),

@@ -426,25 +426,27 @@ function ImageBlock({
 }
 
 // A group of auto-saving input fields whose current answers are assembled into
-// one copyable prompt. Each child field reports its live value upward into React
-// state, so the assembled text (skipping empty fields) reflects what's currently
-// typed, not what was last saved. When `preview` is set the assembled text is
-// shown in a live preview box with the copy button attached; otherwise a single
-// centered Copy button copies the same assembled text.
+// one copyable prompt, always shown in a live preview box (with the copy button
+// attached) that fills in as the participant types. Each child field reports
+// its live value upward into React state, so the assembled text reflects
+// what's currently typed, not what was last saved. Assembly: if the admin set
+// a `template`, single-brace {fieldKey} placeholders are replaced live with
+// that field's current value (empty fields resolve to nothing, so raw braces
+// never show); with a blank template, answers assemble via `copyStyle`
+// (labeled lines or joined text) exactly as before.
 function FormBlock({
   sectionId,
   fields,
   buttonLabel,
   copyStyle,
-  preview,
+  template,
 }: {
   sectionId: string;
   fields: GenericFormField[];
   buttonLabel: string;
   copyStyle: "labeled" | "joined";
-  preview: boolean;
+  template?: string;
 }) {
-  const [copied, setCopied] = useState(false);
   // Live values, keyed by fieldKey. State (not a ref) so the assembled
   // preview re-renders as the participant types.
   const [values, setValues] = useState<Record<string, string>>({});
@@ -458,10 +460,19 @@ function FormBlock({
     [],
   );
 
-  // Assemble the answers exactly as the copy output does: skip empty fields,
-  // label each answer for "labeled", join with newlines (labeled) or spaces
-  // (joined).
   const assembled = useMemo(() => {
+    const tpl = (template ?? "").trim();
+    if (tpl.length > 0) {
+      // Replace every {token} placeholder with that field's current value.
+      // Unknown or empty fields resolve to "" so raw braces never reach the
+      // participant.
+      return tpl.replace(/\{([^{}]+)\}/g, (_match, key: string) =>
+        (values[key.trim()] ?? "").trim(),
+      );
+    }
+    // Default assembly, same as the copy output has always been: skip empty
+    // fields, label each answer for "labeled", join with newlines (labeled)
+    // or spaces (joined).
     const parts: string[] = [];
     for (const f of fields) {
       if (!f.fieldKey) continue;
@@ -470,23 +481,7 @@ function FormBlock({
       parts.push(copyStyle === "labeled" ? `${f.label}: ${v}` : v);
     }
     return copyStyle === "labeled" ? parts.join("\n") : parts.join(" ");
-  }, [fields, values, copyStyle]);
-
-  const handleCopyAll = async () => {
-    if (assembled.length === 0) return;
-    try {
-      await navigator.clipboard.writeText(assembled);
-    } catch {
-      const el = document.createElement("textarea");
-      el.value = assembled;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  }, [template, fields, values, copyStyle]);
 
   return (
     <div className="mb-6 space-y-5">
@@ -505,32 +500,19 @@ function FormBlock({
             />
           ),
       )}
-      {preview ? (
-        <div
-          className="bg-primary rounded-lg p-6 text-white"
-          data-testid="generic-prompt-block"
-        >
-          <span className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded mb-4">
-            Your prompt
-          </span>
-          <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono min-h-[1.5rem]">
-            {assembled ||
-              "Fill in the fields above and your prompt will assemble here."}
-          </pre>
-          <CopyButton text={assembled} label={buttonLabel || "Copy"} />
-        </div>
-      ) : (
-        <div className="flex justify-center pt-2">
-          <button
-            onClick={handleCopyAll}
-            className="inline-flex items-center gap-2 text-white font-semibold text-sm px-8 py-3 rounded-lg hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: "#1e293b" }}
-            data-testid={`form-copy-${sectionId}`}
-          >
-            📋 {copied ? "Copied!" : buttonLabel || "Copy"}
-          </button>
-        </div>
-      )}
+      <div
+        className="bg-primary rounded-lg p-6 text-white"
+        data-testid="generic-prompt-block"
+      >
+        <span className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded mb-4">
+          Your prompt
+        </span>
+        <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono min-h-[1.5rem]">
+          {assembled ||
+            "Fill in the fields above and your prompt will assemble here."}
+        </pre>
+        <CopyButton text={assembled} label={buttonLabel || "Copy"} />
+      </div>
     </div>
   );
 }
@@ -676,7 +658,7 @@ function GenericSectionView({
                 fields={block.fields}
                 buttonLabel={block.buttonLabel ?? ""}
                 copyStyle={block.copyStyle === "joined" ? "joined" : "labeled"}
-                preview={block.preview ?? false}
+                template={block.template}
               />
             );
           case "download":

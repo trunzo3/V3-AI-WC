@@ -51,7 +51,13 @@ export type GenericContentBlock =
       }>;
       buttonLabel: string;
       copyStyle: "labeled" | "joined";
+      // Legacy flag: form blocks now always render the live preview box.
       preview?: boolean;
+      // Optional assembly template. `{fieldKey}` placeholders (single braces)
+      // are replaced live with that field's current value; empty fields
+      // resolve to "" (no raw braces shown). Blank template falls back to the
+      // copyStyle assembly (labeled lines / joined text).
+      template?: string;
     }
   | { type: "download"; fileId: number; label?: string }
   | {

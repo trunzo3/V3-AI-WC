@@ -203,9 +203,12 @@ export interface GenericContentBlock {
   prefill?: string;
   copyStyle?: GenericContentBlockCopyStyle;
   fields?: GenericFormField[];
-  /** For form blocks: when true, the assembled answers appear in a live-updating prompt box (with the copy button attached to it) instead of a bare copy button. The box updates as the participant types and skips empty fields, matching the copy output.
+  /** Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.
    */
   preview?: boolean;
+  /** For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.
+   */
+  template?: string;
   /** For download blocks: the id of a section file (attached to the same section) that the block's button downloads. For image blocks: the id of the attached section image to display.
    */
   fileId?: number;

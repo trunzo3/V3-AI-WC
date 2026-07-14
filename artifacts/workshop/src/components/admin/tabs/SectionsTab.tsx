@@ -361,6 +361,7 @@ export function SectionsTab({ cohortId }: Props) {
       ],
       buttonLabel: "",
       copyStyle: "labeled",
+      template: "",
     },
     download: { type: "download", fileId: 0, label: "" },
     image: {
@@ -1173,6 +1174,23 @@ export function SectionsTab({ cohortId }: Props) {
                                     </SelectContent>
                                   </Select>
                                 </div>
+                              </div>
+                              <div>
+                                <Label className="text-xs">
+                                  Assembly template (optional)
+                                </Label>
+                                <Textarea
+                                  value={block.template ?? ""}
+                                  onChange={(e) =>
+                                    updateBlock(idx, { template: e.target.value })
+                                  }
+                                  placeholder={"This is {field-1} and that is {field-2}."}
+                                  rows={3}
+                                  data-testid={`input-generic-block-form-template-${idx}`}
+                                />
+                                <p className="text-[11px] text-muted-foreground mt-1">
+                                  {"Controls how answers assemble in the live preview box. Reference fields by field key in single braces, e.g. {field-1}. Empty fields resolve to nothing (no braces shown). Leave blank to assemble with the copy style above."}
+                                </p>
                               </div>
                               <div className="space-y-2">
                                 {(block.fields ?? []).map((field, fIdx) => {
