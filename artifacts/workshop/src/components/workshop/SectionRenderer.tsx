@@ -743,7 +743,12 @@ export function SectionRenderer({ section }: { section: Section }) {
 }
 
 function HardcodedSectionBody({ section }: { section: Section }) {
-  switch (section.id) {
+  // Duplicated built-in sections use alias ids like "tool-safari__copy1".
+  // They render the same hardcoded content as the base section, but notes
+  // and unlocks stay keyed to the full alias id (section.id) so each copy
+  // keeps its own participant answers.
+  const baseId = section.id.replace(/__copy\d+$/, "");
+  switch (baseId) {
     case "verification-test":
       return <VerificationTest sectionId={section.id} title={section.title} />;
     case "tool-safari":

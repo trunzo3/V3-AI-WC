@@ -50,7 +50,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X, Eye, Paperclip, ChevronRight, ChevronDown } from "lucide-react";
+import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X, Eye, Paperclip, ChevronRight, ChevronDown, Copy } from "lucide-react";
 import {
   SectionFilesDialog,
   type SectionFile,
@@ -165,6 +165,20 @@ export function SectionsTab({ cohortId }: Props) {
 
   const removeRow = (id: number) => {
     setRows((prev) => prev.filter((r) => r.id !== id));
+    setDirty(true);
+  };
+
+  // Insert a new row directly below the original within the same level,
+  // shifting later rows down by one.
+  const insertRowBelow = (orig: Row, newRow: Row) => {
+    setRows((prev) => {
+      const bumped = prev.map((r) =>
+        r.level === orig.level && r.sortOrder > orig.sortOrder
+          ? { ...r, sortOrder: r.sortOrder + 1 }
+          : r,
+      );
+      return [...bumped, { ...newRow, sortOrder: orig.sortOrder + 1 }];
+    });
     setDirty(true);
   };
 
@@ -543,6 +557,83 @@ export function SectionsTab({ cohortId }: Props) {
   const createGenMut = useAdminCreateGenericSection();
   const updateGenMut = useAdminUpdateGenericSection();
   const deleteGenMut = useAdminDeleteGenericSection();
+
+  // Duplicate a section row. Generic sections get a full content copy (a new
+  // row in the generic section library); built-in sections get an alias id
+  // ("<base>__copy<n>") that renders the same content but keeps its own
+  // display name, level, code, and participant answers. The duplicate is
+  // inserted directly below the original.
+  const duplicateRow = (r: Row) => {
+    if (r.sectionId.startsWith("generic_")) {
+      const g = generics.find((x) => `generic_${x.id}` === r.sectionId);
+      if (!g) {
+        toast({
+          title: "Duplicate failed",
+          description: "Section content is still loading — try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      createGenMut.mutate(
+        {
+          data: {
+            title: `${g.title} (copy)`,
+            contentBlocks: (g.contentBlocks ?? []) as GenericContentBlock[],
+            goalText: g.goalText ?? null,
+            sectionType: g.sectionType,
+            showNotesField: g.showNotesField,
+            badgeLabel: g.badgeLabel ?? null,
+          },
+        },
+        {
+          onSuccess: (res) => {
+            const newGen = res?.section;
+            if (!newGen) return;
+            insertRowBelow(r, {
+              id: -Date.now(),
+              cohortId,
+              sectionId: `generic_${newGen.id}`,
+              level: r.level,
+              sortOrder: r.sortOrder + 1,
+              displayName: r.displayName ? `${r.displayName} (copy)` : null,
+              visible: true,
+              code: r.code ?? null,
+              codeActive: r.codeActive,
+              title: newGen.title,
+              type: newGen.sectionType,
+            });
+            qc.invalidateQueries({
+              queryKey: getAdminListGenericSectionsQueryKey(),
+            });
+            toast({
+              title: "Section duplicated",
+              description: "Click Save to persist its position in the cohort.",
+            });
+          },
+          onError: (err) => {
+            if (isAdminAuthError(err)) return;
+            toast({ title: "Duplicate failed", variant: "destructive" });
+          },
+        },
+      );
+      return;
+    }
+    const base = r.sectionId.replace(/__copy\d+$/, "");
+    let n = 1;
+    while (rows.some((x) => x.sectionId === `${base}__copy${n}`)) n += 1;
+    insertRowBelow(r, {
+      ...r,
+      id: -Date.now(),
+      sectionId: `${base}__copy${n}`,
+      sortOrder: r.sortOrder + 1,
+      displayName: `${titleFor(r)} (copy)`,
+      visible: true,
+    });
+    toast({
+      title: "Section duplicated",
+      description: "Click Save to persist it.",
+    });
+  };
 
   const submitGeneric = () => {
     if (!genForm.title.trim()) {
@@ -1697,14 +1788,6 @@ export function SectionsTab({ cohortId }: Props) {
                           <div className="col-span-2 flex items-center gap-3 justify-end pt-3">
                             <label className="flex items-center gap-1 text-xs">
                               <Switch
-                                checked={r.visible}
-                                onCheckedChange={(v) => update(idx, { visible: v })}
-                                data-testid={`switch-visible-${r.sectionId}`}
-                              />
-                              Visible
-                            </label>
-                            <label className="flex items-center gap-1 text-xs">
-                              <Switch
                                 checked={r.codeActive}
                                 onCheckedChange={(v) => update(idx, { codeActive: v })}
                                 data-testid={`switch-codeactive-${r.sectionId}`}
@@ -1743,6 +1826,15 @@ export function SectionsTab({ cohortId }: Props) {
                                 <Pencil className="w-4 h-4" />
                               </Button>
                             )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => duplicateRow(r)}
+                              title="Duplicate section"
+                              data-testid={`button-duplicate-${r.sectionId}`}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"

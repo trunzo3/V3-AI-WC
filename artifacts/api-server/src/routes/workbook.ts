@@ -14,6 +14,7 @@ import {
   contentVariantsTable,
 } from "@workspace/db";
 import {
+  baseSectionId,
   genericSectionId,
   getHardcodedSection,
   isGenericSectionId,
@@ -330,7 +331,7 @@ function formatDate(d: Date): string {
   });
 }
 
-function labelForFieldKey(sectionId: string, fieldKey: string): string {
+function labelForFieldKey(_sectionId: string, fieldKey: string): string {
   if (fieldKey === "notes") return "Your Notes";
   // RICECO (draft-with-riceco uses "draft-<key>")
   if (fieldKey.startsWith("draft-")) {
@@ -347,7 +348,8 @@ function labelForFieldKey(sectionId: string, fieldKey: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function sortFieldKeys(sectionId: string, keys: string[]): string[] {
+function sortFieldKeys(rawSectionId: string, keys: string[]): string[] {
+  const sectionId = baseSectionId(rawSectionId);
   // Custom orderings for known sections; unknown keys retain alphabetical order
   // with "notes" forced to the end.
   if (sectionId === "draft-with-riceco") {
@@ -512,7 +514,7 @@ function renderGenericBlocks(blocks: Array<{ type: string; content?: string }>):
 // Visually distinct from the gold-bordered "Your Notes" block.
 function renderStructuredFields(sectionId: string, notes: RenderedNote[]): string {
   if (notes.length === 0) return "";
-  const isRyg = sectionId === "red-yellow-green";
+  const isRyg = baseSectionId(sectionId) === "red-yellow-green";
   return `<div class="fields-list">${notes
     .map((n) => {
       let extraClass = "";
@@ -605,14 +607,17 @@ function buildHtml(opts: {
           const genericBody = section.isGeneric
             ? renderGenericBlocks(section.generic?.contentBlocks ?? [])
             : "";
-          // Reference content (hardcoded for known sections, special-case for closing)
+          // Reference content (hardcoded for known sections, special-case for
+          // closing). Use the base id so duplicated rows (e.g.
+          // "tool-safari__copy1") render the same hardcoded content.
+          const baseId = baseSectionId(section.id);
           let referenceHtml = "";
-          if (section.id === "closing") {
+          if (baseId === "closing") {
             referenceHtml = renderClosingQuoteBlock(closingQuote, closingSubtext);
-          } else if (!section.isGeneric && SECTION_REFERENCE_CONTENT[section.id]) {
-            referenceHtml = `<div class="ref-content">${SECTION_REFERENCE_CONTENT[section.id]}</div>`;
+          } else if (!section.isGeneric && SECTION_REFERENCE_CONTENT[baseId]) {
+            referenceHtml = `<div class="ref-content">${SECTION_REFERENCE_CONTENT[baseId]}</div>`;
           }
-          const isSixWays = section.id === "six-ways-worksheet";
+          const isSixWays = baseId === "six-ways-worksheet";
           const sixWaysHtml = isSixWays ? renderSixWaysWorksheet(structuredNotes) : "";
           // Avoid an extra page break before the first section in a level
           const breakClass = idx === 0 ? "" : "section-break";
@@ -1189,7 +1194,9 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
 
     // Attach workflow map HTML to the workflow-configurator section only.
     const workflowMapHtml =
-      cs.sectionId === "workflow-configurator" ? workflowMapHtmlGlobal : "";
+      baseSectionId(cs.sectionId) === "workflow-configurator"
+        ? workflowMapHtmlGlobal
+        : "";
 
     assembled.push({ section: sectionLite, structuredNotes, freeformNote, workflowMapHtml });
   }
