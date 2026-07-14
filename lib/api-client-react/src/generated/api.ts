@@ -42,6 +42,7 @@ import type {
   AdminGenericSectionListResponse,
   AdminGenericSectionRequest,
   AdminGenericSectionResponse,
+  AdminGenericSectionUsageResponse,
   AdminListFeedbackParams,
   AdminLlmToolCreateRequest,
   AdminLlmToolListResponse,
@@ -2884,6 +2885,87 @@ export const useAdminCreateGenericSection = <
 > => {
   return useMutation(getAdminCreateGenericSectionMutationOptions(options));
 };
+
+/**
+ * @summary List every cohort attachment for every generic section
+ */
+export const getAdminListGenericSectionUsageUrl = () => {
+  return `/api/admin/generic-sections/usage`;
+};
+
+export const adminListGenericSectionUsage = async (
+  options?: RequestInit,
+): Promise<AdminGenericSectionUsageResponse> => {
+  return customFetch<AdminGenericSectionUsageResponse>(
+    getAdminListGenericSectionUsageUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminListGenericSectionUsageQueryKey = () => {
+  return [`/api/admin/generic-sections/usage`] as const;
+};
+
+export const getAdminListGenericSectionUsageQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListGenericSectionUsage>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListGenericSectionUsage>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAdminListGenericSectionUsageQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListGenericSectionUsage>>
+  > = ({ signal }) =>
+    adminListGenericSectionUsage({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListGenericSectionUsage>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListGenericSectionUsageQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListGenericSectionUsage>>
+>;
+export type AdminListGenericSectionUsageQueryError =
+  ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List every cohort attachment for every generic section
+ */
+
+export function useAdminListGenericSectionUsage<
+  TData = Awaited<ReturnType<typeof adminListGenericSectionUsage>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListGenericSectionUsage>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListGenericSectionUsageQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Update a generic section body

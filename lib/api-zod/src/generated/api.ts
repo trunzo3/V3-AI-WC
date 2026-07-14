@@ -726,6 +726,7 @@ export const AdminListGenericSectionsResponse = zod.object({
     zod.object({
       id: zod.number(),
       title: zod.string(),
+      slug: zod.string().nullish(),
       contentBlocks: zod.array(
         zod
           .object({
@@ -869,6 +870,12 @@ export const AdminListGenericSectionsResponse = zod.object({
       sectionType: zod.string(),
       showNotesField: zod.boolean().optional(),
       badgeLabel: zod.string().nullish(),
+      defaultLevel: zod
+        .number()
+        .describe("Default level grouping in the section library"),
+      archived: zod
+        .boolean()
+        .describe("Hidden from the library view but still attached to cohorts"),
       createdAt: zod.coerce.date().nullish(),
       updatedAt: zod.coerce.date().nullish(),
     }),
@@ -1026,6 +1033,16 @@ export const AdminCreateGenericSectionBody = zod.object({
   sectionType: zod.string().optional(),
   showNotesField: zod.boolean().optional(),
   badgeLabel: zod.string().nullish(),
+  defaultLevel: zod
+    .number()
+    .nullish()
+    .describe("Default level for library grouping (1-4)"),
+  archived: zod
+    .boolean()
+    .nullish()
+    .describe(
+      "Archive\/restore flag; archived sections stay attached to cohorts",
+    ),
   cohortId: zod
     .number()
     .nullish()
@@ -1033,6 +1050,20 @@ export const AdminCreateGenericSectionBody = zod.object({
       "When creating, also insert this generic section into the given cohort",
     ),
   insertAfterSortOrder: zod.number().nullish(),
+});
+
+/**
+ * @summary List every cohort attachment for every generic section
+ */
+export const AdminListGenericSectionUsageResponse = zod.object({
+  usage: zod.array(
+    zod.object({
+      genericId: zod.number(),
+      cohortId: zod.number(),
+      cohortName: zod.string(),
+      level: zod.number(),
+    }),
+  ),
 });
 
 /**
@@ -1189,6 +1220,16 @@ export const AdminUpdateGenericSectionBody = zod.object({
   sectionType: zod.string().optional(),
   showNotesField: zod.boolean().optional(),
   badgeLabel: zod.string().nullish(),
+  defaultLevel: zod
+    .number()
+    .nullish()
+    .describe("Default level for library grouping (1-4)"),
+  archived: zod
+    .boolean()
+    .nullish()
+    .describe(
+      "Archive\/restore flag; archived sections stay attached to cohorts",
+    ),
   cohortId: zod
     .number()
     .nullish()
@@ -1202,6 +1243,7 @@ export const AdminUpdateGenericSectionResponse = zod.object({
   section: zod.object({
     id: zod.number(),
     title: zod.string(),
+    slug: zod.string().nullish(),
     contentBlocks: zod.array(
       zod
         .object({
@@ -1345,6 +1387,12 @@ export const AdminUpdateGenericSectionResponse = zod.object({
     sectionType: zod.string(),
     showNotesField: zod.boolean().optional(),
     badgeLabel: zod.string().nullish(),
+    defaultLevel: zod
+      .number()
+      .describe("Default level grouping in the section library"),
+    archived: zod
+      .boolean()
+      .describe("Hidden from the library view but still attached to cohorts"),
     createdAt: zod.coerce.date().nullish(),
     updatedAt: zod.coerce.date().nullish(),
   }),

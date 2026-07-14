@@ -41,6 +41,8 @@ export * from "./adminGenericSection";
 export * from "./adminGenericSectionListResponse";
 export * from "./adminGenericSectionRequest";
 export * from "./adminGenericSectionResponse";
+export * from "./adminGenericSectionUsage";
+export * from "./adminGenericSectionUsageResponse";
 export * from "./adminListFeedbackParams";
 export * from "./adminListFeedbackSort";
 export * from "./adminLlmTool";

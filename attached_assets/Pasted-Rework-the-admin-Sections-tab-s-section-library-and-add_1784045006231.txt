@@ -1,0 +1,40 @@
+Rework the admin Sections tab's section library and add archiving. Seven related changes.
+
+═══ 1. Rename ═══
+"Generic section library" → "Section library".
+
+═══ 2. Group the library by default level, collapsible ═══
+The library is currently a flat list. Group it under collapsible headers by each section's default level — "DEFAULT LEVEL 1" through "DEFAULT LEVEL 4" — each showing a count (e.g. "DEFAULT LEVEL 3 — 13"). A section's default level is the level its seed assigns; a hand-created section uses the level it was created into. Each group collapses/expands like the cohort-sections levels already do, and remembers its state per browser across reloads.
+
+═══ 3. Per-cohort indicator on each library row ═══
+Each row reflects the cohort currently selected in the admin panel:
+  - If the current cohort already has this section: show a green tag "In this cohort".
+  - If not: show an "Add to this cohort" button that adds it to that cohort at its default level.
+
+═══ 4. Trash icon = archive-if-in-use, delete-if-not ═══
+The library's trash icon behaves based on whether the section is attached to ANY cohort:
+  - Attached to one or more cohorts: clicking trash ARCHIVES it — moves it out of the library into Archived Sections (below). It stays attached everywhere it currently is; those cohorts are unchanged. No dialog, no message — it just moves.
+  - Attached to no cohort: clicking trash permanently DELETES it, behind a type-to-confirm dialog ("Type delete to permanently remove [name]").
+
+Add an "archived" boolean to generic sections (default false) to drive this. Archived sections are hidden from the Section library list but remain fully attached and functional in every cohort that has them — archiving only affects the working library view.
+
+═══ 5. Archived Sections area ═══
+Add a collapsible "Archived Sections" section directly below the Section library, listing archived sections. Each row has:
+  - the section name and slug/type
+  - a "Where it's used" button (see 6)
+  - a "Restore" action that moves it back into the library (it was never detached from any cohort)
+  - a permanent-delete trash behind the same type-to-confirm dialog
+
+═══ 6. "Where it's used" panel ═══
+"Where it's used" opens inline, directly beneath that row. It shows a header count ("Attached to N cohorts") and a list of every cohort the section is attached to, each line showing the cohort name and the level it sits at there. Cap the panel's height at roughly five rows and scroll internally beyond that, so it never pushes the rest of the page around regardless of cohort count. This reads from the existing cohort_sections data — every (cohort, section, level) pairing is already stored; just query it by section id.
+
+═══ 7. In-section remove confirmation ═══
+Within a cohort's level list, the control that removes a section from that level (the X / remove) gets a quick confirm — "Remove from this level?" with a yes to proceed. This removes it only from that level in that cohort; it does not delete or archive the section or touch the library.
+
+═══ Confirm ═══
+- Library titled "Section library", grouped into collapsible default-level headers with counts, surviving a refresh.
+- Each row shows "In this cohort" or "Add to this cohort" based on the selected cohort.
+- Trashing an in-use section moves it to Archived Sections with no dialog; trashing an unused section requires typing "delete".
+- Archived Sections lists archived sections; each has Restore, permanent-delete (type-to-confirm), and "Where it's used".
+- "Where it's used" opens inline, lists cohort + level, caps height and scrolls internally.
+- Removing a section from a level asks "Remove from this level?" first.

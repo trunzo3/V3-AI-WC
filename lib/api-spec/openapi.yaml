@@ -562,6 +562,20 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
+  /admin/generic-sections/usage:
+    get:
+      operationId: adminListGenericSectionUsage
+      tags: [admin-sections]
+      summary: List every cohort attachment for every generic section
+      responses:
+        "200":
+          description: Usage rows (one per cohort attachment)
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminGenericSectionUsageResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /admin/generic-sections/{id}:
     parameters:
       - $ref: "#/components/parameters/IntegerId"
@@ -1644,10 +1658,13 @@ components:
 
     AdminGenericSection:
       type: object
-      required: [id, title, contentBlocks, sectionType]
+      required: [id, title, contentBlocks, sectionType, defaultLevel, archived]
       properties:
         id: { type: integer }
         title: { type: string }
+        slug:
+          type: string
+          nullable: true
         contentBlocks:
           type: array
           items: { $ref: "#/components/schemas/GenericContentBlock" }
@@ -1659,6 +1676,12 @@ components:
         badgeLabel:
           type: string
           nullable: true
+        defaultLevel:
+          type: integer
+          description: Default level grouping in the section library
+        archived:
+          type: boolean
+          description: Hidden from the library view but still attached to cohorts
         createdAt:
           type: string
           format: date-time
@@ -1667,6 +1690,23 @@ components:
           type: string
           format: date-time
           nullable: true
+
+    AdminGenericSectionUsage:
+      type: object
+      required: [genericId, cohortId, cohortName, level]
+      properties:
+        genericId: { type: integer }
+        cohortId: { type: integer }
+        cohortName: { type: string }
+        level: { type: integer }
+
+    AdminGenericSectionUsageResponse:
+      type: object
+      required: [usage]
+      properties:
+        usage:
+          type: array
+          items: { $ref: "#/components/schemas/AdminGenericSectionUsage" }
 
     AdminGenericSectionListResponse:
       type: object
@@ -1698,6 +1738,14 @@ components:
         badgeLabel:
           type: string
           nullable: true
+        defaultLevel:
+          type: integer
+          nullable: true
+          description: Default level for library grouping (1-4)
+        archived:
+          type: boolean
+          nullable: true
+          description: Archive/restore flag; archived sections stay attached to cohorts
         cohortId:
           type: integer
           nullable: true

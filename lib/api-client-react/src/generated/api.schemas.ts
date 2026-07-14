@@ -516,13 +516,29 @@ export interface AdminVariantUpsertResponse {
 export interface AdminGenericSection {
   id: number;
   title: string;
+  slug?: string | null;
   contentBlocks: GenericContentBlock[];
   goalText?: string | null;
   sectionType: string;
   showNotesField?: boolean;
   badgeLabel?: string | null;
+  /** Default level grouping in the section library */
+  defaultLevel: number;
+  /** Hidden from the library view but still attached to cohorts */
+  archived: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
+}
+
+export interface AdminGenericSectionUsage {
+  genericId: number;
+  cohortId: number;
+  cohortName: string;
+  level: number;
+}
+
+export interface AdminGenericSectionUsageResponse {
+  usage: AdminGenericSectionUsage[];
 }
 
 export interface AdminGenericSectionListResponse {
@@ -541,6 +557,10 @@ export interface AdminGenericSectionRequest {
   sectionType?: string;
   showNotesField?: boolean;
   badgeLabel?: string | null;
+  /** Default level for library grouping (1-4) */
+  defaultLevel?: number | null;
+  /** Archive/restore flag; archived sections stay attached to cohorts */
+  archived?: boolean | null;
   /** When creating, also insert this generic section into the given cohort */
   cohortId?: number | null;
   insertAfterSortOrder?: number | null;

@@ -8,8 +8,10 @@ import {
   useAdminUpdateGenericSection,
   useAdminDeleteGenericSection,
   useAdminUnlockAllForCohort,
+  useAdminListGenericSectionUsage,
   getAdminListCohortSectionsQueryKey,
   getAdminListGenericSectionsQueryKey,
+  getAdminListGenericSectionUsageQueryKey,
   type AdminCohortSection,
   type AdminGenericSection,
   type GenericContentBlock,
@@ -50,7 +52,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X, Eye, Paperclip, ChevronRight, ChevronDown, Copy } from "lucide-react";
+import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X, Eye, Paperclip, ChevronRight, ChevronDown, Copy, RotateCcw, MapPin } from "lucide-react";
 import {
   SectionFilesDialog,
   type SectionFile,
@@ -66,6 +68,10 @@ type Row = AdminCohortSection & { __title?: string };
 // admin Sections tab. Admin app is not a sandboxed artifact, so localStorage
 // is appropriate here.
 const LEVEL_COLLAPSE_KEY = "admin-sections-collapsed-levels";
+// Same idea for the Section library's default-level groups and the Archived
+// Sections area.
+const LIBRARY_COLLAPSE_KEY = "admin-library-collapsed-levels";
+const ARCHIVED_COLLAPSE_KEY = "admin-archived-collapsed";
 
 function titleFor(row: AdminCohortSection): string {
   if (row.displayName) return row.displayName;
@@ -113,6 +119,93 @@ export function SectionsTab({ cohortId }: Props) {
   }, [sectionsQ.data]);
 
   const generics = genericsQ.data?.sections ?? [];
+
+  // ---- Section library state ----
+  const usageQ = useAdminListGenericSectionUsage();
+  // genericId -> every (cohort, level) attachment across all cohorts.
+  const usageByGeneric = useMemo(() => {
+    const m = new Map<
+      number,
+      Array<{ cohortId: number; cohortName: string; level: number }>
+    >();
+    for (const u of usageQ.data?.usage ?? []) {
+      const list = m.get(u.genericId) ?? [];
+      list.push({
+        cohortId: u.cohortId,
+        cohortName: u.cohortName,
+        level: u.level,
+      });
+      m.set(u.genericId, list);
+    }
+    return m;
+  }, [usageQ.data]);
+
+  const activeLibrary = useMemo(
+    () => generics.filter((g) => !g.archived),
+    [generics],
+  );
+  const archivedLibrary = useMemo(
+    () => generics.filter((g) => g.archived),
+    [generics],
+  );
+  const libraryByLevel = useMemo(() => {
+    const m: Record<number, AdminGenericSection[]> = { 1: [], 2: [], 3: [], 4: [] };
+    for (const g of activeLibrary) {
+      const lvl = g.defaultLevel >= 1 && g.defaultLevel <= 4 ? g.defaultLevel : 3;
+      m[lvl]!.push(g);
+    }
+    for (const k of Object.keys(m))
+      m[Number(k)]!.sort((a, b) => a.title.localeCompare(b.title));
+    return m;
+  }, [activeLibrary]);
+
+  // Collapsed state for the library's default-level groups (persisted).
+  const [collapsedLibLevels, setCollapsedLibLevels] = useState<
+    Record<number, boolean>
+  >(() => {
+    try {
+      const raw = localStorage.getItem(LIBRARY_COLLAPSE_KEY);
+      return raw ? (JSON.parse(raw) as Record<number, boolean>) : {};
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        LIBRARY_COLLAPSE_KEY,
+        JSON.stringify(collapsedLibLevels),
+      );
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [collapsedLibLevels]);
+  const toggleLibLevel = (lvl: number) =>
+    setCollapsedLibLevels((prev) => ({ ...prev, [lvl]: !prev[lvl] }));
+
+  const [archivedCollapsed, setArchivedCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(ARCHIVED_COLLAPSE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(ARCHIVED_COLLAPSE_KEY, String(archivedCollapsed));
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [archivedCollapsed]);
+
+  // Which archived row has its "Where it's used" panel open.
+  const [whereOpenFor, setWhereOpenFor] = useState<number | null>(null);
+
+  // Type-to-confirm permanent delete target + typed text.
+  const [confirmDeleteFor, setConfirmDeleteFor] =
+    useState<AdminGenericSection | null>(null);
+  const [confirmDeleteText, setConfirmDeleteText] = useState("");
+
   const grouped = useMemo(() => {
     const m: Record<number, Row[]> = { 1: [], 2: [], 3: [], 4: [] };
     for (const r of rows) (m[r.level] ??= []).push(r);
@@ -200,6 +293,11 @@ export function SectionsTab({ cohortId }: Props) {
       {
         onSuccess: () => {
           toast({ title: "Section list saved" });
+          // Attachments changed server-side, so refresh usage too — the
+          // library trash uses it to decide archive vs permanent delete.
+          qc.invalidateQueries({
+            queryKey: getAdminListGenericSectionUsageQueryKey(),
+          });
           qc.invalidateQueries({
             queryKey: getAdminListCohortSectionsQueryKey(cohortId),
           });
@@ -583,6 +681,7 @@ export function SectionsTab({ cohortId }: Props) {
             sectionType: g.sectionType,
             showNotesField: g.showNotesField,
             badgeLabel: g.badgeLabel ?? null,
+            defaultLevel: r.level,
           },
         },
         {
@@ -670,7 +769,7 @@ export function SectionsTab({ cohortId }: Props) {
       );
     } else {
       createGenMut.mutate(
-        { data: payload },
+        { data: { ...payload, defaultLevel: genForm.targetLevel } },
         {
           onSuccess: (res) => {
             const newGen = res?.section;
@@ -718,12 +817,15 @@ export function SectionsTab({ cohortId }: Props) {
       { id: g.id },
       {
         onSuccess: () => {
-          toast({ title: "Generic section deleted" });
+          toast({ title: "Section permanently deleted" });
           qc.invalidateQueries({
             queryKey: getAdminListGenericSectionsQueryKey(),
           });
           qc.invalidateQueries({
             queryKey: getAdminListCohortSectionsQueryKey(cohortId),
+          });
+          qc.invalidateQueries({
+            queryKey: getAdminListGenericSectionUsageQueryKey(),
           });
         },
         onError: (err) => {
@@ -732,6 +834,42 @@ export function SectionsTab({ cohortId }: Props) {
         },
       },
     );
+  };
+
+  // Archive (hide from library, keep every cohort attachment) or restore.
+  const setArchived = (g: AdminGenericSection, archived: boolean) => {
+    updateGenMut.mutate(
+      { id: g.id, data: { title: g.title, archived } },
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({
+            queryKey: getAdminListGenericSectionsQueryKey(),
+          });
+          if (!archived) {
+            toast({ title: "Section restored to library" });
+          }
+        },
+        onError: (err) => {
+          if (isAdminAuthError(err)) return;
+          toast({
+            title: archived ? "Archive failed" : "Restore failed",
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  // The library trash: archive when the section is attached to any cohort,
+  // otherwise ask for a type-to-confirm permanent delete.
+  const trashGeneric = (g: AdminGenericSection) => {
+    const inUse = (usageByGeneric.get(g.id)?.length ?? 0) > 0;
+    if (inUse) {
+      setArchived(g, true);
+    } else {
+      setConfirmDeleteText("");
+      setConfirmDeleteFor(g);
+    }
   };
 
   return (
@@ -1835,14 +1973,38 @@ export function SectionsTab({ cohortId }: Props) {
                             >
                               <Copy className="w-4 h-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeRow(r.id)}
-                              data-testid={`button-remove-${r.sectionId}`}
-                            >
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  data-testid={`button-remove-${r.sectionId}`}
+                                >
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Remove from this level?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    "{title}" will be removed from Level{" "}
+                                    {r.level} in this cohort only. The section
+                                    itself is not deleted.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => removeRow(r.id)}
+                                    data-testid={`button-confirm-remove-${r.sectionId}`}
+                                  >
+                                    Yes, remove
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </div>
                       );
@@ -1859,104 +2021,285 @@ export function SectionsTab({ cohortId }: Props) {
       {generics.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Generic section library</CardTitle>
+            <CardTitle className="text-base">Section library</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {generics.map((g) => {
-                const sectionId = `generic_${g.id}`;
-                const alreadyInCohort = rows.some(
-                  (r) => r.sectionId === sectionId,
-                );
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((lvl) => {
+                const group = libraryByLevel[lvl] ?? [];
+                if (group.length === 0) return null;
+                const collapsed = Boolean(collapsedLibLevels[lvl]);
                 return (
-                  <div
-                    key={g.id}
-                    className="flex items-center justify-between p-2 border rounded-md"
-                    data-testid={`generic-library-row-${g.id}`}
-                  >
-                    <div className="min-w-0">
-                      <div className="font-medium">{g.title}</div>
-                      <div className="text-xs text-muted-foreground font-mono">
-                        generic_{g.id} · {g.sectionType}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setViewingGeneric(g)}
-                        data-testid={`button-view-generic-${g.id}`}
-                      >
-                        <Eye className="w-4 h-4 mr-1.5" />
-                        View
-                      </Button>
-                      {alreadyInCohort ? (
-                        <Badge
-                          variant="secondary"
-                          className="text-xs"
-                          data-testid={`badge-already-added-${g.id}`}
-                        >
-                          Already added
-                        </Badge>
+                  <div key={lvl}>
+                    <button
+                      type="button"
+                      className="w-full flex items-center gap-2 py-1.5 text-left"
+                      onClick={() => toggleLibLevel(lvl)}
+                      aria-expanded={!collapsed}
+                      data-testid={`library-level-toggle-${lvl}`}
+                    >
+                      {collapsed ? (
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       ) : (
-                        <Select
-                          value=""
-                          onValueChange={(v) =>
-                            addGenericToLevel(g, Number(v))
-                          }
-                        >
-                          <SelectTrigger
-                            className="w-[150px] h-9"
-                            data-testid={`select-add-to-level-${g.id}`}
-                          >
-                            <SelectValue placeholder="Add to level…" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">Level 1</SelectItem>
-                            <SelectItem value="2">Level 2</SelectItem>
-                            <SelectItem value="3">Level 3</SelectItem>
-                            <SelectItem value="4">Level 4</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
                       )}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            data-testid={`button-delete-generic-${g.id}`}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Delete generic section?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will remove "{g.title}" from every cohort
-                              that uses it. This cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteGeneric(g)}
+                      <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                        Default Level {lvl} — {group.length}
+                      </span>
+                    </button>
+                    {!collapsed && (
+                      <div className="space-y-2 mt-1">
+                        {group.map((g) => {
+                          const sectionId = `generic_${g.id}`;
+                          const alreadyInCohort = rows.some(
+                            (r) => r.sectionId === sectionId,
+                          );
+                          return (
+                            <div
+                              key={g.id}
+                              className="flex items-center justify-between p-2 border rounded-md"
+                              data-testid={`generic-library-row-${g.id}`}
                             >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                              <div className="min-w-0">
+                                <div className="font-medium">{g.title}</div>
+                                <div className="text-xs text-muted-foreground font-mono">
+                                  generic_{g.id}
+                                  {g.slug ? ` · ${g.slug}` : ""} ·{" "}
+                                  {g.sectionType}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setViewingGeneric(g)}
+                                  data-testid={`button-view-generic-${g.id}`}
+                                >
+                                  <Eye className="w-4 h-4 mr-1.5" />
+                                  View
+                                </Button>
+                                {alreadyInCohort ? (
+                                  <Badge
+                                    className="text-xs bg-green-100 text-green-800 border border-green-300 hover:bg-green-100"
+                                    data-testid={`badge-in-cohort-${g.id}`}
+                                  >
+                                    In this cohort
+                                  </Badge>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      addGenericToLevel(g, g.defaultLevel)
+                                    }
+                                    data-testid={`button-add-to-cohort-${g.id}`}
+                                  >
+                                    <Plus className="w-4 h-4 mr-1.5" />
+                                    Add to this cohort
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => trashGeneric(g)}
+                                  title={
+                                    (usageByGeneric.get(g.id)?.length ?? 0) > 0
+                                      ? "Archive (in use by cohorts)"
+                                      : "Delete permanently"
+                                  }
+                                  data-testid={`button-delete-generic-${g.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
+              {activeLibrary.length === 0 && (
+                <div className="text-sm text-muted-foreground italic">
+                  No sections in the library.
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
+
+      {archivedLibrary.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <button
+              type="button"
+              className="w-full flex items-center gap-2 text-left"
+              onClick={() => setArchivedCollapsed((v) => !v)}
+              aria-expanded={!archivedCollapsed}
+              data-testid="archived-sections-toggle"
+            >
+              {archivedCollapsed ? (
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+              <CardTitle className="text-base">
+                Archived Sections — {archivedLibrary.length}
+              </CardTitle>
+            </button>
+          </CardHeader>
+          {!archivedCollapsed && (
+            <CardContent>
+              <div className="space-y-2">
+                {archivedLibrary.map((g) => {
+                  const usage = usageByGeneric.get(g.id) ?? [];
+                  const whereOpen = whereOpenFor === g.id;
+                  return (
+                    <div key={g.id}>
+                      <div
+                        className="flex items-center justify-between p-2 border rounded-md"
+                        data-testid={`archived-row-${g.id}`}
+                      >
+                        <div className="min-w-0">
+                          <div className="font-medium">{g.title}</div>
+                          <div className="text-xs text-muted-foreground font-mono">
+                            generic_{g.id}
+                            {g.slug ? ` · ${g.slug}` : ""} · {g.sectionType}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setWhereOpenFor(whereOpen ? null : g.id)
+                            }
+                            data-testid={`button-where-used-${g.id}`}
+                          >
+                            <MapPin className="w-4 h-4 mr-1.5" />
+                            Where it's used
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setArchived(g, false)}
+                            data-testid={`button-restore-generic-${g.id}`}
+                          >
+                            <RotateCcw className="w-4 h-4 mr-1.5" />
+                            Restore
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setConfirmDeleteText("");
+                              setConfirmDeleteFor(g);
+                            }}
+                            title="Delete permanently"
+                            data-testid={`button-delete-archived-${g.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                      {whereOpen && (
+                        <div
+                          className="mt-1 ml-4 border rounded-md p-3 bg-muted/30"
+                          data-testid={`panel-where-used-${g.id}`}
+                        >
+                          <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                            Attached to {usage.length}{" "}
+                            {usage.length === 1 ? "cohort" : "cohorts"}
+                          </div>
+                          {usage.length === 0 ? (
+                            <div className="text-sm text-muted-foreground italic">
+                              Not attached to any cohort.
+                            </div>
+                          ) : (
+                            <div className="max-h-40 overflow-y-auto space-y-1">
+                              {usage.map((u, i) => (
+                                <div
+                                  key={`${u.cohortId}-${i}`}
+                                  className="text-sm flex items-center justify-between gap-2 pr-1"
+                                >
+                                  <span className="truncate">
+                                    {u.cohortName}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                    Level {u.level}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
+      {/* Type-to-confirm permanent delete (only offered for sections not
+          attached to any cohort, or from the Archived Sections area). */}
+      <Dialog
+        open={confirmDeleteFor !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDeleteFor(null);
+            setConfirmDeleteText("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Permanently delete section?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Type <span className="font-mono font-bold">delete</span> to
+              permanently remove "{confirmDeleteFor?.title}". This also
+              removes it from any cohort that still has it and cannot be
+              undone.
+            </p>
+            <Input
+              value={confirmDeleteText}
+              onChange={(e) => setConfirmDeleteText(e.target.value)}
+              placeholder="delete"
+              data-testid="input-confirm-delete"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setConfirmDeleteFor(null);
+                setConfirmDeleteText("");
+              }}
+              data-testid="button-cancel-confirm-delete"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={confirmDeleteText.trim().toLowerCase() !== "delete"}
+              onClick={() => {
+                if (confirmDeleteFor) deleteGeneric(confirmDeleteFor);
+                setConfirmDeleteFor(null);
+                setConfirmDeleteText("");
+              }}
+              data-testid="button-confirm-delete"
+            >
+              Delete permanently
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Read-only preview dialog. Editing happens from the main section
           list (each level row has its own Edit pencil), so this is just a

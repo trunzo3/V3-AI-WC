@@ -686,6 +686,7 @@ export async function ensureSeededGenericSections(): Promise<void> {
         sectionType: m.sectionType ?? "exercise",
         goalText: m.goalText ?? null,
         contentBlocks: m.contentBlocks,
+        defaultLevel: m.level,
       })
       .onConflictDoUpdate({
         target: genericSectionsTable.slug,
@@ -696,6 +697,7 @@ export async function ensureSeededGenericSections(): Promise<void> {
           sectionType: m.sectionType ?? "exercise",
           goalText: m.goalText ?? null,
           contentBlocks: m.contentBlocks,
+          defaultLevel: m.level,
           updatedAt: new Date(),
         },
       })

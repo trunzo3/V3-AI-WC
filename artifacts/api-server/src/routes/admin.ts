@@ -629,6 +629,8 @@ const genericCreateSchema = z.object({
   sectionType: z.enum(["exercise", "reference"]).default("exercise"),
   showNotesField: z.boolean().default(true),
   badgeLabel: z.string().trim().nullish(),
+  defaultLevel: z.number().int().min(1).max(4).nullish(),
+  archived: z.boolean().nullish(),
 });
 
 router.get("/admin/generic-sections", requireAdmin, async (_req, res) => {
@@ -660,10 +662,47 @@ router.post("/admin/generic-sections", requireAdmin, async (req, res) => {
       sectionType: parsed.data.sectionType,
       showNotesField: parsed.data.showNotesField,
       badgeLabel: parsed.data.badgeLabel ?? null,
+      defaultLevel: parsed.data.defaultLevel ?? 3,
+      archived: parsed.data.archived ?? false,
     })
     .returning();
   res.status(201).json({ section: created });
 });
+
+// All cohort attachments for every generic section (drives the library's
+// "in use" checks and the "Where it's used" panel).
+router.get(
+  "/admin/generic-sections/usage",
+  requireAdmin,
+  async (_req, res) => {
+    const rows = await db
+      .select({
+        sectionId: cohortSectionsTable.sectionId,
+        cohortId: cohortSectionsTable.cohortId,
+        level: cohortSectionsTable.level,
+        cohortName: cohortsTable.name,
+      })
+      .from(cohortSectionsTable)
+      .innerJoin(
+        cohortsTable,
+        eq(cohortSectionsTable.cohortId, cohortsTable.id),
+      );
+    const usage = rows.flatMap((r) => {
+      const m = /^generic_(\d+)$/.exec(r.sectionId);
+      if (!m) return [];
+      return [
+        {
+          genericId: Number(m[1]),
+          cohortId: r.cohortId,
+          cohortName: r.cohortName,
+          level: r.level,
+        },
+      ];
+    });
+    res.set("Cache-Control", "no-store");
+    res.json({ usage });
+  },
+);
 
 const genericUpdateSchema = genericCreateSchema.partial();
 
@@ -685,9 +724,17 @@ router.put("/admin/generic-sections/:id", requireAdmin, async (req, res) => {
       return;
     }
   }
+  // defaultLevel / archived are NOT NULL columns; strip explicit nulls so a
+  // partial payload can't blank them.
+  const { defaultLevel, archived, ...rest } = parsed.data;
   const [updated] = await db
     .update(genericSectionsTable)
-    .set({ ...parsed.data, updatedAt: new Date() })
+    .set({
+      ...rest,
+      ...(defaultLevel != null ? { defaultLevel } : {}),
+      ...(archived != null ? { archived } : {}),
+      updatedAt: new Date(),
+    })
     .where(eq(genericSectionsTable.id, id))
     .returning();
   if (!updated) {

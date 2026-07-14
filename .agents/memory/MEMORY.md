@@ -7,4 +7,5 @@
 - [Restart Vite after codegen](monorepo-codegen-build-boundaries.md) — orval codegen breaks the running workshop Vite server mid-HMR; restart the workshop workflow before UI testing.
 - [Workshop e2e routing](workshop-e2e-routing.md) — browser tests must use localhost:80 (shared proxy); admin is at /admin/login, /workshop is a wouter route not a base path.
 - [API server hot-reload](api-server-reload.md) — dev server doesn't reliably pick up edits; restart the workflow after server-side changes or new zod fields get silently stripped.
+- [runTest sandbox timeouts](runtest-timeouts.md) — browser e2e runTest can exceed the 600s notebook cap; keep plans tiny and fall back to curl/psql verification.
 - [DB schema change workflow](db-schema-change-workflow.md) — after editing lib/db schema: `tsc -b lib/db` (stale composite types) + apply DDL via psql (drizzle push prompts interactively and silently no-ops non-TTY).

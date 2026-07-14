@@ -5,6 +5,7 @@ import {
   timestamp,
   jsonb,
   boolean,
+  integer,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -91,6 +92,14 @@ export const genericSectionsTable = pgTable("generic_sections", {
   sectionType: text("section_type").notNull().default("exercise"),
   showNotesField: boolean("show_notes_field").notNull().default(true),
   badgeLabel: text("badge_label"),
+  // The level this section "belongs" to by default: seeded modules use the
+  // level their seed assigns; hand-created sections use the level they were
+  // created into. Drives the library's default-level grouping and the
+  // "Add to this cohort" placement.
+  defaultLevel: integer("default_level").notNull().default(3),
+  // Archived sections are hidden from the working library view but stay
+  // attached and functional in every cohort that has them.
+  archived: boolean("archived").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
