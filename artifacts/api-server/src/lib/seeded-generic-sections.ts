@@ -664,11 +664,15 @@ export async function attachSeededGenericSectionsToCohort(
 }
 
 /**
- * Idempotent: upsert each module into generic_sections by slug (rerunning
- * restores seeded content in place — exactly one row per slug), then ensure a
- * cohort_sections attachment exists in EVERY cohort in the database. The
- * attachment is insert-only (onConflictDoNothing) so admin changes to
- * placement, code, or visibility are preserved.
+ * Idempotent AND insert-only for content: each module is inserted into
+ * generic_sections by slug only if it does not already exist. Existing rows
+ * are NEVER overwritten — the seed runs on every server startup (including
+ * production cold starts), and overwriting by slug was silently reverting
+ * admin-customized module content back to the shipped defaults. Admin edits
+ * always win over repo content. Then a cohort_sections attachment is ensured
+ * in EVERY cohort in the database; the attachment is also insert-only
+ * (onConflictDoNothing) so admin changes to placement, code, or visibility
+ * are preserved.
  */
 export async function ensureSeededGenericSections(): Promise<void> {
   const targetCohorts = await db
@@ -676,7 +680,7 @@ export async function ensureSeededGenericSections(): Promise<void> {
     .from(cohortsTable);
 
   for (const m of SEEDED_GENERIC_MODULES) {
-    const [row] = await db
+    let [row] = await db
       .insert(genericSectionsTable)
       .values({
         slug: m.slug,
@@ -688,21 +692,18 @@ export async function ensureSeededGenericSections(): Promise<void> {
         contentBlocks: m.contentBlocks,
         defaultLevel: m.level,
       })
-      .onConflictDoUpdate({
-        target: genericSectionsTable.slug,
-        set: {
-          title: m.title,
-          badgeLabel: m.badgeLabel,
-          showNotesField: m.showNotesField,
-          sectionType: m.sectionType ?? "exercise",
-          goalText: m.goalText ?? null,
-          contentBlocks: m.contentBlocks,
-          defaultLevel: m.level,
-          updatedAt: new Date(),
-        },
-      })
+      .onConflictDoNothing({ target: genericSectionsTable.slug })
       .returning({ id: genericSectionsTable.id });
-    if (!row) throw new Error(`Failed to upsert seeded module "${m.slug}".`);
+    if (!row) {
+      // Row already exists (possibly admin-edited) — leave it untouched and
+      // just resolve its id for the attachment step below.
+      [row] = await db
+        .select({ id: genericSectionsTable.id })
+        .from(genericSectionsTable)
+        .where(eq(genericSectionsTable.slug, m.slug))
+        .limit(1);
+    }
+    if (!row) throw new Error(`Failed to ensure seeded module "${m.slug}".`);
 
     for (const cohort of targetCohorts) {
       await db
