@@ -7,6 +7,7 @@ import {
   cohortSectionsTable,
   contentVariantsTable,
   genericSectionsTable,
+  seededSectionRemovalsTable,
   llmToolsTable,
   safariLibraryTable,
   cohortSafariTabsTable,
@@ -329,6 +330,30 @@ router.put(
             codeActive: row.codeActive,
           })),
         );
+      }
+      // Sync seeded-module tombstones: any seeded (slugged) generic module NOT
+      // in the saved list was deliberately removed by the admin, so record it —
+      // the startup seed heals missing attachments except tombstoned ones.
+      // Re-adding a module clears its tombstone (full resync below).
+      const seeded = await tx
+        .select({
+          id: genericSectionsTable.id,
+          slug: genericSectionsTable.slug,
+        })
+        .from(genericSectionsTable)
+        .where(sql`${genericSectionsTable.slug} IS NOT NULL`);
+      const savedIds = new Set(parsed.data.map((row) => row.sectionId));
+      const removedSlugs = seeded
+        .filter((s) => s.slug && !savedIds.has(`generic_${s.id}`))
+        .map((s) => s.slug!);
+      await tx
+        .delete(seededSectionRemovalsTable)
+        .where(eq(seededSectionRemovalsTable.cohortId, cohortId));
+      if (removedSlugs.length > 0) {
+        await tx
+          .insert(seededSectionRemovalsTable)
+          .values(removedSlugs.map((slug) => ({ cohortId, slug })))
+          .onConflictDoNothing();
       }
     });
     res.set("Cache-Control", "no-store");

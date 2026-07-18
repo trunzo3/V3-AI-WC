@@ -4,6 +4,7 @@ import {
   genericSectionsTable,
   cohortSectionsTable,
   cohortsTable,
+  seededSectionRemovalsTable,
   type GenericContentBlock,
 } from "@workspace/db";
 import { genericSectionId } from "./sections";
@@ -12,11 +13,13 @@ import { logger } from "./logger";
 /**
  * Seeded generic-section modules ship with the repo and are keyed by a
  * stable, author-defined slug — never by the auto-incrementing row id, which
- * shifts across databases and reseeds. Reseeding upserts each module by slug
- * (restoring seeded content in place, no duplicates) and ensures a
- * cohort_sections row exists in the default cohort at the module's level,
- * locked behind the module's code. Existing cohort_sections rows are never
- * modified, so admin-configured placement/codes survive reseeds.
+ * shifts across databases and reseeds. Reseeding inserts each module by slug
+ * only if missing (existing content rows are never overwritten) and ensures a
+ * cohort_sections row exists in every cohort at the module's level, locked
+ * behind the module's code — except (cohort, slug) pairs the admin removed,
+ * which are tombstoned in seeded_section_removals. Existing cohort_sections
+ * rows are never modified, so admin-configured placement/codes survive
+ * reseeds.
  *
  * Cross-module prefill placeholders should reference modules by slug
  * ({{prompt-2:org-website}}), which keeps working regardless of numeric ids.
@@ -669,15 +672,33 @@ export async function attachSeededGenericSectionsToCohort(
  * are NEVER overwritten — the seed runs on every server startup (including
  * production cold starts), and overwriting by slug was silently reverting
  * admin-customized module content back to the shipped defaults. Admin edits
- * always win over repo content. Then a cohort_sections attachment is ensured
- * in EVERY cohort in the database; the attachment is also insert-only
- * (onConflictDoNothing) so admin changes to placement, code, or visibility
- * are preserved.
+ * always win over repo content.
+ *
+ * Attachments self-heal with respect for deletions: a cohort_sections row is
+ * ensured in every cohort EXCEPT (cohort, slug) pairs tombstoned in
+ * seeded_section_removals (written by the admin bulk section save when a
+ * seeded module is removed). Attachments are insert-only
+ * (onConflictDoNothing) so admin placement/code/visibility are preserved.
  */
 export async function ensureSeededGenericSections(): Promise<void> {
   const targetCohorts = await db
     .select({ code: cohortsTable.cohortCode, id: cohortsTable.id })
     .from(cohortsTable);
+
+  // "cohortId:slug" pairs the admin deliberately removed — never re-attach.
+  // Self-provision the tombstone table so environments whose schema hasn't
+  // been synced yet (e.g. production right after a deploy) don't crash here.
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS seeded_section_removals (
+      cohort_id integer NOT NULL REFERENCES cohorts(id) ON DELETE CASCADE,
+      slug text NOT NULL,
+      PRIMARY KEY (cohort_id, slug)
+    )
+  `);
+  const removalRows = await db.select().from(seededSectionRemovalsTable);
+  const tombstones = new Set(
+    removalRows.map((r) => `${r.cohortId}:${r.slug}`),
+  );
 
   for (const m of SEEDED_GENERIC_MODULES) {
     let [row] = await db
@@ -694,6 +715,7 @@ export async function ensureSeededGenericSections(): Promise<void> {
       })
       .onConflictDoNothing({ target: genericSectionsTable.slug })
       .returning({ id: genericSectionsTable.id });
+    const newlyCreated = Boolean(row);
     if (!row) {
       // Row already exists (possibly admin-edited) — leave it untouched and
       // just resolve its id for the attachment step below.
@@ -705,7 +727,14 @@ export async function ensureSeededGenericSections(): Promise<void> {
     }
     if (!row) throw new Error(`Failed to ensure seeded module "${m.slug}".`);
 
+    // Heal missing (cohort, module) attachments — but skip any the admin
+    // deliberately removed. Removals are recorded as tombstones in
+    // seeded_section_removals by the admin bulk section save; without this
+    // check, every server startup would force deleted sections back into
+    // cohorts. onConflictDoNothing keeps admin-configured placement/code/
+    // visibility intact for attachments that already exist.
     for (const cohort of targetCohorts) {
+      if (!newlyCreated && tombstones.has(`${cohort.id}:${m.slug}`)) continue;
       await db
         .insert(cohortSectionsTable)
         .values({
@@ -721,14 +750,16 @@ export async function ensureSeededGenericSections(): Promise<void> {
         .onConflictDoNothing();
     }
 
-    logger.info(
-      {
-        slug: m.slug,
-        sectionId: genericSectionId(row.id),
-        level: m.level,
-        cohorts: targetCohorts.map((c) => c.code),
-      },
-      "Seeded generic module.",
-    );
+    if (newlyCreated) {
+      logger.info(
+        {
+          slug: m.slug,
+          sectionId: genericSectionId(row.id),
+          level: m.level,
+          cohorts: targetCohorts.map((c) => c.code),
+        },
+        "Seeded generic module.",
+      );
+    }
   }
 }

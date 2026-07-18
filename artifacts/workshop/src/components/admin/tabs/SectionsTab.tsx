@@ -233,11 +233,20 @@ export function SectionsTab({ cohortId }: Props) {
       const idx = sameLevel.findIndex((r) => r.id === id);
       const swapWith = sameLevel[idx + dir];
       if (!swapWith) return prev;
-      return prev.map((r) => {
-        if (r.id === item.id) return { ...r, sortOrder: swapWith.sortOrder };
-        if (r.id === swapWith.id) return { ...r, sortOrder: item.sortOrder };
-        return r;
-      });
+      // Reorder by position, then renumber the whole level sequentially.
+      // Swapping raw sortOrder values breaks when two rows share the same
+      // sortOrder (which can happen after server-side re-seeding): swapping
+      // equal values is a no-op, so rows get stuck. Renumbering also heals any
+      // existing duplicates on the next save.
+      const reordered = [...sameLevel];
+      reordered[idx] = swapWith;
+      reordered[idx + dir] = item;
+      const orderById = new Map(reordered.map((r, i) => [r.id, i + 1]));
+      return prev.map((r) =>
+        orderById.has(r.id)
+          ? { ...r, sortOrder: orderById.get(r.id)! }
+          : r,
+      );
     });
     setDirty(true);
   };
