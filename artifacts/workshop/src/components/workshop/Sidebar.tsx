@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Lock, ChevronDown, ChevronRight, LogOut, ExternalLink } from "lucide-react";
 import type { Section } from "@workspace/api-client-react";
@@ -41,10 +41,22 @@ export function Sidebar({
 
   const levels = Array.from(new Set(sections.map((s) => s.level))).sort();
 
-  // Every level group starts collapsed on load; participants click a level
-  // header to expand it. State is intentionally not persisted, so each page
-  // load begins fully minimized.
+  // On load, levels containing at least one unlocked section start expanded;
+  // levels with no unlocks start collapsed. Recomputed on every page load —
+  // intentionally not persisted, so manual toggles from a previous session
+  // are forgotten. Initialized once when section data first arrives (sections
+  // load async), then left alone so it never fights manual toggles.
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const expandedInitialized = useRef(false);
+  useEffect(() => {
+    if (expandedInitialized.current || sections.length === 0) return;
+    expandedInitialized.current = true;
+    const initial: Record<number, boolean> = {};
+    for (const s of sections) {
+      if (s.unlocked) initial[s.level] = true;
+    }
+    setExpanded(initial);
+  }, [sections]);
 
   const toggleLevel = (level: number) =>
     setExpanded((prev) => ({ ...prev, [level]: !prev[level] }));
