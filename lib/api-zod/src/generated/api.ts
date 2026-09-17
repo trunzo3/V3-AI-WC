@@ -191,6 +191,12 @@ export const ListSectionsResponse = zod.object({
                   .describe(
                     "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
                   ),
+                heading: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "Card layout only - bold heading shown under the label pill.",
+                  ),
                 multiline: zod.boolean().optional(),
                 prefill: zod
                   .string()
@@ -211,6 +217,12 @@ export const ListSectionsResponse = zod.object({
                         .describe(
                           "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
                         ),
+                      heading: zod
+                        .string()
+                        .optional()
+                        .describe(
+                          "Card layout only - bold heading shown under the label pill.",
+                        ),
                       multiline: zod.boolean(),
                     }),
                   )
@@ -220,6 +232,30 @@ export const ListSectionsResponse = zod.object({
                   .optional()
                   .describe(
                     "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+                  ),
+                cardLayout: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "For form blocks - render each field in its own bordered card. Default false.",
+                  ),
+                formName: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "For form blocks - admin-facing name shown in the Responses tab.",
+                  ),
+                collectResponses: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "For form blocks - show a Submit button that stores the assembled text. Default false.",
+                  ),
+                responsesOpen: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "For form blocks - when false, submissions are closed. Default true.",
                   ),
                 template: zod
                   .string()
@@ -353,6 +389,33 @@ export const UpsertNoteResponse = zod.object({
     sectionId: zod.string(),
     fieldKey: zod.string(),
     content: zod.string(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * Stores the participant's assembled form text for one form block. Rejects (400) if the block is not a form with collectResponses=true, (403) if the block's responsesOpen is false, and (404) if the section is not unlocked for the participant.
+
+ * @summary Submit (or resubmit) the assembled text of a collecting form block
+ */
+export const SubmitFormResponseBody = zod.object({
+  sectionId: zod.string(),
+  blockIndex: zod
+    .number()
+    .describe("Position of the form block in the section's contentBlocks."),
+  responseText: zod.string(),
+});
+
+export const SubmitFormResponseResponse = zod.object({
+  response: zod.object({
+    id: zod.number(),
+    cohortId: zod.number(),
+    participantId: zod.number(),
+    sectionId: zod.string(),
+    blockIndex: zod.number(),
+    formName: zod.string(),
+    responseText: zod.string(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
@@ -778,6 +841,12 @@ export const AdminListGenericSectionsResponse = zod.object({
               .describe(
                 "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
               ),
+            heading: zod
+              .string()
+              .optional()
+              .describe(
+                "Card layout only - bold heading shown under the label pill.",
+              ),
             multiline: zod.boolean().optional(),
             prefill: zod
               .string()
@@ -798,6 +867,12 @@ export const AdminListGenericSectionsResponse = zod.object({
                     .describe(
                       "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
                     ),
+                  heading: zod
+                    .string()
+                    .optional()
+                    .describe(
+                      "Card layout only - bold heading shown under the label pill.",
+                    ),
                   multiline: zod.boolean(),
                 }),
               )
@@ -807,6 +882,30 @@ export const AdminListGenericSectionsResponse = zod.object({
               .optional()
               .describe(
                 "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+              ),
+            cardLayout: zod
+              .boolean()
+              .optional()
+              .describe(
+                "For form blocks - render each field in its own bordered card. Default false.",
+              ),
+            formName: zod
+              .string()
+              .optional()
+              .describe(
+                "For form blocks - admin-facing name shown in the Responses tab.",
+              ),
+            collectResponses: zod
+              .boolean()
+              .optional()
+              .describe(
+                "For form blocks - show a Submit button that stores the assembled text. Default false.",
+              ),
+            responsesOpen: zod
+              .boolean()
+              .optional()
+              .describe(
+                "For form blocks - when false, submissions are closed. Default true.",
               ),
             template: zod
               .string()
@@ -940,6 +1039,12 @@ export const AdminCreateGenericSectionBody = zod.object({
             .describe(
               "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
             ),
+          heading: zod
+            .string()
+            .optional()
+            .describe(
+              "Card layout only - bold heading shown under the label pill.",
+            ),
           multiline: zod.boolean().optional(),
           prefill: zod
             .string()
@@ -960,6 +1065,12 @@ export const AdminCreateGenericSectionBody = zod.object({
                   .describe(
                     "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
                   ),
+                heading: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "Card layout only - bold heading shown under the label pill.",
+                  ),
                 multiline: zod.boolean(),
               }),
             )
@@ -969,6 +1080,30 @@ export const AdminCreateGenericSectionBody = zod.object({
             .optional()
             .describe(
               "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+            ),
+          cardLayout: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - render each field in its own bordered card. Default false.",
+            ),
+          formName: zod
+            .string()
+            .optional()
+            .describe(
+              "For form blocks - admin-facing name shown in the Responses tab.",
+            ),
+          collectResponses: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - show a Submit button that stores the assembled text. Default false.",
+            ),
+          responsesOpen: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - when false, submissions are closed. Default true.",
             ),
           template: zod
             .string()
@@ -1127,6 +1262,12 @@ export const AdminUpdateGenericSectionBody = zod.object({
             .describe(
               "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
             ),
+          heading: zod
+            .string()
+            .optional()
+            .describe(
+              "Card layout only - bold heading shown under the label pill.",
+            ),
           multiline: zod.boolean().optional(),
           prefill: zod
             .string()
@@ -1147,6 +1288,12 @@ export const AdminUpdateGenericSectionBody = zod.object({
                   .describe(
                     "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
                   ),
+                heading: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "Card layout only - bold heading shown under the label pill.",
+                  ),
                 multiline: zod.boolean(),
               }),
             )
@@ -1156,6 +1303,30 @@ export const AdminUpdateGenericSectionBody = zod.object({
             .optional()
             .describe(
               "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+            ),
+          cardLayout: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - render each field in its own bordered card. Default false.",
+            ),
+          formName: zod
+            .string()
+            .optional()
+            .describe(
+              "For form blocks - admin-facing name shown in the Responses tab.",
+            ),
+          collectResponses: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - show a Submit button that stores the assembled text. Default false.",
+            ),
+          responsesOpen: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - when false, submissions are closed. Default true.",
             ),
           template: zod
             .string()
@@ -1295,6 +1466,12 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             .describe(
               "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
             ),
+          heading: zod
+            .string()
+            .optional()
+            .describe(
+              "Card layout only - bold heading shown under the label pill.",
+            ),
           multiline: zod.boolean().optional(),
           prefill: zod
             .string()
@@ -1315,6 +1492,12 @@ export const AdminUpdateGenericSectionResponse = zod.object({
                   .describe(
                     "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
                   ),
+                heading: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "Card layout only - bold heading shown under the label pill.",
+                  ),
                 multiline: zod.boolean(),
               }),
             )
@@ -1324,6 +1507,30 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             .optional()
             .describe(
               "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+            ),
+          cardLayout: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - render each field in its own bordered card. Default false.",
+            ),
+          formName: zod
+            .string()
+            .optional()
+            .describe(
+              "For form blocks - admin-facing name shown in the Responses tab.",
+            ),
+          collectResponses: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - show a Submit button that stores the assembled text. Default false.",
+            ),
+          responsesOpen: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - when false, submissions are closed. Default true.",
             ),
           template: zod
             .string()
@@ -1722,6 +1929,41 @@ export const AdminSetParticipantActiveResponse = zod.object({
     .describe(
       "Participant row. List endpoint also includes noteCount\/unlockedCount; mutation endpoints return only the base participant fields.",
     ),
+});
+
+/**
+ * @summary List form submissions for a cohort, newest first
+ */
+export const AdminListCohortFormResponsesParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const AdminListCohortFormResponsesQueryParams = zod.object({
+  sectionId: zod.coerce.string().optional(),
+  blockIndex: zod.coerce.number().optional(),
+});
+
+export const AdminListCohortFormResponsesResponse = zod.object({
+  responses: zod.array(
+    zod
+      .object({
+        id: zod.number(),
+        cohortId: zod.number(),
+        participantId: zod.number(),
+        sectionId: zod.string(),
+        blockIndex: zod.number(),
+        formName: zod.string(),
+        responseText: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      })
+      .and(
+        zod.object({
+          participantName: zod.string(),
+          sectionTitle: zod.string(),
+        }),
+      ),
+  ),
 });
 
 /**

@@ -13,15 +13,8 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminFormResponse } from "./adminFormResponse";
 
-export interface GenericFormField {
-  fieldKey: string;
-  label: string;
-  placeholder?: string;
-  /** Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.
-   */
-  helpText?: string;
-  /** Card layout only - bold heading shown under the label pill. */
-  heading?: string;
-  multiline: boolean;
+export interface AdminFormResponseListResponse {
+  responses: AdminFormResponse[];
 }

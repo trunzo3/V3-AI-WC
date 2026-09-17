@@ -483,6 +483,10 @@ export function SectionsTab({ cohortId }: Props) {
       buttonLabel: "",
       copyStyle: "labeled",
       template: "",
+      cardLayout: false,
+      formName: "",
+      collectResponses: false,
+      responsesOpen: true,
     },
     download: { type: "download", fileId: 0, label: "" },
     image: {
@@ -582,6 +586,7 @@ export function SectionsTab({ cohortId }: Props) {
     label: string;
     placeholder?: string;
     helpText?: string;
+    heading?: string;
     multiline: boolean;
   };
   const withFormFields = (
@@ -1430,6 +1435,60 @@ export function SectionsTab({ cohortId }: Props) {
                                   {"Controls how answers assemble in the live preview box. Reference fields by field key in single braces, e.g. {field-1}. Empty fields resolve to nothing (no braces shown). Leave blank to assemble with the copy style above."}
                                 </p>
                               </div>
+                              <div className="border rounded-md p-2 space-y-2 bg-muted/30">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                  Layout &amp; responses
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    checked={block.cardLayout ?? false}
+                                    onCheckedChange={(v) =>
+                                      updateBlock(idx, { cardLayout: v })
+                                    }
+                                    data-testid={`switch-generic-block-form-cardlayout-${idx}`}
+                                  />
+                                  <Label className="text-xs">
+                                    Card layout — each field in its own bordered card (6 Ways worksheet style)
+                                  </Label>
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Form name (shown in Responses tab)</Label>
+                                  <Input
+                                    value={block.formName ?? ""}
+                                    onChange={(e) =>
+                                      updateBlock(idx, { formName: e.target.value })
+                                    }
+                                    placeholder="e.g. 6 Ways Worksheet"
+                                    data-testid={`input-generic-block-form-name-${idx}`}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    checked={block.collectResponses ?? false}
+                                    onCheckedChange={(v) =>
+                                      updateBlock(idx, { collectResponses: v })
+                                    }
+                                    data-testid={`switch-generic-block-form-collect-${idx}`}
+                                  />
+                                  <Label className="text-xs">
+                                    Collect responses — adds a Submit button that sends the assembled text to you
+                                  </Label>
+                                </div>
+                                {(block.collectResponses ?? false) && (
+                                  <div className="flex items-center gap-2">
+                                    <Switch
+                                      checked={block.responsesOpen ?? true}
+                                      onCheckedChange={(v) =>
+                                        updateBlock(idx, { responsesOpen: v })
+                                      }
+                                      data-testid={`switch-generic-block-form-open-${idx}`}
+                                    />
+                                    <Label className="text-xs">
+                                      Submissions open — turn off to show "Submissions closed"
+                                    </Label>
+                                  </div>
+                                )}
+                              </div>
                               <div className="space-y-2">
                                 {(block.fields ?? []).map((field, fIdx) => {
                                   const fieldCount = (block.fields ?? []).length;
@@ -1521,6 +1580,23 @@ export function SectionsTab({ cohortId }: Props) {
                                             data-testid={`input-form-field-placeholder-${idx}-${fIdx}`}
                                           />
                                         </div>
+                                        {(block.cardLayout ?? false) && (
+                                          <div>
+                                            <Label className="text-xs">
+                                              Heading (card layout, optional)
+                                            </Label>
+                                            <Input
+                                              value={field.heading ?? ""}
+                                              onChange={(e) =>
+                                                updateFormField(idx, fIdx, {
+                                                  heading: e.target.value,
+                                                })
+                                              }
+                                              placeholder="Bold line under the label pill"
+                                              data-testid={`input-form-field-heading-${idx}-${fIdx}`}
+                                            />
+                                          </div>
+                                        )}
                                         <div className="flex items-center gap-2 pt-5">
                                           <Switch
                                             checked={field.multiline ?? true}

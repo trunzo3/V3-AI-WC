@@ -18,13 +18,14 @@ import {
   notesTable,
   unlockedSectionsTable,
   workflowMapsTable,
+  formResponsesTable,
   DEFAULT_FACILITATOR_MESSAGE,
   DEFAULT_TIER_ACCESS,
 } from "@workspace/db";
 import { requireAdmin } from "../middlewares/auth";
 import { seedCohortSections } from "../lib/cohort-sections";
 import { attachSeededGenericSectionsToCohort } from "../lib/seeded-generic-sections";
-import { getHardcodedSection } from "../lib/sections";
+import { getHardcodedSection, parseGenericSectionId } from "../lib/sections";
 import { sanitizeRichHtml, sanitizeRichHtmlNullable } from "../lib/sanitize";
 
 const router: IRouter = Router();
@@ -547,6 +548,7 @@ const contentBlockSchema = z
             label: z.string(),
             placeholder: z.string().optional(),
             helpText: z.string().optional(),
+            heading: z.string().optional(),
             multiline: z.boolean(),
           }),
         )
@@ -554,6 +556,10 @@ const contentBlockSchema = z
       buttonLabel: z.string(),
       copyStyle: z.enum(["labeled", "joined"]),
       template: z.string().optional(),
+      cardLayout: z.boolean().optional(),
+      formName: z.string().optional(),
+      collectResponses: z.boolean().optional(),
+      responsesOpen: z.boolean().optional(),
     }),
     z.object({
       type: z.literal("download"),
@@ -1124,6 +1130,102 @@ router.put("/admin/settings", requireAdmin, async (req, res) => {
 });
 
 // ----- Participants (admin) -----------------------------------------------
+
+// ----- Form responses ------------------------------------------------------
+
+const responsesQuerySchema = z.object({
+  sectionId: z.string().trim().min(1).optional(),
+  blockIndex: z.coerce.number().int().min(0).optional(),
+});
+
+// All explicit form submissions in a cohort, newest first, with the
+// participant's name and the section's title (cohort display name wins).
+router.get(
+  "/admin/cohorts/:cohortId/responses",
+  requireAdmin,
+  async (req, res) => {
+    const cohortId = Number(req.params.cohortId);
+    if (!Number.isInteger(cohortId)) {
+      res.status(400).json({ error: "Invalid cohort id." });
+      return;
+    }
+    const parsed = responsesQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid filter." });
+      return;
+    }
+    const filters = [eq(formResponsesTable.cohortId, cohortId)];
+    if (parsed.data.sectionId) {
+      filters.push(eq(formResponsesTable.sectionId, parsed.data.sectionId));
+    }
+    if (parsed.data.blockIndex != null) {
+      filters.push(eq(formResponsesTable.blockIndex, parsed.data.blockIndex));
+    }
+
+    const rows = await db
+      .select({
+        response: formResponsesTable,
+        participantName: participantsTable.name,
+      })
+      .from(formResponsesTable)
+      .innerJoin(
+        participantsTable,
+        eq(participantsTable.id, formResponsesTable.participantId),
+      )
+      .where(and(...filters))
+      .orderBy(desc(formResponsesTable.updatedAt), desc(formResponsesTable.id));
+
+    // Resolve section titles: admin display name in this cohort, else the
+    // generic section's title, else the hardcoded title, else the raw id.
+    const sectionIds = [...new Set(rows.map((r) => r.response.sectionId))];
+    const titleMap = new Map<string, string>();
+    if (sectionIds.length > 0) {
+      const genericIds = sectionIds
+        .map((id) => [id, parseGenericSectionId(id)] as const)
+        .filter((p): p is readonly [string, number] => p[1] != null);
+      if (genericIds.length > 0) {
+        const gens = await db
+          .select({ id: genericSectionsTable.id, title: genericSectionsTable.title })
+          .from(genericSectionsTable)
+          .where(inArray(genericSectionsTable.id, genericIds.map((g) => g[1])));
+        const byNum = new Map(gens.map((g) => [g.id, g.title]));
+        for (const [sid, num] of genericIds) {
+          const t = byNum.get(num);
+          if (t) titleMap.set(sid, t);
+        }
+      }
+      for (const sid of sectionIds) {
+        if (!titleMap.has(sid)) {
+          titleMap.set(sid, getHardcodedSection(sid)?.title ?? sid);
+        }
+      }
+      const overrides = await db
+        .select({
+          sectionId: cohortSectionsTable.sectionId,
+          displayName: cohortSectionsTable.displayName,
+        })
+        .from(cohortSectionsTable)
+        .where(
+          and(
+            eq(cohortSectionsTable.cohortId, cohortId),
+            inArray(cohortSectionsTable.sectionId, sectionIds),
+          ),
+        );
+      for (const o of overrides) {
+        if (o.displayName?.trim()) titleMap.set(o.sectionId, o.displayName.trim());
+      }
+    }
+
+    res.set("Cache-Control", "no-store");
+    res.json({
+      responses: rows.map((r) => ({
+        ...r.response,
+        participantName: r.participantName,
+        sectionTitle: titleMap.get(r.response.sectionId) ?? r.response.sectionId,
+      })),
+    });
+  },
+);
 
 router.get(
   "/admin/cohorts/:cohortId/participants",

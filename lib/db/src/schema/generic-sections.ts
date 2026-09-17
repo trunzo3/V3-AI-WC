@@ -48,10 +48,23 @@ export type GenericContentBlock =
         label: string;
         placeholder?: string;
         helpText?: string;
+        // Card layout only: bold heading shown under the label pill.
+        heading?: string;
         multiline: boolean;
       }>;
       buttonLabel: string;
       copyStyle: "labeled" | "joined";
+      // Render each field in its own bordered card (6 Ways worksheet look).
+      // Default false = legacy stacked layout.
+      cardLayout?: boolean;
+      // Admin-facing name shown in the Responses tab.
+      formName?: string;
+      // When true, participants get a Submit button that stores the
+      // assembled text in form_responses. Default false.
+      collectResponses?: boolean;
+      // When false (and collectResponses is on), submissions are closed.
+      // Default true.
+      responsesOpen?: boolean;
       // Legacy flag: form blocks now always render the live preview box.
       preview?: boolean;
       // Optional assembly template. `{fieldKey}` placeholders (single braces)

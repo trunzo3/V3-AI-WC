@@ -27,6 +27,8 @@ tags:
     description: Per-participant per-section notes
   - name: workflow-map
     description: Per-participant workflow map data
+  - name: responses
+    description: Explicit form submissions from collecting form blocks
   - name: feedback
     description: Participant feedback to facilitator
   - name: content-variants
@@ -224,6 +226,36 @@ paths:
               schema: { $ref: "#/components/schemas/NoteResponse" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /responses:
+    post:
+      operationId: submitFormResponse
+      tags: [responses]
+      summary: Submit (or resubmit) the assembled text of a collecting form block
+      description: >
+        Stores the participant's assembled form text for one form block.
+        Rejects (400) if the block is not a form with collectResponses=true,
+        (403) if the block's responsesOpen is false, and (404) if the section
+        is not unlocked for the participant.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FormResponseSubmitRequest" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormResponseSubmitResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Submissions closed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
   /workflow-map:
     get:
@@ -909,6 +941,30 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /admin/cohorts/{cohortId}/responses:
+    parameters:
+      - $ref: "#/components/parameters/CohortId"
+    get:
+      operationId: adminListCohortFormResponses
+      tags: [admin-participants]
+      summary: List form submissions for a cohort, newest first
+      parameters:
+        - name: sectionId
+          in: query
+          required: false
+          schema: { type: string }
+        - name: blockIndex
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Responses
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminFormResponseListResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /admin/participants/{id}:
     parameters:
       - $ref: "#/components/parameters/IntegerId"
@@ -1167,6 +1223,9 @@ components:
           description: >
             Optional rich-text help shown between the field's label and its
             input. Sanitized server-side like text block content.
+        heading:
+          type: string
+          description: Card layout only - bold heading shown under the label pill.
         multiline: { type: boolean }
         prefill:
           type: string
@@ -1188,6 +1247,18 @@ components:
             live-updating preview box with the copy button attached; this
             field is accepted for backward compatibility but ignored by the
             renderer.
+        cardLayout:
+          type: boolean
+          description: For form blocks - render each field in its own bordered card. Default false.
+        formName:
+          type: string
+          description: For form blocks - admin-facing name shown in the Responses tab.
+        collectResponses:
+          type: boolean
+          description: For form blocks - show a Submit button that stores the assembled text. Default false.
+        responsesOpen:
+          type: boolean
+          description: For form blocks - when false, submissions are closed. Default true.
         template:
           type: string
           description: >
@@ -1254,6 +1325,9 @@ components:
           description: >
             Optional rich-text help shown between the field's label and its
             input. Sanitized server-side like text block content.
+        heading:
+          type: string
+          description: Card layout only - bold heading shown under the label pill.
         multiline: { type: boolean }
 
     GenericBlockItem:
@@ -1309,6 +1383,53 @@ components:
         notes:
           type: array
           items: { $ref: "#/components/schemas/Note" }
+
+    FormResponseSubmitRequest:
+      type: object
+      required: [sectionId, blockIndex, responseText]
+      properties:
+        sectionId: { type: string }
+        blockIndex:
+          type: integer
+          description: Position of the form block in the section's contentBlocks.
+        responseText: { type: string }
+
+    FormResponseRecord:
+      type: object
+      required: [id, cohortId, participantId, sectionId, blockIndex, formName, responseText, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        cohortId: { type: integer }
+        participantId: { type: integer }
+        sectionId: { type: string }
+        blockIndex: { type: integer }
+        formName: { type: string }
+        responseText: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    FormResponseSubmitResponse:
+      type: object
+      required: [response]
+      properties:
+        response: { $ref: "#/components/schemas/FormResponseRecord" }
+
+    AdminFormResponse:
+      allOf:
+        - $ref: "#/components/schemas/FormResponseRecord"
+        - type: object
+          required: [participantName, sectionTitle]
+          properties:
+            participantName: { type: string }
+            sectionTitle: { type: string }
+
+    AdminFormResponseListResponse:
+      type: object
+      required: [responses]
+      properties:
+        responses:
+          type: array
+          items: { $ref: "#/components/schemas/AdminFormResponse" }
 
     NoteUpsertRequest:
       type: object

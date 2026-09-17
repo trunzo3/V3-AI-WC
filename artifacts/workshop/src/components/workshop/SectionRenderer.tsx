@@ -5,8 +5,13 @@ import type {
   GenericContentBlock,
   GenericFormField,
 } from "@workspace/api-client-react";
-import { getNotes, getGetNotesQueryKey } from "@workspace/api-client-react";
-import { Lock, ExternalLink, Download } from "lucide-react";
+import {
+  getNotes,
+  getGetNotesQueryKey,
+  useSubmitFormResponse,
+} from "@workspace/api-client-react";
+import { Lock, ExternalLink, Download, Check } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   SectionHeader,
@@ -436,16 +441,24 @@ function ImageBlock({
 // (labeled lines or joined text) exactly as before.
 function FormBlock({
   sectionId,
+  blockIndex,
   fields,
   buttonLabel,
   copyStyle,
   template,
+  cardLayout = false,
+  collectResponses = false,
+  responsesOpen = true,
 }: {
   sectionId: string;
+  blockIndex: number;
   fields: GenericFormField[];
   buttonLabel: string;
   copyStyle: "labeled" | "joined";
   template?: string;
+  cardLayout?: boolean;
+  collectResponses?: boolean;
+  responsesOpen?: boolean;
 }) {
   // Live values, keyed by fieldKey. State (not a ref) so the assembled
   // preview re-renders as the participant types.
@@ -484,10 +497,11 @@ function FormBlock({
   }, [template, fields, values, copyStyle]);
 
   return (
-    <div className="mb-6 space-y-5">
-      {fields.map(
-        (f) =>
-          f.fieldKey && (
+    <div className={cn("mb-6", cardLayout ? "space-y-4" : "space-y-5")}>
+      {fields.map((f) => {
+        if (!f.fieldKey) return null;
+        if (!cardLayout) {
+          return (
             <NotesField
               key={f.fieldKey}
               sectionId={sectionId}
@@ -498,8 +512,45 @@ function FormBlock({
               multiline={f.multiline ?? true}
               onValueChange={handleValueChange}
             />
-          ),
-      )}
+          );
+        }
+        // Card layout: one bordered card per field, matching the hardcoded
+        // 6 Ways Worksheet (gold pill, bold heading, muted italic help text).
+        const help = (f.helpText ?? "").trim();
+        return (
+          <div
+            key={f.fieldKey}
+            className="bg-card p-6 border rounded-lg shadow-sm space-y-2"
+            data-testid={`form-card-${sectionId}-${f.fieldKey}`}
+          >
+            {f.label?.trim() && (
+              <span className="inline-block bg-accent text-primary font-bold px-3 py-1 rounded text-sm uppercase tracking-wider">
+                {f.label}
+              </span>
+            )}
+            {f.heading?.trim() && (
+              <div className="text-foreground font-semibold text-sm">
+                {f.heading}
+              </div>
+            )}
+            {help && (
+              <div
+                className="prose prose-sm prose-slate max-w-none text-muted-foreground text-xs italic [&_p]:my-0 [&>:first-child]:mt-0 [&>:last-child]:mb-0"
+                dangerouslySetInnerHTML={{ __html: help }}
+                data-testid={`help-${sectionId}-${f.fieldKey}`}
+              />
+            )}
+            <NotesField
+              sectionId={sectionId}
+              fieldKey={f.fieldKey}
+              label=""
+              placeholder={f.placeholder}
+              multiline={f.multiline ?? true}
+              onValueChange={handleValueChange}
+            />
+          </div>
+        );
+      })}
       <div
         className="bg-primary rounded-lg p-6 text-white"
         data-testid="generic-prompt-block"
@@ -511,9 +562,83 @@ function FormBlock({
           {assembled ||
             "Fill in the fields above and your prompt will assemble here."}
         </pre>
-        <CopyButton text={assembled} label={buttonLabel || "Copy"} />
+        <div className="flex flex-wrap items-center gap-3">
+          <CopyButton text={assembled} label={buttonLabel || "Copy"} />
+          {collectResponses && (
+            <SubmitResponseButton
+              sectionId={sectionId}
+              blockIndex={blockIndex}
+              text={assembled}
+              open={responsesOpen}
+            />
+          )}
+        </div>
       </div>
     </div>
+  );
+}
+
+// Sends the assembled text to the facilitator. Shows "Submitted" with a
+// checkmark after success; the label flips to "Resubmit" so the participant
+// can send an updated version. Disabled with "Submissions closed" when the
+// admin has closed the form.
+function SubmitResponseButton({
+  sectionId,
+  blockIndex,
+  text,
+  open,
+}: {
+  sectionId: string;
+  blockIndex: number;
+  text: string;
+  open: boolean;
+}) {
+  const { toast } = useToast();
+  const submit = useSubmitFormResponse();
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [justSubmitted, setJustSubmitted] = useState(false);
+
+  const handleSubmit = () => {
+    if (!open || submit.isPending) return;
+    submit.mutate(
+      { data: { sectionId, blockIndex, responseText: text } },
+      {
+        onSuccess: () => {
+          setHasSubmitted(true);
+          setJustSubmitted(true);
+          setTimeout(() => setJustSubmitted(false), 2000);
+        },
+        onError: (err) => {
+          const msg =
+            (err as { data?: { error?: string } })?.data?.error ??
+            "Could not submit. Please try again.";
+          toast({ title: "Submit failed", description: msg, variant: "destructive" });
+        },
+      },
+    );
+  };
+
+  const label = !open
+    ? "Submissions closed"
+    : justSubmitted
+      ? "Submitted"
+      : submit.isPending
+        ? "Submitting…"
+        : hasSubmitted
+          ? "Resubmit"
+          : "Submit";
+
+  return (
+    <button
+      type="button"
+      onClick={handleSubmit}
+      disabled={!open || submit.isPending}
+      className="inline-flex items-center gap-1.5 bg-white/10 text-white border border-white/30 px-4 py-2 rounded text-xs font-bold hover:bg-white/20 transition-colors mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+      data-testid={`submit-response-${sectionId}-${blockIndex}`}
+    >
+      {justSubmitted && <Check className="w-3.5 h-3.5" />}
+      {label}
+    </button>
   );
 }
 
@@ -655,10 +780,14 @@ function GenericSectionView({
               <FormBlock
                 key={i}
                 sectionId={section.id}
+                blockIndex={i}
                 fields={block.fields}
                 buttonLabel={block.buttonLabel ?? ""}
                 copyStyle={block.copyStyle === "joined" ? "joined" : "labeled"}
                 template={block.template}
+                cardLayout={block.cardLayout ?? false}
+                collectResponses={block.collectResponses ?? false}
+                responsesOpen={block.responsesOpen ?? true}
               />
             );
           case "download":

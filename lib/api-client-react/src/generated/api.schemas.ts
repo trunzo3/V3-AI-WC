@@ -154,6 +154,8 @@ export interface GenericFormField {
   /** Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.
    */
   helpText?: string;
+  /** Card layout only - bold heading shown under the label pill. */
+  heading?: string;
   multiline: boolean;
 }
 
@@ -197,6 +199,8 @@ export interface GenericContentBlock {
   /** Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.
    */
   helpText?: string;
+  /** Card layout only - bold heading shown under the label pill. */
+  heading?: string;
   multiline?: boolean;
   /** For field blocks: the field's starting text. May contain {{sectionId:fieldKey}} placeholders resolved to the participant's own saved answers. The participant can edit the result; edits save to this field normally.
    */
@@ -206,6 +210,14 @@ export interface GenericContentBlock {
   /** Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.
    */
   preview?: boolean;
+  /** For form blocks - render each field in its own bordered card. Default false. */
+  cardLayout?: boolean;
+  /** For form blocks - admin-facing name shown in the Responses tab. */
+  formName?: string;
+  /** For form blocks - show a Submit button that stores the assembled text. Default false. */
+  collectResponses?: boolean;
+  /** For form blocks - when false, submissions are closed. Default true. */
+  responsesOpen?: boolean;
   /** For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.
    */
   template?: string;
@@ -284,6 +296,38 @@ export interface Note {
 
 export interface NotesResponse {
   notes: Note[];
+}
+
+export interface FormResponseSubmitRequest {
+  sectionId: string;
+  /** Position of the form block in the section's contentBlocks. */
+  blockIndex: number;
+  responseText: string;
+}
+
+export interface FormResponseRecord {
+  id: number;
+  cohortId: number;
+  participantId: number;
+  sectionId: string;
+  blockIndex: number;
+  formName: string;
+  responseText: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FormResponseSubmitResponse {
+  response: FormResponseRecord;
+}
+
+export type AdminFormResponse = FormResponseRecord & {
+  participantName: string;
+  sectionTitle: string;
+};
+
+export interface AdminFormResponseListResponse {
+  responses: AdminFormResponse[];
 }
 
 export interface NoteUpsertRequest {
@@ -760,6 +804,11 @@ export type NotFoundResponse = ErrorResponse;
  * Conflict — request cannot complete in the current state
  */
 export type ConflictResponse = ErrorResponse;
+
+export type AdminListCohortFormResponsesParams = {
+  sectionId?: string;
+  blockIndex?: number;
+};
 
 export type AdminListFeedbackParams = {
   cohort_id?: string;

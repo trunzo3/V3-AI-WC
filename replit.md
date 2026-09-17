@@ -174,7 +174,7 @@ Sections come from two sources:
 2. **Generic sections** — created by admins, stored in `generic_sections`,
    referenced by id `generic_<id>` from `cohort_sections`. Bodies are stored
    as a `content_blocks` jsonb array; block `type` is one of
-   `text | prompt | callout | cards | steps | link | field | form | download`
+   `text | prompt | callout | cards | steps | link | field | form | download | image | recap`
    (union in `lib/db/src/schema/generic-sections.ts`, zod validation in
    `admin.ts`). Text blocks render as HTML (Tiptap WYSIWYG); prompt blocks
    render as a navy box with a gold "Prompt N" pill and a CopyButton.
@@ -217,6 +217,26 @@ Sections come from two sources:
    fields assemble into a live preview box (labeled `${label}: ${value}`,
    empty fields skipped) that updates as the participant types, with the
    copy button attached to that box.
+   **Form block options (all optional, all default to legacy behavior):**
+   `cardLayout` renders each field in its own bordered card (gold uppercase
+   label pill, optional bold per-field `heading`, muted italic helpText,
+   then the input — same look as the hardcoded 6 Ways Worksheet); Copy and
+   the assembled text are unchanged. `collectResponses` (default false)
+   adds a Submit button next to Copy that POSTs the assembled text to
+   `POST /api/responses` (`{sectionId, blockIndex, responseText}`;
+   `blockIndex` = position in `contentBlocks`) — stored in `form_responses`
+   (unique per participant+section+block; resubmit updates the row). The
+   button shows "Submitted" + checkmark then "Resubmit". `responsesOpen`
+   (default true) false → disabled "Submissions closed" and the API returns
+   403. The route rejects non-form / non-collecting blocks (400) and locked
+   sections (404, via `lib/section-access.ts`). `formName` labels the form
+   in the admin **Responses** tab (COHORT group, `tabs/ResponsesTab.tsx`):
+   `GET /api/admin/cohorts/:cohortId/responses?sectionId=&blockIndex=`,
+   newest first, polled every 2s, "New" badge for arrivals since the tab
+   opened, filter dropdown of collecting forms attached to the cohort,
+   per-card Copy and "Copy all" (participant name line + text per entry).
+   The OpenAPI operationId is `adminListCohortFormResponses` — an id ending
+   in "Responses" collides with orval's generated names.
    `prompt-2` is self-contained: its prompt references its own fields
    (`{{prompt-2:org-website}}` and `{{prompt-2:make-it-yours-details}}`),
    both saved in the same module. Every note save (debounced mutation,

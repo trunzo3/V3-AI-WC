@@ -9,3 +9,4 @@
 - [API server hot-reload](api-server-reload.md) — dev server doesn't reliably pick up edits; restart the workflow after server-side changes or new zod fields get silently stripped.
 - [runTest sandbox timeouts](runtest-timeouts.md) — browser e2e runTest can exceed the 600s notebook cap; keep plans tiny and fall back to curl/psql verification.
 - [DB schema change workflow](db-schema-change-workflow.md) — after editing lib/db schema: `tsc -b lib/db` (stale composite types) + apply DDL via psql (drizzle push prompts interactively and silently no-ops non-TTY).
+- [Orval Params collision](orval-operationid-naming.md) — endpoints with path+query params break codegen (TS2308 in lib/api-zod); add explicit re-export in lib/api-zod/src/index.ts.
