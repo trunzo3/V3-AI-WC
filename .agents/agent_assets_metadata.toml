@@ -6,21 +6,39 @@ id = "OOj4oDnJnWK21H_0MEp3T"
 uri = "file://attached_assets/sample-workbook.pdf"
 type = "pdf"
 title = "Sample Workbook PDF (rich data, 7 pages)"
+logical_id = "32a22792-ad12-41b6-b482-c050a5e3b26f"
 
 [[outputs]]
 id = "w2bXubnZ0gqwE8XXrKy21"
 uri = "file://attached_assets/sample-workbook-v2.pdf"
 type = "pdf"
 title = "Sample Workbook (with notes)"
+logical_id = "0ecca732-5e02-4978-b669-7987321b7525"
 
 [[outputs]]
 id = "_GBEPPc1jcIYyoSbdS1wD"
 uri = "file://attached_assets/sample-workbook-empty.pdf"
 type = "pdf"
 title = "Sample Workbook (no notes — empty state)"
+logical_id = "195c1f9b-2fa0-4c84-93aa-803e63b779e8"
 
 [[outputs]]
 id = "5zXjYsdFan6UOqsMpnUK0"
 uri = "file://attached_assets/sample-workbook-generic-html.pdf"
 type = "pdf"
 title = "Sample Workbook — generic section with rich HTML (Fix 2 verified)"
+logical_id = "bb35bb6c-1277-4edd-85f1-09f7399f0ba1"
+
+[[outputs]]
+id = "RM3Eep7PndkwTmKwdFfnE"
+uri = "file://attached_assets/workbook-sample-T4DAY5.pdf"
+type = "pdf"
+title = "Sample workbook — T4DAY5 test participant"
+description = "40-page workbook showing every generic block type rendered: callouts, cards, steps, links, fields, forms (stacked and card layout), and a Submitted form response."
+logical_id = "92d0cb05-caf2-4963-92bb-769a063d86a3"
+content_hash = "sha256:5dd18017196ae634607c37c713666eab7c809e2311847f32d95757ff85fe5183"
+size = 851307
+mtime_ms = 1789612605580
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:a625c045-4fc0-479d-a902-0bc0fcd0500f/92d0cb05-caf2-4963-92bb-769a063d86a3/c82f6656-23ad-46d8-93fc-cd5495a33d53"
+storage_version_token = "1789612796672550"
+content_type = "application/pdf"

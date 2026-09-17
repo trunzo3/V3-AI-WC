@@ -13,6 +13,8 @@ import {
   workflowMapsTable,
   genericSectionsTable,
   contentVariantsTable,
+  formResponsesTable,
+  type GenericContentBlock,
 } from "@workspace/db";
 import {
   baseSectionId,
@@ -104,7 +106,7 @@ interface SectionLite {
   type: string;
   unlocked: boolean;
   isGeneric: boolean;
-  generic: { contentBlocks: Array<{ type: string; content: string }>; goalText: string | null } | null;
+  generic: { contentBlocks: GenericContentBlock[]; goalText: string | null } | null;
 }
 
 const FALLBACK_CLOSING_QUOTE = `"Small things.\nUnlikely places.\nExtraordinary work."`;
@@ -489,26 +491,177 @@ function resolvePlaceholders(
   );
 }
 
-function renderGenericBlocks(blocks: Array<{ type: string; content?: string }>): string {
+type NoteLookup = Map<string, Array<{ fieldKey: string; content: string }>>;
+
+function str(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
+// Saved entry for a field/form input, or the italic empty-state. Notes are
+// plain text, so escape + preserve line breaks.
+function renderSavedEntry(value: string | undefined): string {
+  return value && value.trim()
+    ? `<div class="entry-body">${nl2br(value)}</div>`
+    : `<div class="entry-body empty-notes">No entry</div>`;
+}
+
+// Label pill + heading + help text + saved entry — the shape shared by field
+// blocks and each form field. Help text is sanitized HTML from the editor.
+function renderInputField(f: {
+  label?: unknown;
+  heading?: unknown;
+  helpText?: unknown;
+  value: string | undefined;
+}): string {
+  const label = str(f.label).trim();
+  const heading = str(f.heading).trim();
+  const help = str(f.helpText).trim();
+  return `
+    ${label ? `<span class="entry-pill">${escapeHtml(label)}</span>` : ""}
+    ${heading ? `<div class="entry-heading">${escapeHtml(heading)}</div>` : ""}
+    ${help ? `<div class="entry-help">${help}</div>` : ""}
+    ${renderSavedEntry(f.value)}`;
+}
+
+// Renders a generic section's content blocks in array order. Rich-text
+// values (text, callout content, card/step bodies, help text) are HTML that
+// was sanitized on write and is injected as-is; everything else is escaped.
+// Every optional value falls back to "" so "undefined" can never print.
+function renderGenericBlocks(
+  blocks: GenericContentBlock[],
+  opts: {
+    sectionId: string;
+    notes: Array<{ fieldKey: string; content: string }>;
+    // form_responses for this section, keyed by block index.
+    formResponses: Map<number, string>;
+  },
+): string {
   if (!blocks || blocks.length === 0) return "";
+  const valueFor = (key: string) =>
+    opts.notes.find((n) => n.fieldKey === key)?.content;
+
   return blocks
-    .map((b) => {
-      if (b.type === "prompt") {
-        return `<div class="prompt-block"><div class="prompt-label">Prompt</div><div class="prompt-body">${nl2br(b.content ?? "")}</div></div>`;
+    .map((raw, blockIndex) => {
+      const b = raw as Record<string, unknown> & { type: string };
+      switch (b.type) {
+        case "prompt":
+          return `<div class="prompt-block"><div class="prompt-label">Prompt</div><div class="prompt-body">${nl2br(str(b.content))}</div></div>`;
+        case "text":
+          // Text blocks contain HTML from the WYSIWYG editor (already sanitized
+          // server-side via sanitizeRichHtml on write). Inject as raw HTML so the
+          // browser renders <p>, <ol>, <li>, <a>, <strong>, etc.
+          return `<div class="text-block">${str(b.content)}</div>`;
+        case "callout": {
+          const variant = ["stop", "insight", "rule", "quote"].includes(str(b.variant))
+            ? str(b.variant)
+            : "rule";
+          const title = str(b.title).trim();
+          const content = str(b.content);
+          if (variant === "quote") {
+            return `<div class="callout callout-quote">${content}</div>`;
+          }
+          return `<div class="callout callout-${variant}">
+            ${title ? `<div class="callout-title">${escapeHtml(title)}</div>` : ""}
+            <div class="callout-body">${content}</div>
+          </div>`;
+        }
+        case "cards": {
+          const cards = Array.isArray(b.cards) ? (b.cards as Array<Record<string, unknown>>) : [];
+          if (cards.length === 0) return "";
+          const cols = b.columns === 3 ? 3 : b.columns === 2 ? 2 : 1;
+          return `<div class="cards cards-${cols}">${cards
+            .map((c) => {
+              const title = str(c.title).trim();
+              return `<div class="card">
+                ${title ? `<div class="card-title">${escapeHtml(title)}</div>` : ""}
+                <div class="card-body">${str(c.body)}</div>
+              </div>`;
+            })
+            .join("")}</div>`;
+        }
+        case "steps": {
+          const items = Array.isArray(b.items) ? (b.items as Array<Record<string, unknown>>) : [];
+          if (items.length === 0) return "";
+          const ordered = b.ordered !== false;
+          const tag = ordered ? "ol" : "ul";
+          return `<${tag} class="step-list ${ordered ? "step-ordered" : "step-bulleted"}">${items
+            .map((it, i) => {
+              const title = str(it.title).trim();
+              return `<li class="step-item">
+                <span class="step-marker">${ordered ? i + 1 : "•"}</span>
+                <div class="step-content">
+                  ${title ? `<div class="step-title">${escapeHtml(title)}</div>` : ""}
+                  <div class="step-body">${str(it.body)}</div>
+                </div>
+              </li>`;
+            })
+            .join("")}</${tag}>`;
+        }
+        case "link": {
+          const url = str(b.url).trim();
+          const label = str(b.label).trim() || url;
+          if (!label) return "";
+          return `<div class="link-block"><span class="link-label">${escapeHtml(label)}</span>${
+            url ? ` <span class="link-url">(${escapeHtml(url)})</span>` : ""
+          }</div>`;
+        }
+        case "download": {
+          const label = str(b.label).trim() || "Download";
+          return `<div class="link-block"><span class="link-label">${escapeHtml(label)}</span> <span class="link-url">(file available in the app)</span></div>`;
+        }
+        case "field": {
+          const fieldKey = str(b.fieldKey);
+          return `<div class="entry-block">${renderInputField({
+            label: b.label,
+            heading: b.heading,
+            helpText: b.helpText,
+            value: fieldKey ? valueFor(fieldKey) : undefined,
+          })}</div>`;
+        }
+        case "form": {
+          const fields = Array.isArray(b.fields) ? (b.fields as Array<Record<string, unknown>>) : [];
+          const cardLayout = b.cardLayout === true;
+          const fieldsHtml = fields
+            .map((f) => {
+              const fieldKey = str(f.fieldKey);
+              return `<div class="${cardLayout ? "entry-card" : "entry-block"}">${renderInputField({
+                label: f.label,
+                heading: f.heading,
+                helpText: f.helpText,
+                value: fieldKey ? valueFor(fieldKey) : undefined,
+              })}</div>`;
+            })
+            .join("");
+          const submitted =
+            b.collectResponses === true ? opts.formResponses.get(blockIndex) : undefined;
+          const submittedHtml =
+            submitted !== undefined
+              ? `<div class="submitted-block"><div class="submitted-label">Submitted</div><div class="submitted-body">${nl2br(submitted)}</div></div>`
+              : "";
+          return `<div class="form-block">${fieldsHtml}${submittedHtml}</div>`;
+        }
+        default:
+          // image / recap: not rendered in the PDF.
+          return "";
       }
-      if (b.type === "text") {
-        // Text blocks contain HTML from the WYSIWYG editor (already sanitized
-        // server-side via sanitizeRichHtml on write). Inject as raw HTML so the
-        // browser renders <p>, <ol>, <li>, <a>, <strong>, etc.
-        return `<div class="text-block">${b.content ?? ""}</div>`;
-      }
-      // callout / cards / steps / link / field / form / download / recap /
-      // image: intentionally omitted from the PDF for now. Rendering them is a
-      // later pass — returning empty avoids printing "undefined" for shapes
-      // without a `content` property.
-      return "";
     })
     .join("");
+}
+
+// Field keys a generic section's field/form blocks print inline, so the
+// trailing structured-fields list doesn't repeat them.
+function inlineFieldKeys(blocks: GenericContentBlock[]): Set<string> {
+  const keys = new Set<string>();
+  for (const raw of blocks ?? []) {
+    const b = raw as Record<string, unknown> & { type: string };
+    if (b.type === "field" && typeof b.fieldKey === "string") keys.add(b.fieldKey);
+    if (b.type === "form" && Array.isArray(b.fields)) {
+      for (const f of b.fields as Array<Record<string, unknown>>) {
+        if (typeof f.fieldKey === "string") keys.add(f.fieldKey);
+      }
+    }
+  }
+  return keys;
 }
 
 // Structured field blocks (RICECO fields, R/Y/G categories, 6 Ways rows, etc.).
@@ -559,6 +712,8 @@ function buildHtml(opts: {
     structuredNotes: RenderedNote[];
     freeformNote: string | null;
     workflowMapHtml: string;
+    allNotes: Array<{ fieldKey: string; content: string }>;
+    formResponses: Map<number, string>;
   }>>;
 }): string {
   const { participantName, participantEmail, cohortName, levelNames, generatedDate, closingQuote, closingSubtext, sectionsByLevel } = opts;
@@ -607,7 +762,11 @@ function buildHtml(opts: {
           const { section, structuredNotes, freeformNote, workflowMapHtml } = it;
           const goal = section.isGeneric ? section.generic?.goalText : section.description;
           const genericBody = section.isGeneric
-            ? renderGenericBlocks(section.generic?.contentBlocks ?? [])
+            ? renderGenericBlocks(section.generic?.contentBlocks ?? [], {
+                sectionId: section.id,
+                notes: it.allNotes,
+                formResponses: it.formResponses,
+              })
             : "";
           // Reference content (hardcoded for known sections, special-case for
           // closing). Use the base id so duplicated rows (e.g.
@@ -910,6 +1069,58 @@ function buildHtml(opts: {
   }
   .prompt-body { color: #fff; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10pt; line-height: 1.5; }
 
+  /* Callouts */
+  .callout { margin: 12px 0; page-break-inside: avoid; font-size: 10.5pt; line-height: 1.5; }
+  .callout p { margin: 0 0 6px; } .callout p:last-child { margin-bottom: 0; }
+  .callout-stop { background: #dc2626; color: #fff; text-align: center; border-radius: 8px; padding: 16px 18px; }
+  .callout-stop .callout-title { font-size: 15pt; font-weight: 700; margin-bottom: 4px; }
+  .callout-stop .callout-body { opacity: 0.92; }
+  .callout-insight { background: ${NAVY}; color: #fff; border-left: 4px solid ${GOLD}; border-radius: 0 8px 8px 0; padding: 14px 18px; }
+  .callout-insight .callout-title { color: ${GOLD}; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; font-size: 8.5pt; margin-bottom: 6px; }
+  .callout-insight a { color: ${GOLD}; }
+  .callout-rule { border-left: 4px solid ${GOLD}; padding: 6px 0 6px 14px; color: ${NAVY}; }
+  .callout-rule .callout-title { font-weight: 700; margin-bottom: 4px; }
+  .callout-quote { text-align: center; font-family: 'DM Serif Display', Georgia, serif; font-style: italic; color: ${MUTED}; font-size: 13pt; margin: 22px 24px; }
+
+  /* Cards */
+  .cards { display: grid; gap: 10px; margin: 12px 0; }
+  .cards-1 { grid-template-columns: 1fr; }
+  .cards-2 { grid-template-columns: 1fr 1fr; }
+  .cards-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .card { background: #fff; border: 1px solid ${BORDER}; border-radius: 8px; padding: 12px 14px; page-break-inside: avoid; }
+  .card-title { font-weight: 700; color: ${NAVY}; text-transform: uppercase; letter-spacing: 1px; font-size: 9pt; margin-bottom: 6px; }
+  .card-body { font-size: 10pt; line-height: 1.5; color: ${NAVY}; }
+  .card-body p { margin: 0 0 5px; } .card-body p:last-child { margin-bottom: 0; }
+
+  /* Steps */
+  .step-list { list-style: none; padding: 0; margin: 12px 0; background: #fff; border: 1px solid ${BORDER}; border-radius: 8px; padding: 14px 16px; }
+  .step-item { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; page-break-inside: avoid; }
+  .step-item:last-child { margin-bottom: 0; }
+  .step-marker { flex: 0 0 22px; width: 22px; height: 22px; border-radius: 50%; background: ${NAVY}; color: #fff; font-weight: 700; font-size: 9pt; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+  .step-bulleted .step-marker { background: transparent; color: ${GOLD}; font-size: 14pt; }
+  .step-title { font-weight: 700; color: ${NAVY}; font-size: 10.5pt; }
+  .step-body { font-size: 10pt; line-height: 1.5; color: ${NAVY}; }
+  .step-body p { margin: 0 0 4px; } .step-body p:last-child { margin-bottom: 0; }
+
+  /* Links & downloads */
+  .link-block { margin: 8px 0; font-size: 10.5pt; }
+  .link-label { font-weight: 700; color: ${NAVY}; }
+  .link-url { color: ${MUTED}; word-break: break-all; }
+
+  /* Field / form entries */
+  .form-block { margin: 12px 0; }
+  .entry-block { margin: 12px 0; page-break-inside: avoid; }
+  .entry-card { background: #fff; border: 1px solid ${BORDER}; border-radius: 8px; padding: 12px 14px; margin: 10px 0; page-break-inside: avoid; }
+  .entry-pill { display: inline-block; background: ${GOLD}; color: ${NAVY}; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; font-size: 8.5pt; padding: 3px 8px; border-radius: 4px; margin-bottom: 6px; }
+  .entry-heading { font-weight: 600; color: ${NAVY}; font-size: 10.5pt; margin-bottom: 4px; }
+  .entry-help { font-style: italic; color: ${MUTED}; font-size: 9pt; margin-bottom: 6px; }
+  .entry-help p { margin: 0; }
+  .entry-body { font-size: 10.5pt; color: ${NAVY}; white-space: pre-wrap; line-height: 1.5; background: #fff; border: 1px solid ${BORDER}; border-left: 3px solid ${GOLD}; border-radius: 6px; padding: 8px 12px; }
+  .entry-card .entry-body { border: none; border-top: 1px solid ${BORDER}; border-radius: 0; padding: 8px 0 0; }
+  .submitted-block { margin-top: 10px; background: ${NAVY}; color: #fff; border-radius: 8px; padding: 12px 16px; page-break-inside: avoid; }
+  .submitted-label { color: ${GOLD}; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; font-size: 8.5pt; margin-bottom: 6px; }
+  .submitted-body { white-space: pre-wrap; font-size: 10pt; line-height: 1.5; }
+
   /* Notes */
   .notes-list { margin-top: 16px; }
   .note {
@@ -1076,6 +1287,22 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     notesBySection.set(n.sectionId, arr);
   }
 
+  // Submitted form responses, keyed by section id -> block index.
+  const formResponseRows = await db
+    .select({
+      sectionId: formResponsesTable.sectionId,
+      blockIndex: formResponsesTable.blockIndex,
+      responseText: formResponsesTable.responseText,
+    })
+    .from(formResponsesTable)
+    .where(eq(formResponsesTable.participantId, participantId));
+  const formResponsesBySection = new Map<string, Map<number, string>>();
+  for (const r of formResponseRows) {
+    const m = formResponsesBySection.get(r.sectionId) ?? new Map<number, string>();
+    m.set(r.blockIndex, r.responseText);
+    formResponsesBySection.set(r.sectionId, m);
+  }
+
   // Load workflow map (single per participant).
   const [workflowMapRow] = await db
     .select()
@@ -1109,6 +1336,8 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     structuredNotes: RenderedNote[];
     freeformNote: string | null;
     workflowMapHtml: string;
+    allNotes: Array<{ fieldKey: string; content: string }>;
+    formResponses: Map<number, string>;
   };
   const assembled: Assembled[] = [];
 
@@ -1129,7 +1358,7 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
       type = g.sectionType;
       isGeneric = true;
       const blocks = Array.isArray(g.contentBlocks)
-        ? (g.contentBlocks as Array<{ type: string; content: string }>)
+        ? (g.contentBlocks as GenericContentBlock[])
         : [];
       generic = {
         // Prompt blocks may contain {{sectionId:fieldKey}} placeholders;
@@ -1191,7 +1420,10 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     // Split: structured fields (everything except free-form "notes") render in
     // their own block. The "notes" fieldKey goes into the gold "Your Notes"
     // block (with an empty-state if absent).
-    const structuredNotes = renderedNotes.filter((n) => n.fieldKey !== "notes");
+    const inlineKeys = generic ? inlineFieldKeys(generic.contentBlocks) : new Set<string>();
+    const structuredNotes = renderedNotes.filter(
+      (n) => n.fieldKey !== "notes" && !inlineKeys.has(n.fieldKey),
+    );
     const freeformNote = renderedNotes.find((n) => n.fieldKey === "notes")?.content ?? null;
 
     // Attach workflow map HTML to the workflow-configurator section only.
@@ -1200,7 +1432,14 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
         ? workflowMapHtmlGlobal
         : "";
 
-    assembled.push({ section: sectionLite, structuredNotes, freeformNote, workflowMapHtml });
+    assembled.push({
+      section: sectionLite,
+      structuredNotes,
+      freeformNote,
+      workflowMapHtml,
+      allNotes: rawNotes,
+      formResponses: formResponsesBySection.get(cs.sectionId) ?? new Map(),
+    });
   }
 
   // Sort and group by level.
