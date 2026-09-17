@@ -5,6 +5,7 @@ import {
   useAdminCreateCohort,
   useAdminUpdateCohort,
   useAdminDeleteCohort,
+  useAdminDuplicateCohort,
   getAdminListCohortsQueryKey,
   type AdminCohort,
 } from "@workspace/api-client-react";
@@ -19,13 +20,14 @@ import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy } from "lucide-react";
 
 const COHORT_KEY = "workshop-admin-cohort-id";
 
@@ -98,6 +100,47 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
   const createMut = useAdminCreateCohort();
   const updateMut = useAdminUpdateCohort();
   const deleteMut = useAdminDeleteCohort();
+  const duplicateMut = useAdminDuplicateCohort();
+
+  // Duplicate dialog state
+  const [dupSource, setDupSource] = useState<AdminCohort | null>(null);
+  const [dupName, setDupName] = useState("");
+  const [dupCode, setDupCode] = useState("");
+
+  const openDuplicate = (c: AdminCohort) => {
+    setDupSource(c);
+    setDupName(`${c.name} (copy)`);
+    setDupCode("");
+  };
+
+  const handleDuplicate = () => {
+    if (!dupSource) return;
+    const name = dupName.trim();
+    const cohortCode = dupCode.trim();
+    if (!name || !cohortCode) {
+      toast({ title: "Name and cohort code are required", variant: "destructive" });
+      return;
+    }
+    duplicateMut.mutate(
+      { id: dupSource.id, data: { name, cohortCode } },
+      {
+        onSuccess: (res) => {
+          toast({
+            title: `Created "${res.cohort.name}"`,
+            description: `${res.sectionCount} sections copied (${res.genericSectionsCopied} library sections cloned).`,
+          });
+          setDupSource(null);
+          refresh();
+          onSelectCohort(res.cohort.id);
+        },
+        onError: (err: unknown) => {
+          if (isAdminAuthError(err)) return;
+          const message = err instanceof Error ? err.message : "Failed to duplicate cohort";
+          toast({ title: message, variant: "destructive" });
+        },
+      },
+    );
+  };
 
   // Delete-confirmation dialog state
   const [deleteTarget, setDeleteTarget] = useState<AdminCohort | null>(null);
@@ -405,6 +448,16 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={() => openDuplicate(c)}
+                    data-testid={`button-duplicate-cohort-${c.id}`}
+                    aria-label={`Duplicate ${c.name}`}
+                    title="Duplicate"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       setDeleteTarget(c);
                       setDeleteConfirm("");
@@ -420,6 +473,59 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
           </div>
         )}
       </CardContent>
+
+      <Dialog
+        open={dupSource !== null}
+        onOpenChange={(o) => {
+          if (!o) setDupSource(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Duplicate "{dupSource?.name}"</DialogTitle>
+            <DialogDescription>
+              Copies all sections (levels, order, visibility, unlock codes),
+              level names, messages, workbook and open-level settings. Library
+              sections are cloned so edits in one cohort never affect the
+              other. Participants, notes, unlocks, and responses are not
+              copied.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div>
+              <Label htmlFor="dup-name">New cohort name</Label>
+              <Input
+                id="dup-name"
+                value={dupName}
+                onChange={(e) => setDupName(e.target.value)}
+                data-testid="input-duplicate-name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="dup-code">New cohort code</Label>
+              <Input
+                id="dup-code"
+                value={dupCode}
+                onChange={(e) => setDupCode(e.target.value)}
+                placeholder="e.g. T4DAY6"
+                data-testid="input-duplicate-code"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDupSource(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDuplicate}
+              disabled={duplicateMut.isPending || !dupName.trim() || !dupCode.trim()}
+              data-testid="button-confirm-duplicate"
+            >
+              {duplicateMut.isPending ? "Duplicating…" : "Duplicate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={deleteTarget !== null}

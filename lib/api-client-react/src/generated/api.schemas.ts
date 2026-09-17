@@ -478,6 +478,19 @@ export interface AdminCohortResponse {
   cohort: AdminCohort;
 }
 
+export interface AdminCohortDuplicateRequest {
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  cohortCode: string;
+}
+
+export interface AdminCohortDuplicateResponse {
+  cohort: AdminCohort;
+  sectionCount: number;
+  genericSectionsCopied: number;
+}
+
 export type AdminCohortCreateRequestTierAccess = { [key: string]: boolean };
 
 /**
