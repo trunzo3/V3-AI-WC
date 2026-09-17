@@ -1,0 +1,192 @@
+Prompt 2 — build the cohort content. Read replit.md first.
+
+This is a content build, not a feature build. Create a new cohort and a set of generic sections, using the block types and the new form options (card layout, form name, collect responses) from the last build. Do not change any code, hardcoded sections, the workbook PDF, or any other cohort. Everything below must be editable afterward in the admin section editor.
+
+Give me a short plan (section list with proposed unlock codes) and wait for approval before creating anything.
+
+COHORT
+- Name: "Tier 4 CEA Leadership — Day 5". Cohort code: T4DAY5. Workbook enabled.
+- Home message: "Welcome. This is your companion for the day and your record of it afterward. Sections unlock as we go. Everything you write here is yours — download your workbook anytime, or come back later."
+- Facilitator message: "Anthony Trunzo · IQmeetEQ · (415) 418-8236 · talkwithanthony.com"
+- In this cohort, hide every hardcoded section except the ones listed below as EXISTING. Do not delete or edit hardcoded sections.
+- Sort order is the order below. Put everything at Level 1.
+- Unlock codes, one per agenda block, all sections in a block share the code: SEE (sections 1–4), TOOLS (5–10), SHAPE (11–12), WRONG (13–19), LEAD (20–23), FRAMEWORK (24 only), CLOSE (25–28).
+
+SECTIONS
+
+Each generic section has: badge label, title, goal text, reference content blocks from the deck, then the exercise form if any, then the standard notes field. Use these block types: text for explanation, cards for side-by-side options, steps for numbered sequences, callout for key lines, prompt for anything they will paste into an AI tool, form for exercises. Write the reference content in complete sentences from the wording given here; do not add material that isn't below.
+
+1. "Three Ways to Put AI to Work" — badge REFERENCE
+Cards (3): CHAT — You ask, it answers. Copilot and other chatbots. For drafting, summarizing, thinking out loud. | AUTOMATE — You set the steps, it runs them. n8n, Power Automate. For work that happens the same way every time. | DELEGATE — You give it a goal, it finds the path. A task, software, or a whole workflow — Replit, Lovable, Copilot Studio. For work where the steps are not known in advance.
+Callout (insight): On the left, you do the work. On the right, it does the work.
+Text: What does my division do by hand that it shouldn't?
+
+2. "Consider the Work" — badge INDIVIDUAL — goal: Something your division could use.
+Text: You are not going to build software today. You will be speaking it into existence. Describe it well enough that what comes back is what you meant. Same skill you use with IT, with a vendor, and with the person two doors down.
+Steps (ordered, 4): Look at your own division — Not the whole department. The work you are accountable for. | Name what is done by hand — Where the spreadsheet is. Who emails whom. Where it stalls. | Pick one thing — Small. A tracker, a checklist, a form that becomes a summary. | Write it in one sentence — What it should do that nobody has to do by hand anymore.
+Form (card layout on, collect off, form name "One sentence", button "Copy my sentence"): one field, pill YOUR ONE THING, heading "What should it do that nobody has to do by hand anymore?", multiline.
+
+3. "Anatomy of Working Software" — badge REFERENCE
+Text: You're opening a restaurant. How do people get in?
+Cards (2 columns, 4 cards): THE DOOR — Login. Who gets in, and what each role can see. | THE DINING ROOM — Front end. What people see and touch. | THE KITCHEN — Logic. Where the rules run. | THE FREEZER — Database. Where everything is stored.
+Text: Describe those four and you have written a Product Requirements Document.
+
+4. "Build Your Mini-PRD" — badge GROUP — goal: One build per table.
+Steps (ordered, 2): Pick a scribe — Someone to type into the Workshop Companion for the group. | Document your requirements — Fill in the boxes below, then Copy and Submit. Anthony builds from what you submit.
+Form (card layout on, collect on, submissions open, form name "Mini-PRD", copy style labeled, button "Copy my PRD"), fields in order:
+ - pill TABLE, label "Table number", heading "Required.", single line
+ - pill TABLE NAME, label "Table name", heading "Optional.", single line
+ - pill THE GOAL, label "One sentence", heading "What should it do that nobody has to do by hand anymore?", multiline
+ - pill THE DOOR, label "Login", heading "Who gets in, and what each role can see.", multiline
+ - pill THE DINING ROOM, label "Front end", heading "What people see and touch.", multiline
+ - pill THE KITCHEN, label "Logic", heading "Where the rules run.", multiline
+ - pill THE FREEZER, label "Database", heading "Where everything is stored.", multiline
+ - pill CONSIDERATIONS, label "Requirements and considerations", heading "Anything the build has to respect.", multiline
+Text block after the form, titled "Your builds": "Links to the working prototypes will be added here during lunch."
+
+5. "AI, ML, and LLMs" — badge REFERENCE
+Text: Artificial Intelligence is the broad field. Machine Learning is a subset of AI — it is already in your life: fraud detection at Visa, Face ID, Netflix recommendations, Outlook spam filtering, Google Maps routing. Large Language Models are a subset of Machine Learning — Claude, ChatGPT, Gemini — and they power tools like Copilot, NotebookLM, Notion AI, Canva AI, and Gamma.
+Cards (3): LARGE — A vast knowledge base, trained on an enormous amount of text. | LANGUAGE — Natural, like you're typing or speaking to a person. | MODEL — The name of the tool itself: Claude, GPT, Gemini, and the rest.
+Callout (rule): The goal isn't to know everything. It's to know enough to lead, experiment, and decide.
+
+6. "The Tools You Have" — badge REFERENCE
+Text: At work.
+Cards (3): MICROSOFT COPILOT — General purpose. Drafting, summarizing, reorganizing, planning. Works across Outlook, Teams, Word, and SharePoint inside the Caltrans tenant. Best at language tasks on your own material. Weak at facts it was not given, numbers, anything it has to look up. | TRAFFIC MOBILITY INSIGHT — Purpose-built. Answers questions against a defined mobility dataset. Narrow, and accurate inside its lane. Best at the questions it was built for. Weak at anything outside the data it was pointed at. | ROAD SAFETY INSIGHT — Purpose-built. Same architecture, different data: crash and safety records. Best at pattern questions on safety data. Weak at general drafting. It is not a writing tool.
+Text: At home: Claude, ChatGPT, Gemini.
+
+7. "Many Ways In" — badge REFERENCE
+Text: How are you using LLMs today? Every one of these is a language task. None requires the tool to know a fact it was not given.
+Cards (2 columns, 5 cards): DRAFT — Memos, emails, talking points. The blank page problem. | SYNTHESIZE — Five reports into one view. Twenty comments into three themes. | DISTILL — Forty pages into one. What survives is what matters. | BRAINSTORM — Options and angles you had not considered. | PLAN — A sequence. An agenda. The questions before a vendor call.
+
+8. "Draft with Instructions and Role" — badge INDIVIDUAL — goal: See what each part of a prompt changes.
+Text: Run these three in order, in a new Copilot chat each time. Notice what changes.
+Prompt (label "1st prompt · Instruction"): Write an email about a new policy requiring staff to complete training within 30 days.
+Prompt (label "2nd prompt · Instruction + Role"): You are a supportive supervisor who knows your team is stretched thin. Write an email about a new policy requiring staff to complete training within 30 days.
+Prompt (label "3rd prompt · Switch the role"): You are a construction foreman who runs a tight ship. Write an email about a new policy requiring staff to complete training within 30 days.
+Form (card layout on, collect off, form name "Role notes", button "Copy"): one field, pill DEBRIEF, heading "How did the role change it?", multiline.
+
+9. EXISTING hardcoded section "The RICECO Framework" — keep visible, no changes.
+
+10. "Real Work" — badge INDIVIDUAL — goal: Leave with one finished.
+Text: Your real queue. Not the important things — the recurring, language-heavy things. "A briefing memo due Thursday." "Forty public comments to summarize." The one you name is the one you work on. Real material. Real deadline.
+Form (card layout on, collect off, form name "Real work", button "Copy my notes"), fields:
+ - pill DRAFT, heading "Create something new — email, report, talking points, agenda", help "Ex: Memos, emails, talking points. The blank page problem."
+ - pill SYNTHESIZE, heading "Combine many things into one view", help "Ex: Five reports into one view. Twenty comments into three themes."
+ - pill DISTILL, heading "Shrink something long down to what matters", help "Ex: Forty pages into one. What survives is what matters."
+ - pill BRAINSTORM, heading "Generate options and angles", help "Ex: Options and angles you had not considered."
+ - pill PLAN, heading "Sequence the work", help "Ex: A rollout sequence. An agenda. The questions before a vendor call."
+ All multiline, placeholder "Add your notes here…".
+
+11. "Human in the Loop" — badge REFERENCE
+Text: The fix isn't better AI. It's a human in the loop. Beginning: you direct. Middle: AI processes. End: you edit and oversee it.
+Callout (stop, title "The trap"): These systems perform trust. They don't earn it. The better they get at the performance, the harder it is to remember. Your job: understand it. Don't trust it.
+
+12. "Where It Earns Its Place" — badge REFERENCE
+Text: Which of your real tasks suit the tools you actually have? Recurring, language-heavy work. Not anything the number has to be right on.
+Text: An agent is different. You hand it a goal. It decides what files to create, writes them, hits errors, reads the errors, fixes them, and keeps going until something ran. Their words went in. An agent did the rest.
+
+13. "Pattern Matching and Hallucination" — badge REFERENCE
+Text: An LLM predicts the next word based on massive training data. It's not retrieving a fixed answer; it's generating a likely sequence. When it lands on truth, we call it an answer. When it lands on false, we call it a hallucination. Same process either way. It doesn't know it's right. It doesn't know it's wrong. It's always guessing.
+Text: More context means better predictions. "Mary ___" could be anything. "Mary had a little ___" is almost certainly one word. Vague prompts get vague outputs. Your context is the lever.
+Callout (quote, title "When AI gets caught"): You: That statistic you cited — where did it come from? AI: It's from the 2023 National Workforce Study by the Bureau of Labor Statistics. You: I can't find that study. Does it exist? AI: I filled in a pattern that I thought belonged there.
+
+14. EXISTING hardcoded section "What AI Is / Is Not" — keep visible.
+
+15. "Context" — badge REFERENCE
+Cards (2 columns, 4 cards): ONE CHAT — Everything typed so far. That is what it works from. A fouled chat stays fouled — the bad assumption is in the context. | WHAT IT CAN REACH — Files, mail, documents. Some tools read what you point them at. Whether yours does is a configuration question, not a capability one. | ACROSS SESSIONS — What it remembers. Claude and GPT carry memory and projects. Copilot chat, as you have it, starts fresh each time. | TO AN AGENT — What you hand it, plus what it fetches. The leap that makes agents useful and risky at once.
+Text: Bad context is why more prompting stops helping. Know which layer the problem is in.
+Cards (3): DRIFT — The topic wandered. Twenty exchanges in, the chat is somewhere else. Start a new one. | FOULED — A bad assumption got baked in. Every answer now leans into it. Edit the earlier prompt, or abandon the chat. | BAD REPLIES — Same wrong thing, again. More prompting will not fix it. The context is the problem. Sunset it.
+
+16. "Create Your Context" — badge INDIVIDUAL — goal: What do you want it to remember about you?
+Steps (ordered, 3): Pick a task where the tool would need to know you — Where a generic answer wouldn't work, because of your audience, your division, or how it has to sound. | Fill in the boxes that would have the most impact — Role, acronyms, formatting. Skip the rest. | Copy, paste into a new Copilot chat, then type the task — How did your context document influence it?
+Form (card layout on, collect off, form name "Portable context", copy style labeled, button "Copy my context"), all multiline, fields:
+ - pill ROLE, heading "What should AI know about your role?", help "Your title or function and where you sit in the organization."
+ - pill WORK, heading "What should AI know about the work you're responsible for?", help "Recurring responsibilities that affect the help you need."
+ - pill TERMS, heading "What terminology or acronyms should AI understand without explanation?", help "Only terms you use regularly."
+ - pill RULES, heading "What standing rules or constraints should AI always account for?", help "Requirements that apply across most of your work."
+ - pill TONE, heading "What should AI know about your preferred tone?", help "How responses should generally sound."
+ - pill FORMAT, heading "How do you prefer information to be organized?", help "BLUF, bullets, sections, tables, or narrative."
+ - pill DEPTH, heading "How much detail do you usually want?", help "Your normal level of depth or concision."
+ - pill DELIVERABLES, heading "What kinds of deliverables do you commonly want AI to produce?", help "Emails, memos, briefings, talking points, or analyses."
+ - pill AVOID, heading "What should AI avoid doing?", help "Recurring response habits that make the output less useful."
+
+17. EXISTING hardcoded section "LLM Peer Review" — keep visible.
+18. EXISTING hardcoded section "Power Follow-Ups" — keep visible.
+
+19. "Cognitive Erosion" — badge REFERENCE
+Text: It's not laziness. It's misplaced confidence. Confidence in the tool lowers critical thinking; confidence in yourself raises it. Effort drops most at the judgment end — evaluation, synthesis, analysis. Tool first, thinking second: the order matters.
+Text: The failure is invisible until a decision goes wrong. Gradual drift: session one you edit, session three you copy-paste. Output homogenizes — the memos start sounding alike. "It wrote it" replaces "I wrote it." Skill loss shows up only when the tool is gone. Two or three people trusted the polish before it reached you.
+Cards (2 columns, 4 cards): ASK WHAT TO CONSIDER — Ask what to consider and why, before you ask for the answer. | THINK FIRST — Draft the skeleton yourself, then use the tool. | MAKE IT ARGUE — Have it argue the other side of your draft. "What would an expert check here that I haven't?" | HAVE IT QUIZ YOU — On your own document, before you send it.
+Callout (rule, title "What a leader does"): Ask where it came from. Keep one hard thing by hand. Reward the catch. Model it yourself. Prevention is structural: the tool is designed to make carelessness feel like competence.
+
+20. "What Else Is Possible" — badge REFERENCE
+Text: Beyond Copilot, Traffic Mobility Insight, and Road Safety Insight. Remember the three ways: Chat, Automate, Delegate.
+Steps (ordered, 4, titled "Automate — the path is fixed, AI can live inside it"): Trigger — Something happens. | AI step — Summarize, classify, extract. | Action — Update, route, create. | Output — Notify, store, send.
+Text: The workflow does not decide what happens next. You already did.
+Text: Delegate — the path is discovered while the work is happening. Example: "Prepare Monday's executive brief." The agent pulls the calendar, project data, email updates, and policy news, asks what's missing, searches an alternate source, synthesizes, drafts. The path changes when the evidence changes.
+Callout (insight): Some of the people you lead have used these tools. They know the gap.
+
+21. "Shadow AI" — badge REFERENCE
+Callout (insight): Shadow AI is evidence. It tells leaders where capability, policy, and user need are out of alignment.
+Text: You did not choose it. Copilot arrived in an update — every M365 tenant got it. Gemini arrived in a browser patch that IT approved as a security fix. Connectors arrive through your own tools: an approved tool with an admin panel connects to anything. The question is not whether you have shadow AI. It is whether you can see it.
+Cards (3, titled "Read the signal — the workaround is telling you something"): CAPABILITY — The approved tool cannot do the job. People reach outside when the sanctioned option stops short. | POLICY — The rules do not match the work. A blanket restriction collides with a legitimate operational need. | ENABLEMENT — People do not know the sanctioned path. The capability may exist; they just don't know how to reach it.
+Text: Before you punish the workaround, diagnose the gap.
+Cards (2): "WHO IS USING UNAPPROVED AI?" — Finds a person. | "WHAT ARE THEY TRYING TO ACCOMPLISH THAT THEY CANNOT ACCOMPLISH ANOTHER WAY?" — Finds the gap.
+Cards (2): SURVEILLANCE — Catch it. Stop it. People learn what not to tell you. The behavior gets harder to see, not less common. | SUNLIGHT — See it. Understand it. Ask what the tool is doing for them. Visibility gives you something you can actually govern.
+Text: Make the sanctioned path win. People choose the approved path when it gives them more, not merely when policy tells them to: approved data, shared prompts, internal knowledge, better integrations, reusable workflows. Compliance is not the incentive. Capability is.
+Callout (rule, title "Trust but verify"): Enable, train, make the path known — that sets the direction and gets people to tell you what they use. Then check at machine speed. AI runs at machine speed, so the check on it has to.
+Form (card layout on, collect off, form name "Bring it home", button "Copy"), all multiline:
+ - pill HONEST GUESS, heading "What is your division already using that you cannot see?", help "Not what they may use. What they use. Personal ChatGPT. Claude on a phone."
+ - pill WHY, heading "What need is that tool meeting that the sanctioned path does not?"
+ - pill MONDAY, heading "Sunlight or surveillance? Say which, and name the first move."
+
+22. "Data Safety" — badge REFERENCE
+Text: Before we talk about AI safety, let's talk about data safety. Optimize entirely for efficiency and everything is wide open. Optimize entirely for safety and we'd never send an email. Every organization lives somewhere in the middle.
+Text: "Is this safe?" is not a question that has an answer. Safe compared to what? For which material? Against which alternative you already use?
+Text: It already happened. In 2024, researchers extracted over 2,700 real credentials — API keys, passwords, access tokens — from GitHub's AI, which had learned them during training and suggested them to other developers. When model improvement is on, your inputs may be used to improve the product. Turning model improvement off is a controllable setting, and it should be checked before any sensitive work.
+Cards (2 columns, 4 cards, titled "How your tools handle your data"): OUTLOOK & SHAREPOINT — Stored on Microsoft's servers. Encrypted. Not used to build products for others. Kept until you delete it. | PAYROLL / HR — Stored on the vendor's servers. Encrypted. Not used to build products for others. Kept 4+ years by federal law. | COPILOT, CALTRANS TENANT — Stored in Microsoft's government cloud. Encrypted. Not used to build products for others, by contract. Kept per the state agreement. | CONSUMER AI — Stored on the AI company's servers. Encrypted. Used to build products for others only if model improvement is on. Kept until you delete it.
+Callout (insight): The security question is not "is AI safe?" It's "what's the data, what are the settings, and what does my organization allow?"
+Callout (rule): For a staffer, safety is a toggle. For you, safety is a policy: which tools your people may use, and how you find out when they use something else.
+
+23. EXISTING hardcoded section "Red / Yellow / Green" — keep visible. If the section supports content variants for its scenarios, replace the scenarios with these six, each labeled to be answered twice (model improvement off, then on):
+ 1. You paste a draft public-facing press release into an LLM to make it clearer.
+ 2. You paste a contractor's name, contact details, and specific contract terms into an LLM to help draft a follow-up email.
+ 3. You paste an email thread with the Legislature's staff about a pending bill into an LLM to help draft a response.
+ 4. You paste public comments from a project hearing — naming specific residents and parcels — into an LLM to find patterns.
+ 5. You attach meeting notes that include a personnel discussion to pull out action items.
+ 6. You attach a district's quarterly delivery summary — projects, status, dollar figures — to draft an update for the Director.
+ If the section does not support variants, tell me and leave it as is.
+
+24. "The Change Message Framework" — badge REFERENCE — unlock code FRAMEWORK
+Text: You already wrote it. Now say it in order.
+Steps (ordered, 5): Forces — What changed outside. | Practices — How we do it today. | Consequences — What that costs now. | A stronger path — What we saw. | Impact — What is different in 90 days.
+Text: Five sentences. Repeated in the all-hands, the hallway, and the one-on-one until it sticks.
+Cards (2): SKIP THE COST — "Here is a better way." Lands as a preference. Preferences lose to the status quo. | NAME THE COST FIRST — "Here is what today costs. Here is the better way." Lands as a recovery. The same words, in that order, move people.
+Text: The brain registers a gain only against a loss. Steps 2–3 are the loss. Steps 4–5 are the gain. Skip either half and the message stops working.
+
+25. "What You Know Now" — badge INDIVIDUAL — goal: One sentence each. Eight minutes.
+Form (card layout on, collect off, form name "Five sentences", copy style labeled, button "Copy my five sentences"), all multiline:
+ - pill OUTSIDE, heading "What changed around your division that nobody in it chose?"
+ - pill TODAY, heading "How does your division do that work right now? Say it without judgment."
+ - pill COST, heading "Knowing what you know now, what is that costing?"
+ - pill SAW IT, heading "What did you see built today that changes that?"
+ - pill 90 DAYS, heading "What is different in 90 days if it works?"
+Text after form: Hand it to the person next to you. They read your five sentences out loud, in order. Which sentence is weakest? Which one would your division argue with?
+
+26. "Two Sentences" — badge INDIVIDUAL — goal: The ones you would actually say.
+Text: Rewrite rows 1 and 2 as speech. Who hears it: a direct report who did not ask. Competent, busy, quietly skeptical. Then say it to your partner. They answer one question only: "What did you just hear me asking you to do?" If the answer is "nothing yet," the opening worked.
+Form (card layout on, collect on, submissions open, form name "Two sentences", copy style joined, button "Copy"), all multiline:
+ - pill SENTENCE ONE, heading "What changed outside your division."
+ - pill SENTENCE TWO, heading "How your division does that work today — said so they nod, not flinch."
+
+27. "Three Concepts That Ride Along" — badge REFERENCE
+Cards (3): HUMAN IN THE LOOP — Verify before it circulates. Facts, math, sources. | SUNLIGHT, NOT SURVEILLANCE — "I want to know what you already use." Not to stop you. To understand what it does for you. | WHERE IT EARNS ITS PLACE — Recurring, language-heavy. Not anything the number has to be right on.
+Text: Three concepts, no more. They repeat until your division can say them back.
+
+28. "Talk It Out" — badge INDIVIDUAL
+Form (card layout on, collect on, submissions open, form name "What clicked", copy style labeled, button "Copy"), all multiline:
+ - pill WHAT CLICKED, heading "One insight, technique, or moment that stuck."
+ - pill WHO NEEDS TO HEAR IT, heading "A peer CEA who was not in this room. What would you tell them first?"
+Text after form: Tell us how we did — two minutes in the Feedback tab, now, while it is fresh. Tomorrow: Day 6, Succession Planning and Leadership Legacy. Same room. Bring the two sentences you wrote today.
+
+When finished, give me a table: section, unlock code, and whether it collects responses. Then tell me anything from this list you could not create as specified.
