@@ -131,6 +131,10 @@ object). All others use the documented OpenAPI shapes.
   (default cohort, LLM tools, safari library, feedback categories, settings)
 - Run via the configured workflow `artifacts/api-server: API Server`
   (do **not** run `pnpm dev` at the workspace root)
+- `node scripts/restore-generic-sections.mjs <export.json>` — restore emptied
+  library sections from a full JSON export via the admin API (dry run by
+  default; `APPLY=1` writes, `KEEP_LIVE_LEVEL=1` leaves defaultLevel alone,
+  `API_BASE`/`ADMIN_PASSWORD` target production)
 
 ## Environment
 

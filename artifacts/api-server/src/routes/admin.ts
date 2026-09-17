@@ -1181,7 +1181,22 @@ router.get(
   },
 );
 
-const genericUpdateSchema = genericCreateSchema.partial();
+// NOT genericCreateSchema.partial(): with zod v4, .partial() keeps the
+// .default() values, so a partial PUT like { defaultLevel: 4 } would silently
+// reset contentBlocks to [], sectionType to "exercise" and showNotesField to
+// true. Spell out the update shape with no defaults so absent = unchanged.
+const genericUpdateSchema = z
+  .object({
+    title: z.string().trim().min(1),
+    contentBlocks: z.array(contentBlockSchema),
+    goalText: z.string().nullish(),
+    sectionType: z.enum(["exercise", "reference"]),
+    showNotesField: z.boolean(),
+    badgeLabel: z.string().trim().nullish(),
+    defaultLevel: z.number().int().min(1).max(4).nullish(),
+    archived: z.boolean().nullish(),
+  })
+  .partial();
 
 router.put("/admin/generic-sections/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
