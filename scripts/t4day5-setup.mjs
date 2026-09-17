@@ -43,7 +43,7 @@ const REF = "REFERENCE", IND = "INDIVIDUAL", GRP = "GROUP";
 const S = (title, badge, goal, blocks) => ({
   title, badgeLabel: badge, goalText: goal ?? null,
   sectionType: badge === REF ? "reference" : "exercise",
-  showNotesField: true, defaultLevel: 1, contentBlocks: blocks,
+  showNotesField: true, defaultLevel: 4, contentBlocks: blocks,
 });
 
 const plan = [
@@ -275,7 +275,8 @@ const plan = [
 //   - the 28 Day 5 sections at Level 4, visible, in plan order, with codes
 //   - every other Level 1-3 row visible (locked unless the level is opened)
 //   - built-in Level 4 rows hidden
-// Cohort fields and existing generic-section content are never rewritten.
+// Cohort fields and existing generic-section content are never rewritten;
+// only the library default level of the 23 Day 5 sections is forced to 4.
 // Usage: API_BASE=https://host ADMIN_PASSWORD=... node scripts/t4day5-setup.mjs
 // ---------------------------------------------------------------------------
 const CODE = "T4DAY5";
@@ -315,6 +316,7 @@ function findExistingGeneric(title) {
 const rows = [];
 let order = 0;
 let created = 0;
+let relevelled = 0;
 for (const [code, item] of plan) {
   let sectionId;
   if (typeof item === "string") {
@@ -325,6 +327,12 @@ for (const [code, item] of plan) {
       g = (await api("POST", "/admin/generic-sections", item)).section;
       created++;
       console.log("created generic", g.id, item.title);
+    }
+    // Day 5 content lives under Level 4 in the admin library.
+    if (g.defaultLevel !== 4) {
+      await api("PUT", `/admin/generic-sections/${g.id}`, { defaultLevel: 4 });
+      relevelled++;
+      console.log("set default level 4", g.id, item.title);
     }
     sectionId = `generic_${g.id}`;
   }
@@ -354,5 +362,6 @@ for (const s of after) {
   summary[k] = (summary[k] ?? 0) + 1;
 }
 console.log("generic sections created:", created);
+console.log("generic sections moved to library level 4:", relevelled);
 console.log("layout:", summary);
 console.log("level 4 order:", after.filter((s) => s.level === 4 && s.visible).map((s) => `${s.code}:${s.title}`).join(" | "));

@@ -491,6 +491,20 @@ export interface AdminCohortDuplicateResponse {
   genericSectionsCopied: number;
 }
 
+export interface AdminMakeEditableResponse {
+  /** New cohort_sections section id (generic_<n>) */
+  sectionId: string;
+  genericSectionId: number;
+  /** Participant note rows copied to the new section */
+  notesCarried: number;
+}
+
+export interface AdminMakeEditableBlockedResponse {
+  error: string;
+  /** Name of the element that cannot be expressed */
+  blockedBy: string;
+}
+
 export type AdminCohortCreateRequestTierAccess = { [key: string]: boolean };
 
 /**

@@ -9,6 +9,7 @@ import {
   useAdminDeleteGenericSection,
   useAdminUnlockAllForCohort,
   useAdminListGenericSectionUsage,
+  useAdminMakeSectionEditable,
   getAdminListCohortSectionsQueryKey,
   getAdminListGenericSectionsQueryKey,
   getAdminListGenericSectionUsageQueryKey,
@@ -52,7 +53,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X, Eye, Paperclip, ChevronRight, ChevronDown, Copy, RotateCcw, MapPin } from "lucide-react";
+import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X, Eye, Paperclip, ChevronRight, ChevronDown, Copy, RotateCcw, MapPin, PenLine } from "lucide-react";
 import {
   SectionFilesDialog,
   type SectionFile,
@@ -282,6 +283,45 @@ export function SectionsTab({ cohortId }: Props) {
       return [...bumped, { ...newRow, sortOrder: orig.sortOrder + 1 }];
     });
     setDirty(true);
+  };
+
+  // "Make editable": server converts a built-in row into a new generic
+  // library section and repoints this cohort's row. Disabled while there are
+  // unsaved edits so a later Save can't write the stale built-in id back.
+  const makeEditableMut = useAdminMakeSectionEditable();
+  const [makeEditableTarget, setMakeEditableTarget] = useState<Row | null>(null);
+  const confirmMakeEditable = () => {
+    const r = makeEditableTarget;
+    if (!r) return;
+    makeEditableMut.mutate(
+      { cohortId, sectionId: r.sectionId },
+      {
+        onSuccess: (res) => {
+          setMakeEditableTarget(null);
+          qc.invalidateQueries({ queryKey: getAdminListCohortSectionsQueryKey(cohortId) });
+          qc.invalidateQueries({ queryKey: getAdminListGenericSectionsQueryKey() });
+          qc.invalidateQueries({ queryKey: getAdminListGenericSectionUsageQueryKey() });
+          toast({
+            title: "Section is now editable",
+            description: `"${titleFor(r)}" was copied to the library as ${res.sectionId}. ${
+              res.notesCarried > 0
+                ? `${res.notesCarried} participant note${res.notesCarried === 1 ? "" : "s"} carried across.`
+                : "No participant notes to carry across."
+            }`,
+          });
+        },
+        onError: (err) => {
+          if (isAdminAuthError(err)) return;
+          setMakeEditableTarget(null);
+          const data = (err as { data?: { error?: string; blockedBy?: string } | null })?.data;
+          toast({
+            title: data?.blockedBy ? "Can't make this section editable" : "Make editable failed",
+            description: data?.error ?? "Unexpected error.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
   };
 
   const bulkMut = useAdminBulkUpdateCohortSections();
@@ -888,6 +928,39 @@ export function SectionsTab({ cohortId }: Props) {
 
   return (
     <div className="space-y-4">
+      <AlertDialog
+        open={makeEditableTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !makeEditableMut.isPending) setMakeEditableTarget(null);
+        }}
+      >
+        <AlertDialogContent data-testid="dialog-make-editable">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Make this section editable?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{makeEditableTarget ? titleFor(makeEditableTarget) : ""}" will be
+              copied into the library as a new editable section with the same
+              content, and this cohort will use the copy instead of the built-in
+              (keeping its position, code, and visibility). Other cohorts keep
+              the built-in. Participant notes in this cohort are carried across
+              where field names match; attached files stay on the built-in.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={makeEditableMut.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmMakeEditable();
+              }}
+              disabled={makeEditableMut.isPending}
+              data-testid="button-confirm-make-editable"
+            >
+              {makeEditableMut.isPending ? "Converting…" : "Make editable"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Sections</CardTitle>
@@ -2047,6 +2120,22 @@ export function SectionsTab({ cohortId }: Props) {
                                 data-testid={`button-edit-generic-${r.sectionId}`}
                               >
                                 <Pencil className="w-4 h-4" />
+                              </Button>
+                            )}
+                            {!isGeneric && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setMakeEditableTarget(r)}
+                                disabled={dirty || makeEditableMut.isPending}
+                                title={
+                                  dirty
+                                    ? "Save your changes first"
+                                    : "Make editable (copy into the library)"
+                                }
+                                data-testid={`button-make-editable-${r.sectionId}`}
+                              >
+                                <PenLine className="w-4 h-4" />
                               </Button>
                             )}
                             <Button

@@ -766,6 +766,19 @@ export const AdminBulkUpdateCohortSectionsResponse = zod.object({
 });
 
 /**
+ * Creates a new generic library section from the built-in section's content (same title, goal, type, notes setting; default level = the built-in's level), repoints this cohort's row at it (keeping level, sort order, display name, visibility, code and code-active), and copies this cohort's participant notes to matching field keys. Other cohorts are unaffected. Refused (422) when the built-in contains an element the generic block types cannot express.
+ * @summary Convert a built-in section row into an editable library section
+ */
+
+export const AdminMakeSectionEditableParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+  sectionId: zod.coerce
+    .string()
+    .min(1)
+    .describe("Section id (e.g. `welcome`, `iq-meets-eq`, `generic_42`)"),
+});
+
+/**
  * @summary Unlock every visible section for every participant in the cohort
  */
 export const AdminUnlockAllForCohortParams = zod.object({

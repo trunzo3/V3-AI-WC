@@ -59,6 +59,8 @@ export * from "./adminLlmToolListResponse";
 export * from "./adminLlmToolResponse";
 export * from "./adminLlmToolUpdateRequest";
 export * from "./adminLoginRequest";
+export * from "./adminMakeEditableBlockedResponse";
+export * from "./adminMakeEditableResponse";
 export * from "./adminMeResponse";
 export * from "./adminParticipantActiveRequest";
 export * from "./adminParticipantListResponse";

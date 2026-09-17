@@ -86,6 +86,24 @@ Two surface areas:
     tombstones are copied; files attached to cloned sections are cloned and
     their download/image `fileId`s remapped. No participants/notes/unlocks/
     responses. A source row pointing at a missing library section aborts (409).
+  - **Make editable** (Cohorts → Sections → pen icon on a built-in row;
+    `POST /api/admin/cohorts/:cohortId/sections/:sectionId/make-editable`).
+    Converts one cohort's built-in row into a brand-new generic library
+    section using the hand-transcribed block catalog in
+    `artifacts/api-server/src/lib/builtin-conversions.ts` (one entry per
+    built-in id: `fixed([...blocks])`, a `(ctx) => blocks` function when the
+    built-in reads LLM tools / content variants at runtime, or
+    `blocked("element")`). Same title/goal/type/notes setting, badge null,
+    `defaultLevel` = the row's level; RICECO / 6 Ways field sets become one
+    `form` block with `cardLayout` and the original field keys. The cohort's
+    row is repointed keeping level/sortOrder/displayName/visible/code/
+    codeActive; other cohorts are unaffected; participant notes for this
+    cohort are *copied* to matching field keys (+ `notes`); attached files
+    stay on the built-in. Blocked built-ins (Tool Safari, Map Your
+    Workflows, Red / Yellow / Green) return 422 `{error, blockedBy}` — no
+    partial conversions. The button is disabled while the section list has
+    unsaved edits. When a built-in component's content changes, update its
+    catalog entry too.
   - The participant home header shows the cohort name (from `/api/auth/me`)
     in place of the legacy "VESTIBULE" / "Cohort: CODE" label.
   - Tool Safari upload uses a styled "Upload PDF Guide" button that triggers

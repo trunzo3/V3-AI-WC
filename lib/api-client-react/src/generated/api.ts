@@ -53,6 +53,8 @@ import type {
   AdminLlmToolResponse,
   AdminLlmToolUpdateRequest,
   AdminLoginRequest,
+  AdminMakeEditableBlockedResponse,
+  AdminMakeEditableResponse,
   AdminMeResponse,
   AdminParticipantActiveRequest,
   AdminParticipantListResponse,
@@ -2635,6 +2637,113 @@ export const useAdminBulkUpdateCohortSections = <
   TContext
 > => {
   return useMutation(getAdminBulkUpdateCohortSectionsMutationOptions(options));
+};
+
+/**
+ * Creates a new generic library section from the built-in section's content (same title, goal, type, notes setting; default level = the built-in's level), repoints this cohort's row at it (keeping level, sort order, display name, visibility, code and code-active), and copies this cohort's participant notes to matching field keys. Other cohorts are unaffected. Refused (422) when the built-in contains an element the generic block types cannot express.
+ * @summary Convert a built-in section row into an editable library section
+ */
+export const getAdminMakeSectionEditableUrl = (
+  cohortId: number,
+  sectionId: string,
+) => {
+  return `/api/admin/cohorts/${cohortId}/sections/${sectionId}/make-editable`;
+};
+
+export const adminMakeSectionEditable = async (
+  cohortId: number,
+  sectionId: string,
+  options?: RequestInit,
+): Promise<AdminMakeEditableResponse> => {
+  return customFetch<AdminMakeEditableResponse>(
+    getAdminMakeSectionEditableUrl(cohortId, sectionId),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getAdminMakeSectionEditableMutationOptions = <
+  TError = ErrorType<
+    | BadRequestResponse
+    | UnauthorizedResponse
+    | NotFoundResponse
+    | AdminMakeEditableBlockedResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminMakeSectionEditable>>,
+    TError,
+    { cohortId: number; sectionId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminMakeSectionEditable>>,
+  TError,
+  { cohortId: number; sectionId: string },
+  TContext
+> => {
+  const mutationKey = ["adminMakeSectionEditable"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminMakeSectionEditable>>,
+    { cohortId: number; sectionId: string }
+  > = (props) => {
+    const { cohortId, sectionId } = props ?? {};
+
+    return adminMakeSectionEditable(cohortId, sectionId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminMakeSectionEditableMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminMakeSectionEditable>>
+>;
+
+export type AdminMakeSectionEditableMutationError = ErrorType<
+  | BadRequestResponse
+  | UnauthorizedResponse
+  | NotFoundResponse
+  | AdminMakeEditableBlockedResponse
+>;
+
+/**
+ * @summary Convert a built-in section row into an editable library section
+ */
+export const useAdminMakeSectionEditable = <
+  TError = ErrorType<
+    | BadRequestResponse
+    | UnauthorizedResponse
+    | NotFoundResponse
+    | AdminMakeEditableBlockedResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminMakeSectionEditable>>,
+    TError,
+    { cohortId: number; sectionId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminMakeSectionEditable>>,
+  TError,
+  { cohortId: number; sectionId: string },
+  TContext
+> => {
+  return useMutation(getAdminMakeSectionEditableMutationOptions(options));
 };
 
 /**

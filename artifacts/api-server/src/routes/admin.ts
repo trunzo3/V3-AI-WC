@@ -27,7 +27,8 @@ import {
 import { requireAdmin } from "../middlewares/auth";
 import { seedCohortSections } from "../lib/cohort-sections";
 import { attachSeededGenericSectionsToCohort } from "../lib/seeded-generic-sections";
-import { getHardcodedSection, parseGenericSectionId } from "../lib/sections";
+import { baseSectionId, getHardcodedSection, parseGenericSectionId } from "../lib/sections";
+import { getBuiltinConversion, getBuiltinGoal } from "../lib/builtin-conversions";
 import { sanitizeRichHtml, sanitizeRichHtmlNullable } from "../lib/sanitize";
 
 const router: IRouter = Router();
@@ -247,6 +248,199 @@ const duplicateCohortSchema = z.object({
   name: z.string().trim().min(1),
   cohortCode: z.string().trim().min(1),
 });
+
+class MakeEditableBlockedError extends Error {
+  constructor(public readonly blockedBy: string) {
+    super(`This section can't be made editable: its "${blockedBy}" can't be expressed with the standard content blocks.`);
+  }
+}
+
+// "Make editable": convert one cohort's built-in section row into a brand-new
+// generic library section built from the catalogued block transcription of
+// that built-in. Only this cohort's row is repointed; other cohorts keep the
+// hardcoded section. Notes are copied (not moved) for this cohort's
+// participants where the field key exists in the new section. Files attached
+// to the built-in are left where they are.
+router.post(
+  "/admin/cohorts/:cohortId/sections/:sectionId/make-editable",
+  requireAdmin,
+  async (req, res) => {
+    const cohortId = Number(req.params.cohortId);
+    const sectionId = String(req.params.sectionId);
+    if (!Number.isInteger(cohortId) || !sectionId) {
+      res.status(400).json({ error: "Invalid cohort or section id." });
+      return;
+    }
+    if (parseGenericSectionId(sectionId) !== null) {
+      res.status(400).json({ error: "Only built-in sections can be made editable." });
+      return;
+    }
+    const hard = getHardcodedSection(sectionId);
+    if (!hard) {
+      res.status(404).json({ error: "Built-in section not found." });
+      return;
+    }
+    const conversion = getBuiltinConversion(baseSectionId(sectionId));
+    if (!conversion) {
+      res.status(422).json({
+        error: `This section can't be made editable: no conversion is defined for "${hard.title}".`,
+        blockedBy: hard.title,
+      });
+      return;
+    }
+    if (conversion.kind === "blocked") {
+      const err = new MakeEditableBlockedError(conversion.blockedBy);
+      res.status(422).json({ error: err.message, blockedBy: conversion.blockedBy });
+      return;
+    }
+
+    try {
+      const result = await db.transaction(async (tx) => {
+        const [row] = await tx
+          .select()
+          .from(cohortSectionsTable)
+          .where(
+            and(
+              eq(cohortSectionsTable.cohortId, cohortId),
+              eq(cohortSectionsTable.sectionId, sectionId),
+            ),
+          )
+          .limit(1);
+        if (!row) return null;
+
+        // Snapshot runtime inputs the built-in reads live (LLM tool links,
+        // cohort content overrides) so the copy matches what participants
+        // in this cohort see today.
+        const tools = await tx
+          .select({ displayLabel: llmToolsTable.displayLabel, url: llmToolsTable.url })
+          .from(llmToolsTable)
+          .where(and(eq(llmToolsTable.active, true), eq(llmToolsTable.showInVerification, true)))
+          .orderBy(asc(llmToolsTable.sortOrder), asc(llmToolsTable.id));
+        // Variants are keyed by the exact row id participants request
+        // (aliases like foo__copy1 have their own), not the base id.
+        const variantRows = await tx
+          .select({ blockKey: contentVariantsTable.blockKey, content: contentVariantsTable.content })
+          .from(contentVariantsTable)
+          .where(
+            and(
+              eq(contentVariantsTable.cohortId, cohortId),
+              eq(contentVariantsTable.sectionId, sectionId),
+            ),
+          );
+        // Run the generated blocks through the same validation + HTML
+        // sanitization as admin-authored sections so the copy is exactly what
+        // an admin could have saved by hand.
+        const blocks = z.array(contentBlockSchema).parse(
+          conversion.blocks({
+            llmTools: tools,
+            variants: new Map(variantRows.map((v) => [v.blockKey, v.content] as const)),
+          }),
+        );
+        const fieldKeyError = validateFieldKeys(blocks);
+        if (fieldKeyError) throw new Error(fieldKeyError);
+
+        const [created] = await tx
+          .insert(genericSectionsTable)
+          .values({
+            title: hard.title,
+            goalText: getBuiltinGoal(baseSectionId(sectionId), hard.description),
+            sectionType: hard.type === "locked" ? "exercise" : hard.type,
+            showNotesField: conversion.showNotesField,
+            badgeLabel: null,
+            defaultLevel: row.level,
+            contentBlocks: blocks,
+          })
+          .returning({ id: genericSectionsTable.id });
+        if (!created) throw new Error("Failed to create library section.");
+        const newSectionId = `generic_${created.id}`;
+
+        await tx
+          .update(cohortSectionsTable)
+          .set({ sectionId: newSectionId })
+          .where(eq(cohortSectionsTable.id, row.id));
+
+        // Carry participant notes across for field keys the new section has
+        // (plus the automatic "notes" field). Copies, so the built-in's notes
+        // remain intact for any other cohort still using it.
+        const keys = new Set<string>();
+        if (conversion.showNotesField) keys.add("notes");
+        for (const b of blocks) {
+          if (b.type === "field") keys.add(b.fieldKey);
+          if (b.type === "form") for (const f of b.fields) keys.add(f.fieldKey);
+        }
+        let notesCarried = 0;
+        if (keys.size > 0) {
+          const participantIds = (
+            await tx
+              .select({ id: participantsTable.id })
+              .from(participantsTable)
+              .where(eq(participantsTable.cohortId, cohortId))
+          ).map((p) => p.id);
+          if (participantIds.length > 0) {
+            const existing = await tx
+              .select()
+              .from(notesTable)
+              .where(
+                and(
+                  inArray(notesTable.participantId, participantIds),
+                  eq(notesTable.sectionId, sectionId),
+                  inArray(notesTable.fieldKey, [...keys]),
+                ),
+              );
+            if (existing.length > 0) {
+              await tx.insert(notesTable).values(
+                existing.map((n) => ({
+                  participantId: n.participantId,
+                  sectionId: newSectionId,
+                  fieldKey: n.fieldKey,
+                  content: n.content,
+                })),
+              );
+              notesCarried = existing.length;
+            }
+          }
+        }
+
+        // Participants who already unlocked the built-in (entered its code)
+        // must not be locked out of the copy: mirror their unlock rows.
+        const cohortParticipantIds = (
+          await tx
+            .select({ id: participantsTable.id })
+            .from(participantsTable)
+            .where(eq(participantsTable.cohortId, cohortId))
+        ).map((p) => p.id);
+        if (cohortParticipantIds.length > 0) {
+          const unlocks = await tx
+            .select({ participantId: unlockedSectionsTable.participantId })
+            .from(unlockedSectionsTable)
+            .where(
+              and(
+                inArray(unlockedSectionsTable.participantId, cohortParticipantIds),
+                eq(unlockedSectionsTable.sectionId, sectionId),
+              ),
+            );
+          if (unlocks.length > 0) {
+            await tx.insert(unlockedSectionsTable).values(
+              unlocks.map((u) => ({ participantId: u.participantId, sectionId: newSectionId })),
+            );
+          }
+        }
+
+        return { sectionId: newSectionId, genericSectionId: created.id, notesCarried };
+      }, { isolationLevel: "repeatable read" });
+
+      if (!result) {
+        res.status(404).json({ error: "This cohort has no row for that section." });
+        return;
+      }
+      res.set("Cache-Control", "no-store");
+      res.status(201).json(result);
+    } catch (err) {
+      console.error("make-editable failed", err);
+      res.status(500).json({ error: "Failed to make the section editable." });
+    }
+  },
+);
 
 // Duplicate a cohort: copies cohort settings and every cohort_sections row.
 // Admin-created (unslugged) generic sections are cloned into new library rows

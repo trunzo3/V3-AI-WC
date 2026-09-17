@@ -541,6 +541,30 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
+  /admin/cohorts/{cohortId}/sections/{sectionId}/make-editable:
+    parameters:
+      - $ref: "#/components/parameters/CohortId"
+      - $ref: "#/components/parameters/SectionId"
+    post:
+      operationId: adminMakeSectionEditable
+      tags: [admin-sections]
+      summary: Convert a built-in section row into an editable library section
+      description: Creates a new generic library section from the built-in section's content (same title, goal, type, notes setting; default level = the built-in's level), repoints this cohort's row at it (keeping level, sort order, display name, visibility, code and code-active), and copies this cohort's participant notes to matching field keys. Other cohorts are unaffected. Refused (422) when the built-in contains an element the generic block types cannot express.
+      responses:
+        "201":
+          description: Converted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminMakeEditableResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422":
+          description: Built-in section cannot be expressed with generic blocks
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminMakeEditableBlockedResponse" }
+
   /admin/cohorts/{cohortId}/unlock-all:
     parameters:
       - $ref: "#/components/parameters/CohortId"
@@ -1696,6 +1720,21 @@ components:
         cohort: { $ref: "#/components/schemas/AdminCohort" }
         sectionCount: { type: integer }
         genericSectionsCopied: { type: integer }
+
+    AdminMakeEditableResponse:
+      type: object
+      required: [sectionId, genericSectionId, notesCarried]
+      properties:
+        sectionId: { type: string, description: "New cohort_sections section id (generic_<n>)" }
+        genericSectionId: { type: integer }
+        notesCarried: { type: integer, description: "Participant note rows copied to the new section" }
+
+    AdminMakeEditableBlockedResponse:
+      type: object
+      required: [error, blockedBy]
+      properties:
+        error: { type: string }
+        blockedBy: { type: string, description: "Name of the element that cannot be expressed" }
 
     AdminCohortCreateRequest:
       type: object
