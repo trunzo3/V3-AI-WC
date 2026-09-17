@@ -78,6 +78,14 @@ Two surface areas:
     "Level names"). Stored as `settings.levelNames` (`{"1": "..."}`), exposed
     as `levelNames` on cohort responses and `/api/auth/me`; used by the
     participant sidebar and the workbook TOC. Blank = app default label.
+  - Cohorts can be duplicated (Cohorts → copy icon → new name + code;
+    `POST /api/admin/cohorts/:id/duplicate`). Copies settings, level names,
+    messages, open levels, and every section row. Admin-created generic
+    sections are cloned into new library rows (independent content); built-in
+    sections and seeded (slugged) modules are referenced. Seeded-module
+    tombstones are copied; files attached to cloned sections are cloned and
+    their download/image `fileId`s remapped. No participants/notes/unlocks/
+    responses. A source row pointing at a missing library section aborts (409).
   - The participant home header shows the cohort name (from `/api/auth/me`)
     in place of the legacy "VESTIBULE" / "Cohort: CODE" label.
   - Tool Safari upload uses a styled "Upload PDF Guide" button that triggers

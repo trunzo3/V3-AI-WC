@@ -27,6 +27,8 @@ import type {
 import type {
   AdminBulkCountResponse,
   AdminCohortCreateRequest,
+  AdminCohortDuplicateRequest,
+  AdminCohortDuplicateResponse,
   AdminCohortListResponse,
   AdminCohortResponse,
   AdminCohortSafariTabInput,
@@ -2346,6 +2348,104 @@ export const useAdminDeleteCohort = <
   TContext
 > => {
   return useMutation(getAdminDeleteCohortMutationOptions(options));
+};
+
+/**
+ * Creates a new cohort copying settings, level names, messages, open levels, and every section row (levels, order, visibility, codes). Admin-created generic sections are cloned into new library rows so the cohorts never share editable content; built-in sections and seeded modules are referenced. Participants, notes, unlocks, and form responses are not copied.
+ * @summary Duplicate a cohort
+ */
+export const getAdminDuplicateCohortUrl = (id: number) => {
+  return `/api/admin/cohorts/${id}/duplicate`;
+};
+
+export const adminDuplicateCohort = async (
+  id: number,
+  adminCohortDuplicateRequest: AdminCohortDuplicateRequest,
+  options?: RequestInit,
+): Promise<AdminCohortDuplicateResponse> => {
+  return customFetch<AdminCohortDuplicateResponse>(
+    getAdminDuplicateCohortUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adminCohortDuplicateRequest),
+    },
+  );
+};
+
+export const getAdminDuplicateCohortMutationOptions = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ErrorResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDuplicateCohort>>,
+    TError,
+    { id: number; data: BodyType<AdminCohortDuplicateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminDuplicateCohort>>,
+  TError,
+  { id: number; data: BodyType<AdminCohortDuplicateRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminDuplicateCohort"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminDuplicateCohort>>,
+    { id: number; data: BodyType<AdminCohortDuplicateRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return adminDuplicateCohort(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminDuplicateCohortMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminDuplicateCohort>>
+>;
+export type AdminDuplicateCohortMutationBody =
+  BodyType<AdminCohortDuplicateRequest>;
+export type AdminDuplicateCohortMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ErrorResponse
+>;
+
+/**
+ * @summary Duplicate a cohort
+ */
+export const useAdminDuplicateCohort = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ErrorResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDuplicateCohort>>,
+    TError,
+    { id: number; data: BodyType<AdminCohortDuplicateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminDuplicateCohort>>,
+  TError,
+  { id: number; data: BodyType<AdminCohortDuplicateRequest> },
+  TContext
+> => {
+  return useMutation(getAdminDuplicateCohortMutationOptions(options));
 };
 
 /**

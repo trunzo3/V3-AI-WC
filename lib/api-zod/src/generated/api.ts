@@ -703,6 +703,19 @@ export const AdminDeleteCohortResponse = zod.object({
 });
 
 /**
+ * Creates a new cohort copying settings, level names, messages, open levels, and every section row (levels, order, visibility, codes). Admin-created generic sections are cloned into new library rows so the cohorts never share editable content; built-in sections and seeded modules are referenced. Participants, notes, unlocks, and form responses are not copied.
+ * @summary Duplicate a cohort
+ */
+export const AdminDuplicateCohortParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminDuplicateCohortBody = zod.object({
+  name: zod.string().min(1),
+  cohortCode: zod.string().min(1),
+});
+
+/**
  * @summary List a cohort's section configuration (rows in cohort_sections)
  */
 export const AdminListCohortSectionsParams = zod.object({

@@ -478,6 +478,34 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
 
+  /admin/cohorts/{id}/duplicate:
+    parameters:
+      - $ref: "#/components/parameters/IntegerId"
+    post:
+      operationId: adminDuplicateCohort
+      tags: [admin-cohorts]
+      summary: Duplicate a cohort
+      description: Creates a new cohort copying settings, level names, messages, open levels, and every section row (levels, order, visibility, codes). Admin-created generic sections are cloned into new library rows so the cohorts never share editable content; built-in sections and seeded modules are referenced. Participants, notes, unlocks, and form responses are not copied.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminCohortDuplicateRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminCohortDuplicateResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Cohort code already in use
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
   /admin/cohorts/{cohortId}/sections:
     parameters:
       - $ref: "#/components/parameters/CohortId"
@@ -1653,6 +1681,21 @@ components:
       required: [cohort]
       properties:
         cohort: { $ref: "#/components/schemas/AdminCohort" }
+
+    AdminCohortDuplicateRequest:
+      type: object
+      required: [name, cohortCode]
+      properties:
+        name: { type: string, minLength: 1 }
+        cohortCode: { type: string, minLength: 1 }
+
+    AdminCohortDuplicateResponse:
+      type: object
+      required: [cohort, sectionCount, genericSectionsCopied]
+      properties:
+        cohort: { $ref: "#/components/schemas/AdminCohort" }
+        sectionCount: { type: integer }
+        genericSectionsCopied: { type: integer }
 
     AdminCohortCreateRequest:
       type: object

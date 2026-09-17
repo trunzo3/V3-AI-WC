@@ -20,6 +20,7 @@ import {
   unlockedSectionsTable,
   workflowMapsTable,
   formResponsesTable,
+  sectionFilesTable,
   DEFAULT_FACILITATOR_MESSAGE,
   DEFAULT_TIER_ACCESS,
 } from "@workspace/db";
@@ -223,6 +224,226 @@ router.put("/admin/cohorts/:id", requireAdmin, async (req, res) => {
   }
   res.set("Cache-Control", "no-store");
   res.json({ cohort: withLevelNames(updated) });
+});
+
+// Drizzle wraps driver errors ("Failed query: ...") with the pg error as
+// `cause`, so check the cause's code/message rather than the outer message.
+function isUniqueViolation(err: unknown): boolean {
+  let e: unknown = err;
+  for (let i = 0; i < 3 && e; i++) {
+    if (typeof e === "object") {
+      const o = e as { code?: unknown; message?: unknown; cause?: unknown };
+      if (o.code === "23505") return true;
+      if (typeof o.message === "string" && o.message.includes("duplicate key")) return true;
+      e = o.cause;
+    } else break;
+  }
+  return false;
+}
+
+class DuplicateCohortError extends Error {}
+
+const duplicateCohortSchema = z.object({
+  name: z.string().trim().min(1),
+  cohortCode: z.string().trim().min(1),
+});
+
+// Duplicate a cohort: copies cohort settings and every cohort_sections row.
+// Admin-created (unslugged) generic sections are cloned into new library rows
+// so the two cohorts never share editable content; built-in sections and
+// seeded (slugged) modules are referenced as-is. Seeded-module tombstones are
+// copied so startup seeding doesn't re-add modules removed from the source.
+// Participants, notes, unlocks, and form responses are not copied.
+router.post("/admin/cohorts/:id/duplicate", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid cohort id." });
+    return;
+  }
+  const parsed = duplicateCohortSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res
+      .status(400)
+      .json({ error: parsed.error.issues[0]?.message ?? "Invalid input." });
+    return;
+  }
+  const { name, cohortCode } = parsed.data;
+
+  try {
+    // Read everything inside one REPEATABLE READ snapshot so settings,
+    // section rows, library rows, files and tombstones are all consistent.
+    const created = await db.transaction(async (tx) => {
+      const [source] = await tx
+        .select()
+        .from(cohortsTable)
+        .where(eq(cohortsTable.id, id))
+        .limit(1);
+      if (!source) return null;
+
+      const [cohort] = await tx
+        .insert(cohortsTable)
+        .values({
+          name,
+          cohortCode,
+          audienceType: source.audienceType,
+          facilitatorMessage: source.facilitatorMessage,
+          homeMessage: source.homeMessage,
+          tierAccess: source.tierAccess,
+          workbookEnabled: source.workbookEnabled,
+          settings: source.settings,
+        })
+        .returning();
+      if (!cohort) throw new Error("Failed to create cohort.");
+
+      const rows = await tx
+        .select()
+        .from(cohortSectionsTable)
+        .where(eq(cohortSectionsTable.cohortId, source.id))
+        .orderBy(asc(cohortSectionsTable.level), asc(cohortSectionsTable.sortOrder));
+
+      const genericIds = rows
+        .map((r) => parseGenericSectionId(r.sectionId))
+        .filter((n): n is number => n !== null);
+      const generics = genericIds.length
+        ? await tx
+            .select()
+            .from(genericSectionsTable)
+            .where(inArray(genericSectionsTable.id, genericIds))
+        : [];
+
+      const genericById = new Map(generics.map((g) => [g.id, g] as const));
+      const dangling = rows.filter((r) => {
+        const gid = parseGenericSectionId(r.sectionId);
+        return gid !== null && !genericById.has(gid);
+      });
+      if (dangling.length > 0) {
+        throw new DuplicateCohortError(
+          `Source cohort references missing library sections: ${dangling
+            .map((r) => r.sectionId)
+            .join(", ")}. Remove them from the source before duplicating.`,
+        );
+      }
+
+      // Map source generic id -> section id to use in the copy. Unslugged
+      // (admin-created) sections are cloned along with their attached files
+      // (section_files is keyed by section id, and files are stored inline),
+      // and download/image blocks are rewritten to the cloned file ids.
+      const remap = new Map<number, string>();
+      let genericSectionsCopied = 0;
+      for (const g of generics) {
+        if (g.slug) {
+          remap.set(g.id, `generic_${g.id}`);
+          continue;
+        }
+        const [copy] = await tx
+          .insert(genericSectionsTable)
+          .values({
+            title: g.title,
+            contentBlocks: g.contentBlocks,
+            goalText: g.goalText,
+            sectionType: g.sectionType,
+            showNotesField: g.showNotesField,
+            badgeLabel: g.badgeLabel,
+            defaultLevel: g.defaultLevel,
+            archived: g.archived,
+          })
+          .returning({ id: genericSectionsTable.id });
+        if (!copy) throw new Error("Failed to copy generic section.");
+        genericSectionsCopied++;
+        const newSectionId = `generic_${copy.id}`;
+        remap.set(g.id, newSectionId);
+
+        const files = await tx
+          .select()
+          .from(sectionFilesTable)
+          .where(eq(sectionFilesTable.sectionId, `generic_${g.id}`))
+          .orderBy(asc(sectionFilesTable.id));
+        if (files.length > 0) {
+          const fileIdMap = new Map<number, number>();
+          for (const f of files) {
+            const [nf] = await tx
+              .insert(sectionFilesTable)
+              .values({
+                sectionId: newSectionId,
+                safariLibraryId: f.safariLibraryId,
+                filename: f.filename,
+                storagePath: f.storagePath,
+                mimeType: f.mimeType,
+                sizeBytes: f.sizeBytes,
+              })
+              .returning({ id: sectionFilesTable.id });
+            if (!nf) throw new Error("Failed to copy section file.");
+            fileIdMap.set(f.id, nf.id);
+          }
+          const blocks = (Array.isArray(g.contentBlocks) ? g.contentBlocks : []).map(
+            (b) => {
+              const anyB = b as { fileId?: unknown };
+              if (typeof anyB.fileId === "number" && fileIdMap.has(anyB.fileId)) {
+                return { ...b, fileId: fileIdMap.get(anyB.fileId)! } as typeof b;
+              }
+              return b;
+            },
+          );
+          await tx
+            .update(genericSectionsTable)
+            .set({ contentBlocks: blocks })
+            .where(eq(genericSectionsTable.id, copy.id));
+        }
+      }
+
+      const newRows = rows.map((r) => {
+        const gid = parseGenericSectionId(r.sectionId);
+        const sectionId = gid !== null ? remap.get(gid)! : r.sectionId;
+        return {
+          cohortId: cohort.id,
+          sectionId,
+          level: r.level,
+          sortOrder: r.sortOrder,
+          displayName: r.displayName,
+          visible: r.visible,
+          code: r.code,
+          codeActive: r.codeActive,
+        };
+      });
+      if (newRows.length > 0) {
+        await tx.insert(cohortSectionsTable).values(newRows);
+      }
+
+      const tombstones = await tx
+        .select({ slug: seededSectionRemovalsTable.slug })
+        .from(seededSectionRemovalsTable)
+        .where(eq(seededSectionRemovalsTable.cohortId, source.id));
+      if (tombstones.length > 0) {
+        await tx
+          .insert(seededSectionRemovalsTable)
+          .values(tombstones.map((t) => ({ cohortId: cohort.id, slug: t.slug })))
+          .onConflictDoNothing();
+      }
+
+      return { cohort, sectionCount: newRows.length, genericSectionsCopied };
+    }, { isolationLevel: "repeatable read" });
+    if (!created) {
+      res.status(404).json({ error: "Cohort not found." });
+      return;
+    }
+
+    res.set("Cache-Control", "no-store");
+    res.status(201).json({
+      cohort: withLevelNames(created.cohort),
+      sectionCount: created.sectionCount,
+      genericSectionsCopied: created.genericSectionsCopied,
+    });
+  } catch (err) {
+    if (err instanceof DuplicateCohortError) {
+      res.status(409).json({ error: err.message });
+      return;
+    }
+    if (isUniqueViolation(err)) {
+      res.status(409).json({ error: "Cohort code already in use." });
+      return;
+    }
+    throw err;
+  }
 });
 
 router.delete("/admin/cohorts/:id", requireAdmin, async (req, res) => {

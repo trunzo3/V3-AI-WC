@@ -20,6 +20,8 @@ export * from "./adminCohort";
 export * from "./adminCohortCreateRequest";
 export * from "./adminCohortCreateRequestLevelNames";
 export * from "./adminCohortCreateRequestTierAccess";
+export * from "./adminCohortDuplicateRequest";
+export * from "./adminCohortDuplicateResponse";
 export * from "./adminCohortLevelNames";
 export * from "./adminCohortListResponse";
 export * from "./adminCohortResponse";
