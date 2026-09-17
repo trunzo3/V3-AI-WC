@@ -13,6 +13,7 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminCohortUpdateRequestLevelNames } from "./adminCohortUpdateRequestLevelNames";
 import type { AdminCohortUpdateRequestTierAccess } from "./adminCohortUpdateRequestTierAccess";
 
 export interface AdminCohortUpdateRequest {
@@ -24,4 +25,6 @@ export interface AdminCohortUpdateRequest {
   facilitatorMessage?: string;
   homeMessage?: string | null;
   tierAccess?: AdminCohortUpdateRequestTierAccess;
+  /** Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults. */
+  levelNames?: AdminCohortUpdateRequestLevelNames;
 }

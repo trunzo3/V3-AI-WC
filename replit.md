@@ -74,6 +74,10 @@ Two surface areas:
     create/edit dialog).
   - Cohorts have a `home_message` HTML field rendered above the action cards
     on the participant home page (`data-testid="home-message"`).
+  - Cohorts can rename the level group headings per cohort (Cohorts → edit →
+    "Level names"). Stored as `settings.levelNames` (`{"1": "..."}`), exposed
+    as `levelNames` on cohort responses and `/api/auth/me`; used by the
+    participant sidebar and the workbook TOC. Blank = app default label.
   - The participant home header shows the cohort name (from `/api/auth/me`)
     in place of the legacy "VESTIBULE" / "Cohort: CODE" label.
   - Tool Safari upload uses a styled "Upload PDF Guide" button that triggers

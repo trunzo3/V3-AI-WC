@@ -1,3 +1,4 @@
+import { getCohortLevelNames } from "../lib/cohort-level-names";
 import { Router, type IRouter } from "express";
 import { z } from "zod/v4";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
@@ -72,6 +73,18 @@ router.get("/admin/me", (req, res) => {
 
 const tierAccessSchema = z.record(z.string(), z.boolean());
 
+// Per-cohort sidebar/workbook labels for level groups, keyed "1".."4".
+// Blank values are dropped so the app default label shows again.
+const levelNamesSchema = z
+  .record(z.string().regex(/^[1-4]$/), z.string().trim().max(80))
+  .transform((m) =>
+    Object.fromEntries(Object.entries(m).filter(([, v]) => v.length > 0)),
+  );
+
+function withLevelNames<T extends { settings: Record<string, unknown> | null }>(c: T) {
+  return { ...c, levelNames: getCohortLevelNames(c.settings) };
+}
+
 const createCohortSchema = z.object({
   name: z.string().trim().min(1),
   audienceType: z.string().trim().default("general"),
@@ -86,6 +99,7 @@ const createCohortSchema = z.object({
     .transform((v) => sanitizeRichHtmlNullable(v ?? null)),
   tierAccess: tierAccessSchema.optional(),
   workbookEnabled: z.boolean().optional(),
+  levelNames: levelNamesSchema.optional(),
 });
 
 router.get("/admin/cohorts", requireAdmin, async (_req, res) => {
@@ -94,7 +108,7 @@ router.get("/admin/cohorts", requireAdmin, async (_req, res) => {
     .from(cohortsTable)
     .orderBy(desc(cohortsTable.createdAt));
   res.set("Cache-Control", "no-store");
-  res.json({ cohorts: rows });
+  res.json({ cohorts: rows.map(withLevelNames) });
 });
 
 router.post("/admin/cohorts", requireAdmin, async (req, res) => {
@@ -118,13 +132,14 @@ router.post("/admin/cohorts", requireAdmin, async (req, res) => {
         homeMessage: data.homeMessage ?? null,
         tierAccess: data.tierAccess ?? DEFAULT_TIER_ACCESS,
         workbookEnabled: data.workbookEnabled ?? true,
+        settings: data.levelNames ? { levelNames: data.levelNames } : {},
       })
       .returning();
     if (!created) throw new Error("Failed to create cohort.");
     await seedCohortSections(created.id);
     await attachSeededGenericSectionsToCohort(created.id);
     res.set("Cache-Control", "no-store");
-    res.status(201).json({ cohort: created });
+    res.status(201).json({ cohort: withLevelNames(created) });
   } catch (err) {
     if (err instanceof Error && err.message.includes("duplicate")) {
       res.status(409).json({ error: "Cohort code already in use." });
@@ -168,6 +183,7 @@ const updateCohortSchema = z.object({
   tierAccess: tierAccessSchema.optional(),
   workbookEnabled: z.boolean().optional(),
   settings: z.record(z.string(), z.unknown()).optional(),
+  levelNames: levelNamesSchema.optional(),
 });
 
 router.put("/admin/cohorts/:id", requireAdmin, async (req, res) => {
@@ -181,9 +197,24 @@ router.put("/admin/cohorts/:id", requireAdmin, async (req, res) => {
     res.status(400).json({ error: "Invalid input." });
     return;
   }
+  const { levelNames, ...rest } = parsed.data;
+  let settingsPatch: Record<string, unknown> | undefined = rest.settings;
+  if (levelNames !== undefined) {
+    // Merge into the existing settings blob so other keys survive.
+    const [current] = await db
+      .select({ settings: cohortsTable.settings })
+      .from(cohortsTable)
+      .where(eq(cohortsTable.id, id))
+      .limit(1);
+    settingsPatch = { ...(current?.settings ?? {}), ...(rest.settings ?? {}), levelNames };
+  }
   const [updated] = await db
     .update(cohortsTable)
-    .set({ ...parsed.data, updatedAt: new Date() })
+    .set({
+      ...rest,
+      ...(settingsPatch !== undefined ? { settings: settingsPatch } : {}),
+      updatedAt: new Date(),
+    })
     .where(eq(cohortsTable.id, id))
     .returning();
   if (!updated) {
@@ -191,7 +222,7 @@ router.put("/admin/cohorts/:id", requireAdmin, async (req, res) => {
     return;
   }
   res.set("Cache-Control", "no-store");
-  res.json({ cohort: updated });
+  res.json({ cohort: withLevelNames(updated) });
 });
 
 router.delete("/admin/cohorts/:id", requireAdmin, async (req, res) => {

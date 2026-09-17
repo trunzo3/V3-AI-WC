@@ -1,3 +1,4 @@
+import { getCohortLevelNames } from "../lib/cohort-level-names";
 import { Router, type IRouter } from "express";
 import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { execSync } from "node:child_process";
@@ -549,6 +550,7 @@ function buildHtml(opts: {
   participantName: string;
   participantEmail: string;
   cohortName: string;
+  levelNames: Record<string, string>;
   generatedDate: string;
   closingQuote: string;
   closingSubtext: string | null;
@@ -559,7 +561,7 @@ function buildHtml(opts: {
     workflowMapHtml: string;
   }>>;
 }): string {
-  const { participantName, participantEmail, cohortName, generatedDate, closingQuote, closingSubtext, sectionsByLevel } = opts;
+  const { participantName, participantEmail, cohortName, levelNames, generatedDate, closingQuote, closingSubtext, sectionsByLevel } = opts;
 
   const levels = Array.from(sectionsByLevel.keys()).sort((a, b) => a - b);
 
@@ -580,7 +582,7 @@ function buildHtml(opts: {
   // TOC
   const tocItems: string[] = [];
   for (const level of levels) {
-    tocItems.push(`<div class="toc-level">${escapeHtml(LEVEL_LABELS[level] ?? `Level ${level}`)}</div>`);
+    tocItems.push(`<div class="toc-level">${escapeHtml(levelNames[String(level)] ?? LEVEL_LABELS[level] ?? `Level ${level}`)}</div>`);
     const items = sectionsByLevel.get(level) ?? [];
     for (const it of items) {
       tocItems.push(`<div class="toc-item"><span class="toc-title">${escapeHtml(it.section.title)}</span><span class="toc-dots"></span></div>`);
@@ -1219,6 +1221,7 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     participantName: participant.name || "",
     participantEmail: participant.email,
     cohortName: cohort.name || "",
+    levelNames: getCohortLevelNames(cohort.settings),
     generatedDate: formatDate(new Date()),
     closingQuote,
     closingSubtext,

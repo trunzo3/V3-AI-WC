@@ -1,3 +1,4 @@
+import { getCohortLevelNames } from "../lib/cohort-level-names";
 import { Router, type IRouter } from "express";
 import { z } from "zod/v4";
 import { eq, sql, and, desc } from "drizzle-orm";
@@ -188,7 +189,7 @@ router.get("/auth/me", async (req, res) => {
     | "tierAccess"
     | "audienceType"
     | "workbookEnabled"
-  > | null = row.cohort
+  > & { levelNames: Record<string, string> } | null = row.cohort
     ? {
         id: row.cohort.id,
         name: row.cohort.name,
@@ -197,6 +198,7 @@ router.get("/auth/me", async (req, res) => {
         tierAccess: row.cohort.tierAccess,
         audienceType: row.cohort.audienceType,
         workbookEnabled: row.cohort.workbookEnabled,
+        levelNames: getCohortLevelNames(row.cohort.settings),
       }
     : null;
 

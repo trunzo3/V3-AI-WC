@@ -36,6 +36,8 @@ export function Sidebar({
   );
   const { data: meResp } = useGetCurrentParticipant();
   const workbookEnabled = (meResp?.cohort as any)?.workbookEnabled ?? false;
+  // Admin can rename level groups per cohort (Cohorts → edit → Level names).
+  const levelNames = meResp?.cohort?.levelNames ?? {};
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
 
@@ -177,7 +179,7 @@ export function Sidebar({
                     ) : (
                       <ChevronRight className="w-3.5 h-3.5" />
                     )}
-                    {LEVEL_LABELS[level] ?? `Level ${level}`}
+                    {levelNames[String(level)] ?? LEVEL_LABELS[level] ?? `Level ${level}`}
                   </span>
                   <span className="text-[10px] text-muted-foreground/70">
                     {unlockedInLevel}/{items.length}

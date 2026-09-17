@@ -1126,6 +1126,10 @@ components:
           additionalProperties: { type: boolean }
           description: 'Map of tier level to default-unlocked boolean, e.g. {"1": true, "2": false}'
         audienceType: { type: string }
+        levelNames:
+          type: object
+          additionalProperties: { type: string }
+          description: 'Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.'
 
     LoginResponse:
       type: object
@@ -1623,6 +1627,10 @@ components:
         tierAccess:
           type: object
           additionalProperties: { type: boolean }
+        levelNames:
+          type: object
+          additionalProperties: { type: string }
+          description: 'Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.'
         createdAt:
           type: string
           format: date-time
@@ -1660,6 +1668,10 @@ components:
         tierAccess:
           type: object
           additionalProperties: { type: boolean }
+        levelNames:
+          type: object
+          additionalProperties: { type: string }
+          description: 'Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.'
 
     AdminCohortUpdateRequest:
       type: object
@@ -1674,6 +1686,10 @@ components:
         tierAccess:
           type: object
           additionalProperties: { type: boolean }
+        levelNames:
+          type: object
+          additionalProperties: { type: string }
+          description: 'Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.'
 
     AdminCohortSection:
       type: object

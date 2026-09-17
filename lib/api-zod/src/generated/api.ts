@@ -94,6 +94,12 @@ export const GetCurrentParticipantResponse = zod.object({
         'Map of tier level to default-unlocked boolean, e.g. {\"1\": true, \"2\": false}',
       ),
     audienceType: zod.string(),
+    levelNames: zod
+      .record(zod.string(), zod.string())
+      .optional()
+      .describe(
+        'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
+      ),
   }),
 });
 
@@ -584,6 +590,12 @@ export const AdminListCohortsResponse = zod.object({
       facilitatorMessage: zod.string(),
       homeMessage: zod.string().nullish(),
       tierAccess: zod.record(zod.string(), zod.boolean()),
+      levelNames: zod
+        .record(zod.string(), zod.string())
+        .optional()
+        .describe(
+          'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
+        ),
       createdAt: zod.coerce.date().nullish(),
       updatedAt: zod.coerce.date().nullish(),
     }),
@@ -601,6 +613,12 @@ export const AdminCreateCohortBody = zod.object({
   facilitatorMessage: zod.string().optional(),
   homeMessage: zod.string().nullish(),
   tierAccess: zod.record(zod.string(), zod.boolean()).optional(),
+  levelNames: zod
+    .record(zod.string(), zod.string())
+    .optional()
+    .describe(
+      'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
+    ),
 });
 
 /**
@@ -619,6 +637,12 @@ export const AdminGetCohortResponse = zod.object({
     facilitatorMessage: zod.string(),
     homeMessage: zod.string().nullish(),
     tierAccess: zod.record(zod.string(), zod.boolean()),
+    levelNames: zod
+      .record(zod.string(), zod.string())
+      .optional()
+      .describe(
+        'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
+      ),
     createdAt: zod.coerce.date().nullish(),
     updatedAt: zod.coerce.date().nullish(),
   }),
@@ -638,6 +662,12 @@ export const AdminUpdateCohortBody = zod.object({
   facilitatorMessage: zod.string().optional(),
   homeMessage: zod.string().nullish(),
   tierAccess: zod.record(zod.string(), zod.boolean()).optional(),
+  levelNames: zod
+    .record(zod.string(), zod.string())
+    .optional()
+    .describe(
+      'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
+    ),
 });
 
 export const AdminUpdateCohortResponse = zod.object({
@@ -649,6 +679,12 @@ export const AdminUpdateCohortResponse = zod.object({
     facilitatorMessage: zod.string(),
     homeMessage: zod.string().nullish(),
     tierAccess: zod.record(zod.string(), zod.boolean()),
+    levelNames: zod
+      .record(zod.string(), zod.string())
+      .optional()
+      .describe(
+        'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
+      ),
     createdAt: zod.coerce.date().nullish(),
     updatedAt: zod.coerce.date().nullish(),
   }),

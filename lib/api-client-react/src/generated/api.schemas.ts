@@ -56,6 +56,11 @@ export interface Participant {
  */
 export type CohortTierAccess = { [key: string]: boolean };
 
+/**
+ * Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.
+ */
+export type CohortLevelNames = { [key: string]: string };
+
 export interface Cohort {
   id: number;
   name: string;
@@ -65,6 +70,8 @@ export interface Cohort {
   /** Map of tier level to default-unlocked boolean, e.g. {"1": true, "2": false} */
   tierAccess: CohortTierAccess;
   audienceType: string;
+  /** Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults. */
+  levelNames?: CohortLevelNames;
 }
 
 export interface LoginResponse {
@@ -444,6 +451,11 @@ export interface AdminMeResponse {
 
 export type AdminCohortTierAccess = { [key: string]: boolean };
 
+/**
+ * Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.
+ */
+export type AdminCohortLevelNames = { [key: string]: string };
+
 export interface AdminCohort {
   id: number;
   name: string;
@@ -452,6 +464,8 @@ export interface AdminCohort {
   facilitatorMessage: string;
   homeMessage?: string | null;
   tierAccess: AdminCohortTierAccess;
+  /** Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults. */
+  levelNames?: AdminCohortLevelNames;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -466,6 +480,11 @@ export interface AdminCohortResponse {
 
 export type AdminCohortCreateRequestTierAccess = { [key: string]: boolean };
 
+/**
+ * Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.
+ */
+export type AdminCohortCreateRequestLevelNames = { [key: string]: string };
+
 export interface AdminCohortCreateRequest {
   /** @minLength 1 */
   name: string;
@@ -475,9 +494,16 @@ export interface AdminCohortCreateRequest {
   facilitatorMessage?: string;
   homeMessage?: string | null;
   tierAccess?: AdminCohortCreateRequestTierAccess;
+  /** Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults. */
+  levelNames?: AdminCohortCreateRequestLevelNames;
 }
 
 export type AdminCohortUpdateRequestTierAccess = { [key: string]: boolean };
+
+/**
+ * Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.
+ */
+export type AdminCohortUpdateRequestLevelNames = { [key: string]: string };
 
 export interface AdminCohortUpdateRequest {
   /** @minLength 1 */
@@ -488,6 +514,8 @@ export interface AdminCohortUpdateRequest {
   facilitatorMessage?: string;
   homeMessage?: string | null;
   tierAccess?: AdminCohortUpdateRequestTierAccess;
+  /** Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults. */
+  levelNames?: AdminCohortUpdateRequestLevelNames;
 }
 
 export interface AdminCohortSection {

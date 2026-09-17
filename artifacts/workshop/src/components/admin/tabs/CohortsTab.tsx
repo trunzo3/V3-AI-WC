@@ -40,7 +40,15 @@ interface FormState {
   tier3: boolean;
   tier4: boolean;
   workbookEnabled: boolean;
+  levelNames: Record<string, string>;
 }
+
+const DEFAULT_LEVEL_NAMES: Record<number, string> = {
+  1: "Level 1 — Core Workshop",
+  2: "Level 2 — Applied Mastery",
+  3: "Level 3 — AI Builder",
+  4: "AI Change Leadership",
+};
 
 const EMPTY_FORM: FormState = {
   name: "",
@@ -53,6 +61,7 @@ const EMPTY_FORM: FormState = {
   tier3: false,
   tier4: false,
   workbookEnabled: true,
+  levelNames: {},
 };
 
 function fromCohort(c: AdminCohort): FormState {
@@ -67,6 +76,7 @@ function fromCohort(c: AdminCohort): FormState {
     tier3: !!c.tierAccess?.["3"],
     tier4: !!c.tierAccess?.["4"],
     workbookEnabled: (c as any).workbookEnabled ?? true,
+    levelNames: c.levelNames ?? {},
   };
 }
 
@@ -155,6 +165,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
         "4": form.tier4,
       },
       workbookEnabled: form.workbookEnabled,
+      levelNames: form.levelNames,
     };
     if (!payload.name || !payload.cohortCode) {
       toast({ title: "Name and cohort code are required", variant: "destructive" });
@@ -285,6 +296,31 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                       </label>
                     );
                   })}
+                </div>
+              </div>
+              <div>
+                <Label className="block mb-1">Level names</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Shown as the group headings in the participant sidebar and
+                  workbook. Leave blank to use the default.
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {([1, 2, 3, 4] as const).map((n) => (
+                    <div key={n}>
+                      <Label className="text-xs text-muted-foreground">Level {n}</Label>
+                      <Input
+                        value={form.levelNames[String(n)] ?? ""}
+                        placeholder={DEFAULT_LEVEL_NAMES[n]}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            levelNames: { ...form.levelNames, [String(n)]: e.target.value },
+                          })
+                        }
+                        data-testid={`input-level-name-${n}`}
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
               <div>
