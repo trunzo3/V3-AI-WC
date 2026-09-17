@@ -1,0 +1,56 @@
+We're upgrading the Workshop Companion app. Read replit.md first. This build is additive: it extends the existing "form" block and adds one admin tab. Do not change existing tables, endpoints, section behavior, unlock codes, or the workbook PDF. Existing form blocks must render and behave exactly as they do today unless an admin turns on one of the new options.
+
+Before writing any code, give me a plan listing the files you will touch and the schema changes. Wait for my approval.
+
+FEATURE 1 — CARD LAYOUT FOR FORM BLOCKS
+
+Add these optional properties to the form block type (GenericContentBlock in lib/db/src/schema/generic-sections.ts) and to the zod validation in admin.ts:
+- cardLayout: boolean (default false)
+- formName: string (admin-facing name for this form, used in the Responses tab)
+- per field: heading?: string
+
+In the block editor (artifacts/workshop/src/components/admin/tabs/SectionsTab.tsx):
+- Add a "Card layout" checkbox on the form block.
+- Add a "Form name" text input on the form block.
+- When Card layout is on, show an optional "Heading" text input for each field.
+
+In the participant renderer (FormBlock in artifacts/workshop/src/components/workshop/SectionRenderer.tsx and NotesField.tsx):
+- When cardLayout is false, render exactly as today.
+- When cardLayout is true, render each field inside its own bordered card with: the field label as a gold pill badge (uppercase, small, gold background #C8963E, navy text), then the heading in bold if present, then the existing helpText in muted italic, then the text box. Match the look of the hardcoded 6 Ways Worksheet section.
+- The existing Copy button and assembled text (labeled/joined) work unchanged.
+
+FEATURE 2 — COLLECT RESPONSES
+
+Add to the form block type:
+- collectResponses: boolean (default false)
+- responsesOpen: boolean (default true)
+
+In the block editor, add a "Collect responses" checkbox and, when it is on, an "Accepting submissions" toggle.
+
+Participant side: when collectResponses is true, show a "Submit" button next to the existing Copy button. Submit sends the assembled text (same text the Copy button produces) to the server. On success, show "Submitted" with a checkmark and change the button to "Resubmit". If responsesOpen is false, show "Submissions closed" and disable the button. Notes autosave is unchanged; Submit is a separate explicit action.
+
+New table: form_responses
+- id, cohort_id, participant_id, section_id, block_index (integer position of the form block in the section), form_name, response_text, created_at, updated_at
+- Unique on (participant_id, section_id, block_index). Resubmitting updates the row.
+
+New endpoints (Zod safeParse, req.log, existing auth middleware):
+- POST /api/responses — participant; body { sectionId, blockIndex, responseText }. Rejects if the block is not a form with collectResponses true, or if responsesOpen is false, or if the section is not unlocked for the participant (reuse lib/section-access.ts).
+- GET /api/admin/cohorts/:cohortId/responses?sectionId=&blockIndex= — admin; returns all responses for the cohort, newest first, with participant name, section title, form_name. Filters optional.
+
+Add the participant endpoint to lib/api-spec/openapi.yaml and run codegen.
+
+FEATURE 3 — RESPONSES TAB
+
+Add a "Responses" tab under the COHORT tab group in the admin panel, scoped to the selected cohort.
+
+- Default view is one stream of every submission in the cohort, newest first, refreshing every 2 seconds (React Query refetchInterval).
+- Each card shows: participant name, form name, section title, submitted time, the full response text, and a "Copy" button that copies the response text.
+- Cards that arrived since the tab was opened show a "New" badge.
+- A filter dropdown at the top lists every collecting form in the cohort (section title + form name). "All forms" is the default.
+- A "Copy all" button copies every visible response, separated by a line with the participant name.
+- Empty state: "No submissions yet."
+- Add data-testid attributes on the tab, cards, and buttons.
+
+Update replit.md to document the new block properties, table, endpoints, and tab.
+
+When done, tell me how to test it end to end: create a section with a card-layout collecting form, submit as a participant, see it in the Responses tab.

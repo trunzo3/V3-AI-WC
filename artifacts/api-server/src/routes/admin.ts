@@ -1,3 +1,4 @@
+import { getCohortLevelNames } from "../lib/cohort-level-names";
 import { Router, type IRouter } from "express";
 import { z } from "zod/v4";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
@@ -7,6 +8,7 @@ import {
   cohortSectionsTable,
   contentVariantsTable,
   genericSectionsTable,
+  seededSectionRemovalsTable,
   llmToolsTable,
   safariLibraryTable,
   cohortSafariTabsTable,
@@ -17,12 +19,14 @@ import {
   notesTable,
   unlockedSectionsTable,
   workflowMapsTable,
+  formResponsesTable,
   DEFAULT_FACILITATOR_MESSAGE,
   DEFAULT_TIER_ACCESS,
 } from "@workspace/db";
 import { requireAdmin } from "../middlewares/auth";
 import { seedCohortSections } from "../lib/cohort-sections";
-import { getHardcodedSection } from "../lib/sections";
+import { attachSeededGenericSectionsToCohort } from "../lib/seeded-generic-sections";
+import { getHardcodedSection, parseGenericSectionId } from "../lib/sections";
 import { sanitizeRichHtml, sanitizeRichHtmlNullable } from "../lib/sanitize";
 
 const router: IRouter = Router();
@@ -69,6 +73,18 @@ router.get("/admin/me", (req, res) => {
 
 const tierAccessSchema = z.record(z.string(), z.boolean());
 
+// Per-cohort sidebar/workbook labels for level groups, keyed "1".."4".
+// Blank values are dropped so the app default label shows again.
+const levelNamesSchema = z
+  .record(z.string().regex(/^[1-4]$/), z.string().trim().max(80))
+  .transform((m) =>
+    Object.fromEntries(Object.entries(m).filter(([, v]) => v.length > 0)),
+  );
+
+function withLevelNames<T extends { settings: Record<string, unknown> | null }>(c: T) {
+  return { ...c, levelNames: getCohortLevelNames(c.settings) };
+}
+
 const createCohortSchema = z.object({
   name: z.string().trim().min(1),
   audienceType: z.string().trim().default("general"),
@@ -83,6 +99,7 @@ const createCohortSchema = z.object({
     .transform((v) => sanitizeRichHtmlNullable(v ?? null)),
   tierAccess: tierAccessSchema.optional(),
   workbookEnabled: z.boolean().optional(),
+  levelNames: levelNamesSchema.optional(),
 });
 
 router.get("/admin/cohorts", requireAdmin, async (_req, res) => {
@@ -91,7 +108,7 @@ router.get("/admin/cohorts", requireAdmin, async (_req, res) => {
     .from(cohortsTable)
     .orderBy(desc(cohortsTable.createdAt));
   res.set("Cache-Control", "no-store");
-  res.json({ cohorts: rows });
+  res.json({ cohorts: rows.map(withLevelNames) });
 });
 
 router.post("/admin/cohorts", requireAdmin, async (req, res) => {
@@ -115,12 +132,14 @@ router.post("/admin/cohorts", requireAdmin, async (req, res) => {
         homeMessage: data.homeMessage ?? null,
         tierAccess: data.tierAccess ?? DEFAULT_TIER_ACCESS,
         workbookEnabled: data.workbookEnabled ?? true,
+        settings: data.levelNames ? { levelNames: data.levelNames } : {},
       })
       .returning();
     if (!created) throw new Error("Failed to create cohort.");
     await seedCohortSections(created.id);
+    await attachSeededGenericSectionsToCohort(created.id);
     res.set("Cache-Control", "no-store");
-    res.status(201).json({ cohort: created });
+    res.status(201).json({ cohort: withLevelNames(created) });
   } catch (err) {
     if (err instanceof Error && err.message.includes("duplicate")) {
       res.status(409).json({ error: "Cohort code already in use." });
@@ -164,6 +183,7 @@ const updateCohortSchema = z.object({
   tierAccess: tierAccessSchema.optional(),
   workbookEnabled: z.boolean().optional(),
   settings: z.record(z.string(), z.unknown()).optional(),
+  levelNames: levelNamesSchema.optional(),
 });
 
 router.put("/admin/cohorts/:id", requireAdmin, async (req, res) => {
@@ -177,9 +197,24 @@ router.put("/admin/cohorts/:id", requireAdmin, async (req, res) => {
     res.status(400).json({ error: "Invalid input." });
     return;
   }
+  const { levelNames, ...rest } = parsed.data;
+  let settingsPatch: Record<string, unknown> | undefined = rest.settings;
+  if (levelNames !== undefined) {
+    // Merge into the existing settings blob so other keys survive.
+    const [current] = await db
+      .select({ settings: cohortsTable.settings })
+      .from(cohortsTable)
+      .where(eq(cohortsTable.id, id))
+      .limit(1);
+    settingsPatch = { ...(current?.settings ?? {}), ...(rest.settings ?? {}), levelNames };
+  }
   const [updated] = await db
     .update(cohortsTable)
-    .set({ ...parsed.data, updatedAt: new Date() })
+    .set({
+      ...rest,
+      ...(settingsPatch !== undefined ? { settings: settingsPatch } : {}),
+      updatedAt: new Date(),
+    })
     .where(eq(cohortsTable.id, id))
     .returning();
   if (!updated) {
@@ -187,7 +222,7 @@ router.put("/admin/cohorts/:id", requireAdmin, async (req, res) => {
     return;
   }
   res.set("Cache-Control", "no-store");
-  res.json({ cohort: updated });
+  res.json({ cohort: withLevelNames(updated) });
 });
 
 router.delete("/admin/cohorts/:id", requireAdmin, async (req, res) => {
@@ -327,6 +362,30 @@ router.put(
             codeActive: row.codeActive,
           })),
         );
+      }
+      // Sync seeded-module tombstones: any seeded (slugged) generic module NOT
+      // in the saved list was deliberately removed by the admin, so record it —
+      // the startup seed heals missing attachments except tombstoned ones.
+      // Re-adding a module clears its tombstone (full resync below).
+      const seeded = await tx
+        .select({
+          id: genericSectionsTable.id,
+          slug: genericSectionsTable.slug,
+        })
+        .from(genericSectionsTable)
+        .where(sql`${genericSectionsTable.slug} IS NOT NULL`);
+      const savedIds = new Set(parsed.data.map((row) => row.sectionId));
+      const removedSlugs = seeded
+        .filter((s) => s.slug && !savedIds.has(`generic_${s.id}`))
+        .map((s) => s.slug!);
+      await tx
+        .delete(seededSectionRemovalsTable)
+        .where(eq(seededSectionRemovalsTable.cohortId, cohortId));
+      if (removedSlugs.length > 0) {
+        await tx
+          .insert(seededSectionRemovalsTable)
+          .values(removedSlugs.map((slug) => ({ cohortId, slug })))
+          .onConflictDoNothing();
       }
     });
     res.set("Cache-Control", "no-store");
@@ -488,7 +547,7 @@ const contentBlockSchema = z
     }),
     z.object({
       type: z.literal("cards"),
-      columns: z.union([z.literal(2), z.literal(3)]),
+      columns: z.union([z.literal(1), z.literal(2), z.literal(3)]),
       cards: z.array(blockItemSchema),
     }),
     z.object({
@@ -508,6 +567,7 @@ const contentBlockSchema = z
       label: z.string(),
       placeholder: z.string().optional(),
       helpText: z.string().optional(),
+      prefill: z.string().optional(),
       multiline: z.boolean(),
     }),
     z.object({
@@ -519,17 +579,42 @@ const contentBlockSchema = z
             label: z.string(),
             placeholder: z.string().optional(),
             helpText: z.string().optional(),
+            heading: z.string().optional(),
             multiline: z.boolean(),
           }),
         )
         .min(1, "A form block must have at least one field."),
       buttonLabel: z.string(),
       copyStyle: z.enum(["labeled", "joined"]),
+      template: z.string().optional(),
+      cardLayout: z.boolean().optional(),
+      formName: z.string().optional(),
+      collectResponses: z.boolean().optional(),
+      responsesOpen: z.boolean().optional(),
     }),
     z.object({
       type: z.literal("download"),
       fileId: z.number().int().positive(),
       label: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal("image"),
+      fileId: z.number().int().positive(),
+      width: z.number().int().positive().optional(),
+      alignment: z.enum(["left", "center", "right"]),
+      caption: z.string().optional(),
+      altText: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal("recap"),
+      title: z.string(),
+      source: z.string().trim().min(1),
+      recapFields: z.array(
+        z.object({
+          fieldKey: z.string().trim().min(1),
+          label: z.string(),
+        }),
+      ),
     }),
   ])
   .transform((b) => {
@@ -606,6 +691,8 @@ const genericCreateSchema = z.object({
   sectionType: z.enum(["exercise", "reference"]).default("exercise"),
   showNotesField: z.boolean().default(true),
   badgeLabel: z.string().trim().nullish(),
+  defaultLevel: z.number().int().min(1).max(4).nullish(),
+  archived: z.boolean().nullish(),
 });
 
 router.get("/admin/generic-sections", requireAdmin, async (_req, res) => {
@@ -637,10 +724,47 @@ router.post("/admin/generic-sections", requireAdmin, async (req, res) => {
       sectionType: parsed.data.sectionType,
       showNotesField: parsed.data.showNotesField,
       badgeLabel: parsed.data.badgeLabel ?? null,
+      defaultLevel: parsed.data.defaultLevel ?? 3,
+      archived: parsed.data.archived ?? false,
     })
     .returning();
   res.status(201).json({ section: created });
 });
+
+// All cohort attachments for every generic section (drives the library's
+// "in use" checks and the "Where it's used" panel).
+router.get(
+  "/admin/generic-sections/usage",
+  requireAdmin,
+  async (_req, res) => {
+    const rows = await db
+      .select({
+        sectionId: cohortSectionsTable.sectionId,
+        cohortId: cohortSectionsTable.cohortId,
+        level: cohortSectionsTable.level,
+        cohortName: cohortsTable.name,
+      })
+      .from(cohortSectionsTable)
+      .innerJoin(
+        cohortsTable,
+        eq(cohortSectionsTable.cohortId, cohortsTable.id),
+      );
+    const usage = rows.flatMap((r) => {
+      const m = /^generic_(\d+)$/.exec(r.sectionId);
+      if (!m) return [];
+      return [
+        {
+          genericId: Number(m[1]),
+          cohortId: r.cohortId,
+          cohortName: r.cohortName,
+          level: r.level,
+        },
+      ];
+    });
+    res.set("Cache-Control", "no-store");
+    res.json({ usage });
+  },
+);
 
 const genericUpdateSchema = genericCreateSchema.partial();
 
@@ -662,9 +786,17 @@ router.put("/admin/generic-sections/:id", requireAdmin, async (req, res) => {
       return;
     }
   }
+  // defaultLevel / archived are NOT NULL columns; strip explicit nulls so a
+  // partial payload can't blank them.
+  const { defaultLevel, archived, ...rest } = parsed.data;
   const [updated] = await db
     .update(genericSectionsTable)
-    .set({ ...parsed.data, updatedAt: new Date() })
+    .set({
+      ...rest,
+      ...(defaultLevel != null ? { defaultLevel } : {}),
+      ...(archived != null ? { archived } : {}),
+      updatedAt: new Date(),
+    })
     .where(eq(genericSectionsTable.id, id))
     .returning();
   if (!updated) {
@@ -1029,6 +1161,102 @@ router.put("/admin/settings", requireAdmin, async (req, res) => {
 });
 
 // ----- Participants (admin) -----------------------------------------------
+
+// ----- Form responses ------------------------------------------------------
+
+const responsesQuerySchema = z.object({
+  sectionId: z.string().trim().min(1).optional(),
+  blockIndex: z.coerce.number().int().min(0).optional(),
+});
+
+// All explicit form submissions in a cohort, newest first, with the
+// participant's name and the section's title (cohort display name wins).
+router.get(
+  "/admin/cohorts/:cohortId/responses",
+  requireAdmin,
+  async (req, res) => {
+    const cohortId = Number(req.params.cohortId);
+    if (!Number.isInteger(cohortId)) {
+      res.status(400).json({ error: "Invalid cohort id." });
+      return;
+    }
+    const parsed = responsesQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid filter." });
+      return;
+    }
+    const filters = [eq(formResponsesTable.cohortId, cohortId)];
+    if (parsed.data.sectionId) {
+      filters.push(eq(formResponsesTable.sectionId, parsed.data.sectionId));
+    }
+    if (parsed.data.blockIndex != null) {
+      filters.push(eq(formResponsesTable.blockIndex, parsed.data.blockIndex));
+    }
+
+    const rows = await db
+      .select({
+        response: formResponsesTable,
+        participantName: participantsTable.name,
+      })
+      .from(formResponsesTable)
+      .innerJoin(
+        participantsTable,
+        eq(participantsTable.id, formResponsesTable.participantId),
+      )
+      .where(and(...filters))
+      .orderBy(desc(formResponsesTable.updatedAt), desc(formResponsesTable.id));
+
+    // Resolve section titles: admin display name in this cohort, else the
+    // generic section's title, else the hardcoded title, else the raw id.
+    const sectionIds = [...new Set(rows.map((r) => r.response.sectionId))];
+    const titleMap = new Map<string, string>();
+    if (sectionIds.length > 0) {
+      const genericIds = sectionIds
+        .map((id) => [id, parseGenericSectionId(id)] as const)
+        .filter((p): p is readonly [string, number] => p[1] != null);
+      if (genericIds.length > 0) {
+        const gens = await db
+          .select({ id: genericSectionsTable.id, title: genericSectionsTable.title })
+          .from(genericSectionsTable)
+          .where(inArray(genericSectionsTable.id, genericIds.map((g) => g[1])));
+        const byNum = new Map(gens.map((g) => [g.id, g.title]));
+        for (const [sid, num] of genericIds) {
+          const t = byNum.get(num);
+          if (t) titleMap.set(sid, t);
+        }
+      }
+      for (const sid of sectionIds) {
+        if (!titleMap.has(sid)) {
+          titleMap.set(sid, getHardcodedSection(sid)?.title ?? sid);
+        }
+      }
+      const overrides = await db
+        .select({
+          sectionId: cohortSectionsTable.sectionId,
+          displayName: cohortSectionsTable.displayName,
+        })
+        .from(cohortSectionsTable)
+        .where(
+          and(
+            eq(cohortSectionsTable.cohortId, cohortId),
+            inArray(cohortSectionsTable.sectionId, sectionIds),
+          ),
+        );
+      for (const o of overrides) {
+        if (o.displayName?.trim()) titleMap.set(o.sectionId, o.displayName.trim());
+      }
+    }
+
+    res.set("Cache-Control", "no-store");
+    res.json({
+      responses: rows.map((r) => ({
+        ...r.response,
+        participantName: r.participantName,
+        sectionTitle: titleMap.get(r.response.sectionId) ?? r.response.sectionId,
+      })),
+    });
+  },
+);
 
 router.get(
   "/admin/cohorts/:cohortId/participants",

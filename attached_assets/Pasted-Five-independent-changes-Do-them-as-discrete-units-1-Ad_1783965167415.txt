@@ -1,0 +1,42 @@
+Five independent changes. Do them as discrete units.
+
+═══ 1. Admin Sections tab — collapsible levels ═══
+
+Right now all sections render in one long scroll grouped under level headers (LEVEL 1, LEVEL 2, LEVEL 3, LEVEL 4). Turn each level header into a collapse/expand control: clicking it collapses that level's sections to just the header, clicking again expands them. Show a caret or +/- on the header and the section count for that level (e.g. "LEVEL 3 — 15").
+
+Remember each level's collapsed/expanded state across sessions and page reloads, so a level I collapse stays collapsed next time I open the admin panel. On the very first load, before I've collapsed anything, default all levels expanded. Persist per browser (this is the admin app, not a sandboxed artifact, so browser storage is fine here). Confirm it survives a full page refresh.
+
+All the section controls inside each level — display name, unlock code, level dropdown, visibility, requires-code, attachments, delete, reorder arrows — stay exactly as they are. This only adds collapsing at the level grouping.
+
+═══ 2. "the-idea" module — five plain fields, no copy button ═══
+
+Replace the current form in "the-idea". Remove the copy button entirely — this module is for the participant's own notes, nothing is copied anywhere. Make it five plain input fields (multiline), each its own labeled field, in this order:
+
+  - What do you want to build or replace?
+  - Who will use it?
+  - What should it do?
+  - What's frustrating about how you do this today?
+  - What would make it feel like a win?
+
+Give the fields stable fieldKeys (e.g. idea-build, idea-users, idea-does, idea-frustration, idea-win) — module 3 reads them.
+
+═══ 3. "build-your-prd" — read-only recap of the Idea answers at top ═══
+
+At the top of "build-your-prd", above everything else, add a read-only recap block showing what the participant wrote in "the-idea", so they don't have to jump back. Label it "What you came in wanting to build". Under that label, show their five answers from module "the-idea" (the idea-* fields), each with its question as a small label and their answer beneath.
+
+This is read-only — it displays their saved answers, it is not editable here, and it does NOT pre-fill the four-question form below. The four-question form stays blank for them to fill fresh. If they left an Idea field empty, omit that line (don't show an empty row). If they did the-idea in a later session, show whatever is currently saved.
+
+═══ 4. Delete the "showcase" module ═══
+
+Remove "showcase" entirely — from the seed and detached from the cohort.
+
+═══ 5. Notes field on every module that lacks one — never doubled ═══
+
+Every module should end with a notes field as its last element, with nothing rendered after it. Any module that already has a notes field keeps exactly one — do not add a second. Any module currently missing one gets one added at the very bottom. This applies to seeded generic modules and hardcoded sections alike. "build-your-prd" is one that currently lacks a notes field — it should have one at the bottom after these changes.
+
+═══ Confirm ═══
+- Admin: level headers collapse/expand, show counts, survive a refresh.
+- The Idea: five plain fields, no copy button, notes at bottom.
+- Build Your PRD: read-only recap of Idea answers at top, four-question form blank, notes at bottom.
+- Showcase: gone from the sidebar.
+- Every module ends with exactly one notes field, nothing after it.

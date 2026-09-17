@@ -1,5 +1,6 @@
+import { getCohortLevelNames } from "../lib/cohort-level-names";
 import { Router, type IRouter } from "express";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { execSync } from "node:child_process";
 import puppeteer, { type Browser } from "puppeteer-core";
 import {
@@ -14,6 +15,8 @@ import {
   contentVariantsTable,
 } from "@workspace/db";
 import {
+  baseSectionId,
+  genericSectionId,
   getHardcodedSection,
   isGenericSectionId,
   parseGenericSectionId,
@@ -329,7 +332,7 @@ function formatDate(d: Date): string {
   });
 }
 
-function labelForFieldKey(sectionId: string, fieldKey: string): string {
+function labelForFieldKey(_sectionId: string, fieldKey: string): string {
   if (fieldKey === "notes") return "Your Notes";
   // RICECO (draft-with-riceco uses "draft-<key>")
   if (fieldKey.startsWith("draft-")) {
@@ -346,7 +349,8 @@ function labelForFieldKey(sectionId: string, fieldKey: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function sortFieldKeys(sectionId: string, keys: string[]): string[] {
+function sortFieldKeys(rawSectionId: string, keys: string[]): string[] {
+  const sectionId = baseSectionId(rawSectionId);
   // Custom orderings for known sections; unknown keys retain alphabetical order
   // with "notes" forced to the end.
   if (sectionId === "draft-with-riceco") {
@@ -458,6 +462,33 @@ function renderWorkflowMap(data: unknown): string {
   return `<div class="workflows">${cards}</div>`;
 }
 
+// Matches {{sectionId:fieldKey}} — same pattern the participant app resolves
+// client-side (use-resolve-template.ts). Values come from the participant's
+// own notes; unsaved references become an empty string.
+const TEMPLATE_PLACEHOLDER_RE = /\{\{\s*([^:{}\s]+)\s*:\s*([^{}]*?)\s*\}\}/g;
+
+function resolvePlaceholders(
+  text: string,
+  notesBySection: Map<string, Array<{ fieldKey: string; content: string }>>,
+  sectionIdBySlug: Map<string, string>,
+): string {
+  return text.replace(
+    TEMPLATE_PLACEHOLDER_RE,
+    (_all, ref: string, fieldKey: string) => {
+      // The left side may be a section id (generic_7, prompt-lab) or a seeded
+      // module slug (prefill-source); slugs map to their generic_N id, under
+      // which the participant's notes are stored.
+      const sectionId = isGenericSectionId(ref)
+        ? ref
+        : (sectionIdBySlug.get(ref) ?? ref);
+      return (
+        notesBySection.get(sectionId)?.find((n) => n.fieldKey === fieldKey)
+          ?.content ?? ""
+      );
+    },
+  );
+}
+
 function renderGenericBlocks(blocks: Array<{ type: string; content?: string }>): string {
   if (!blocks || blocks.length === 0) return "";
   return blocks
@@ -471,9 +502,10 @@ function renderGenericBlocks(blocks: Array<{ type: string; content?: string }>):
         // browser renders <p>, <ol>, <li>, <a>, <strong>, etc.
         return `<div class="text-block">${b.content ?? ""}</div>`;
       }
-      // callout / cards / steps / link / field / form / download: intentionally
-      // omitted from the PDF for now. Rendering them is a later pass — returning
-      // empty avoids printing "undefined" for shapes without a `content` property.
+      // callout / cards / steps / link / field / form / download / recap /
+      // image: intentionally omitted from the PDF for now. Rendering them is a
+      // later pass — returning empty avoids printing "undefined" for shapes
+      // without a `content` property.
       return "";
     })
     .join("");
@@ -483,7 +515,7 @@ function renderGenericBlocks(blocks: Array<{ type: string; content?: string }>):
 // Visually distinct from the gold-bordered "Your Notes" block.
 function renderStructuredFields(sectionId: string, notes: RenderedNote[]): string {
   if (notes.length === 0) return "";
-  const isRyg = sectionId === "red-yellow-green";
+  const isRyg = baseSectionId(sectionId) === "red-yellow-green";
   return `<div class="fields-list">${notes
     .map((n) => {
       let extraClass = "";
@@ -518,6 +550,7 @@ function buildHtml(opts: {
   participantName: string;
   participantEmail: string;
   cohortName: string;
+  levelNames: Record<string, string>;
   generatedDate: string;
   closingQuote: string;
   closingSubtext: string | null;
@@ -528,7 +561,7 @@ function buildHtml(opts: {
     workflowMapHtml: string;
   }>>;
 }): string {
-  const { participantName, participantEmail, cohortName, generatedDate, closingQuote, closingSubtext, sectionsByLevel } = opts;
+  const { participantName, participantEmail, cohortName, levelNames, generatedDate, closingQuote, closingSubtext, sectionsByLevel } = opts;
 
   const levels = Array.from(sectionsByLevel.keys()).sort((a, b) => a - b);
 
@@ -549,7 +582,7 @@ function buildHtml(opts: {
   // TOC
   const tocItems: string[] = [];
   for (const level of levels) {
-    tocItems.push(`<div class="toc-level">${escapeHtml(LEVEL_LABELS[level] ?? `Level ${level}`)}</div>`);
+    tocItems.push(`<div class="toc-level">${escapeHtml(levelNames[String(level)] ?? LEVEL_LABELS[level] ?? `Level ${level}`)}</div>`);
     const items = sectionsByLevel.get(level) ?? [];
     for (const it of items) {
       tocItems.push(`<div class="toc-item"><span class="toc-title">${escapeHtml(it.section.title)}</span><span class="toc-dots"></span></div>`);
@@ -576,14 +609,17 @@ function buildHtml(opts: {
           const genericBody = section.isGeneric
             ? renderGenericBlocks(section.generic?.contentBlocks ?? [])
             : "";
-          // Reference content (hardcoded for known sections, special-case for closing)
+          // Reference content (hardcoded for known sections, special-case for
+          // closing). Use the base id so duplicated rows (e.g.
+          // "tool-safari__copy1") render the same hardcoded content.
+          const baseId = baseSectionId(section.id);
           let referenceHtml = "";
-          if (section.id === "closing") {
+          if (baseId === "closing") {
             referenceHtml = renderClosingQuoteBlock(closingQuote, closingSubtext);
-          } else if (!section.isGeneric && SECTION_REFERENCE_CONTENT[section.id]) {
-            referenceHtml = `<div class="ref-content">${SECTION_REFERENCE_CONTENT[section.id]}</div>`;
+          } else if (!section.isGeneric && SECTION_REFERENCE_CONTENT[baseId]) {
+            referenceHtml = `<div class="ref-content">${SECTION_REFERENCE_CONTENT[baseId]}</div>`;
           }
-          const isSixWays = section.id === "six-ways-worksheet";
+          const isSixWays = baseId === "six-ways-worksheet";
           const sixWaysHtml = isSixWays ? renderSixWaysWorksheet(structuredNotes) : "";
           // Avoid an extra page break before the first section in a level
           const breakClass = idx === 0 ? "" : "section-break";
@@ -1007,6 +1043,19 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     : [];
   const genericById = new Map(genericRows.map((g) => [g.id, g] as const));
 
+  // Slug → generic_N id map for resolving slug-based prefill placeholders.
+  // Queried across all generic sections (not just this cohort's) so a slug
+  // reference resolves even if the source section's cohort row differs.
+  const slugRows = await db
+    .select({ id: genericSectionsTable.id, slug: genericSectionsTable.slug })
+    .from(genericSectionsTable)
+    .where(isNotNull(genericSectionsTable.slug));
+  const sectionIdBySlug = new Map(
+    slugRows
+      .filter((r): r is { id: number; slug: string } => r.slug !== null)
+      .map((r) => [r.slug, genericSectionId(r.id)] as const),
+  );
+
   // Load explicit per-participant unlocks.
   const unlockedRows = await db
     .select({ sectionId: unlockedSectionsTable.sectionId })
@@ -1079,10 +1128,26 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
       if (!title) title = g.title;
       type = g.sectionType;
       isGeneric = true;
+      const blocks = Array.isArray(g.contentBlocks)
+        ? (g.contentBlocks as Array<{ type: string; content: string }>)
+        : [];
       generic = {
-        contentBlocks: Array.isArray(g.contentBlocks)
-          ? (g.contentBlocks as Array<{ type: string; content: string }>)
-          : [],
+        // Prompt blocks may contain {{sectionId:fieldKey}} placeholders;
+        // resolve them to this participant's saved answers (empty string if
+        // unsaved) so raw {{...}} never reaches the PDF — mirrors the
+        // client-side resolution in the participant app.
+        contentBlocks: blocks.map((b) =>
+          b.type === "prompt" && typeof b.content === "string"
+            ? {
+                ...b,
+                content: resolvePlaceholders(
+                  b.content,
+                  notesBySection,
+                  sectionIdBySlug,
+                ),
+              }
+            : b,
+        ),
         goalText: g.goalText,
       };
     } else {
@@ -1131,7 +1196,9 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
 
     // Attach workflow map HTML to the workflow-configurator section only.
     const workflowMapHtml =
-      cs.sectionId === "workflow-configurator" ? workflowMapHtmlGlobal : "";
+      baseSectionId(cs.sectionId) === "workflow-configurator"
+        ? workflowMapHtmlGlobal
+        : "";
 
     assembled.push({ section: sectionLite, structuredNotes, freeformNote, workflowMapHtml });
   }
@@ -1154,6 +1221,7 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     participantName: participant.name || "",
     participantEmail: participant.email,
     cohortName: cohort.name || "",
+    levelNames: getCohortLevelNames(cohort.settings),
     generatedDate: formatDate(new Date()),
     closingQuote,
     closingSubtext,

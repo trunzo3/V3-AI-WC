@@ -5,6 +5,7 @@ import {
   timestamp,
   jsonb,
   boolean,
+  integer,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -20,7 +21,7 @@ export type GenericContentBlock =
     }
   | {
       type: "cards";
-      columns: 2 | 3;
+      columns: 1 | 2 | 3;
       cards: Array<{ title: string; body: string }>;
     }
   | {
@@ -35,6 +36,9 @@ export type GenericContentBlock =
       label: string;
       placeholder?: string;
       helpText?: string;
+      // Starting text; may contain {{sectionId:fieldKey}} placeholders
+      // resolved client-side to the participant's own saved answers.
+      prefill?: string;
       multiline: boolean;
     }
   | {
@@ -44,15 +48,54 @@ export type GenericContentBlock =
         label: string;
         placeholder?: string;
         helpText?: string;
+        // Card layout only: bold heading shown under the label pill.
+        heading?: string;
         multiline: boolean;
       }>;
       buttonLabel: string;
       copyStyle: "labeled" | "joined";
+      // Render each field in its own bordered card (6 Ways worksheet look).
+      // Default false = legacy stacked layout.
+      cardLayout?: boolean;
+      // Admin-facing name shown in the Responses tab.
+      formName?: string;
+      // When true, participants get a Submit button that stores the
+      // assembled text in form_responses. Default false.
+      collectResponses?: boolean;
+      // When false (and collectResponses is on), submissions are closed.
+      // Default true.
+      responsesOpen?: boolean;
+      // Legacy flag: form blocks now always render the live preview box.
+      preview?: boolean;
+      // Optional assembly template. `{fieldKey}` placeholders (single braces)
+      // are replaced live with that field's current value; empty fields
+      // resolve to "" (no raw braces shown). Blank template falls back to the
+      // copyStyle assembly (labeled lines / joined text).
+      template?: string;
     }
-  | { type: "download"; fileId: number; label?: string };
+  | { type: "download"; fileId: number; label?: string }
+  | {
+      type: "image";
+      fileId: number;
+      width?: number;
+      alignment: "left" | "center" | "right";
+      caption?: string;
+      altText?: string;
+    }
+  | {
+      type: "recap";
+      title: string;
+      // Slug (or generic_N id) of the section whose saved answers to show.
+      source: string;
+      recapFields: Array<{ fieldKey: string; label: string }>;
+    };
 
 export const genericSectionsTable = pgTable("generic_sections", {
   id: serial("id").primaryKey(),
+  // Stable, author-defined key for seeded modules (e.g. "prefill-source").
+  // Set by the seed, never derived from the row id; admin-created sections
+  // have no slug. Prefill placeholders may reference a section by slug.
+  slug: text("slug").unique(),
   title: text("title").notNull(),
   contentBlocks: jsonb("content_blocks")
     .$type<GenericContentBlock[]>()
@@ -62,6 +105,14 @@ export const genericSectionsTable = pgTable("generic_sections", {
   sectionType: text("section_type").notNull().default("exercise"),
   showNotesField: boolean("show_notes_field").notNull().default(true),
   badgeLabel: text("badge_label"),
+  // The level this section "belongs" to by default: seeded modules use the
+  // level their seed assigns; hand-created sections use the level they were
+  // created into. Drives the library's default-level grouping and the
+  // "Add to this cohort" placement.
+  defaultLevel: integer("default_level").notNull().default(3),
+  // Archived sections are hidden from the working library view but stay
+  // attached and functional in every cohort that has them.
+  archived: boolean("archived").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

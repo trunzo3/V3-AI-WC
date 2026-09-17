@@ -23,6 +23,10 @@ export interface AdminGenericSectionRequest {
   sectionType?: string;
   showNotesField?: boolean;
   badgeLabel?: string | null;
+  /** Default level for library grouping (1-4) */
+  defaultLevel?: number | null;
+  /** Archive/restore flag; archived sections stay attached to cohorts */
+  archived?: boolean | null;
   /** When creating, also insert this generic section into the given cohort */
   cohortId?: number | null;
   insertAfterSortOrder?: number | null;

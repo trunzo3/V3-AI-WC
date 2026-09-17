@@ -13,6 +13,7 @@ import filesRouter from "./files";
 import workbookRouter from "./workbook";
 import exportRouter from "./export";
 import adminRouter from "./admin";
+import responsesRouter from "./responses";
 
 const router: IRouter = Router();
 
@@ -20,6 +21,7 @@ router.use(healthRouter);
 router.use(authRouter);
 router.use(sectionsRouter);
 router.use(notesRouter);
+router.use(responsesRouter);
 router.use(workflowMapsRouter);
 router.use(feedbackRouter);
 router.use(contentVariantsRouter);

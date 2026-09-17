@@ -27,6 +27,8 @@ tags:
     description: Per-participant per-section notes
   - name: workflow-map
     description: Per-participant workflow map data
+  - name: responses
+    description: Explicit form submissions from collecting form blocks
   - name: feedback
     description: Participant feedback to facilitator
   - name: content-variants
@@ -224,6 +226,36 @@ paths:
               schema: { $ref: "#/components/schemas/NoteResponse" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /responses:
+    post:
+      operationId: submitFormResponse
+      tags: [responses]
+      summary: Submit (or resubmit) the assembled text of a collecting form block
+      description: >
+        Stores the participant's assembled form text for one form block.
+        Rejects (400) if the block is not a form with collectResponses=true,
+        (403) if the block's responsesOpen is false, and (404) if the section
+        is not unlocked for the participant.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FormResponseSubmitRequest" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormResponseSubmitResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Submissions closed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
   /workflow-map:
     get:
@@ -562,6 +594,20 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
+  /admin/generic-sections/usage:
+    get:
+      operationId: adminListGenericSectionUsage
+      tags: [admin-sections]
+      summary: List every cohort attachment for every generic section
+      responses:
+        "200":
+          description: Usage rows (one per cohort attachment)
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/AdminGenericSectionUsageResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /admin/generic-sections/{id}:
     parameters:
       - $ref: "#/components/parameters/IntegerId"
@@ -895,6 +941,30 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /admin/cohorts/{cohortId}/responses:
+    parameters:
+      - $ref: "#/components/parameters/CohortId"
+    get:
+      operationId: adminListCohortFormResponses
+      tags: [admin-participants]
+      summary: List form submissions for a cohort, newest first
+      parameters:
+        - name: sectionId
+          in: query
+          required: false
+          schema: { type: string }
+        - name: blockIndex
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Responses
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminFormResponseListResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /admin/participants/{id}:
     parameters:
       - $ref: "#/components/parameters/IntegerId"
@@ -1056,6 +1126,10 @@ components:
           additionalProperties: { type: boolean }
           description: 'Map of tier level to default-unlocked boolean, e.g. {"1": true, "2": false}'
         audienceType: { type: string }
+        levelNames:
+          type: object
+          additionalProperties: { type: string }
+          description: 'Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.'
 
     LoginResponse:
       type: object
@@ -1115,12 +1189,16 @@ components:
         text/prompt use `content`; callout uses `variant`, `title?`, `content`;
         cards uses `columns` + `cards`; steps uses `ordered` + `items`;
         link uses `url` + `label` + `style`; field uses `fieldKey`, `label`,
-        `placeholder?`, `helpText?`, `multiline`; form uses `fields` +
-        `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.
+        `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses
+        `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` +
+        `label?`. Prompt `content` and field `prefill` may contain
+        `{{sectionId:fieldKey}}` placeholders, resolved client-side to the
+        participant's own saved answer in that section/field (empty string
+        if unsaved).
       properties:
         type:
           type: string
-          enum: [text, prompt, callout, cards, steps, link, field, form, download]
+          enum: [text, prompt, callout, cards, steps, link, field, form, download, recap, image]
         content: { type: string }
         label: { type: string }
         buttonLabel: { type: string }
@@ -1130,7 +1208,7 @@ components:
         title: { type: string }
         columns:
           type: integer
-          enum: [2, 3]
+          enum: [1, 2, 3]
         cards:
           type: array
           items: { $ref: "#/components/schemas/GenericBlockItem" }
@@ -1149,18 +1227,95 @@ components:
           description: >
             Optional rich-text help shown between the field's label and its
             input. Sanitized server-side like text block content.
+        heading:
+          type: string
+          description: Card layout only - bold heading shown under the label pill.
         multiline: { type: boolean }
+        prefill:
+          type: string
+          description: >
+            For field blocks: the field's starting text. May contain
+            {{sectionId:fieldKey}} placeholders resolved to the
+            participant's own saved answers. The participant can edit the
+            result; edits save to this field normally.
         copyStyle:
           type: string
           enum: [labeled, joined]
         fields:
           type: array
           items: { $ref: "#/components/schemas/GenericFormField" }
+        preview:
+          type: boolean
+          description: >
+            Legacy flag for form blocks. Form blocks now always render the
+            live-updating preview box with the copy button attached; this
+            field is accepted for backward compatibility but ignored by the
+            renderer.
+        cardLayout:
+          type: boolean
+          description: For form blocks - render each field in its own bordered card. Default false.
+        formName:
+          type: string
+          description: For form blocks - admin-facing name shown in the Responses tab.
+        collectResponses:
+          type: boolean
+          description: For form blocks - show a Submit button that stores the assembled text. Default false.
+        responsesOpen:
+          type: boolean
+          description: For form blocks - when false, submissions are closed. Default true.
+        template:
+          type: string
+          description: >
+            For form blocks: optional assembly template. Single-brace
+            `{fieldKey}` placeholders are replaced live with that field's
+            current value as the participant types; an empty field resolves
+            to nothing (no raw braces are shown). If blank, answers assemble
+            using `copyStyle` (labeled lines or joined text) as before.
         fileId:
           type: integer
           description: >
             For download blocks: the id of a section file (attached to the
-            same section) that the block's button downloads.
+            same section) that the block's button downloads. For image blocks:
+            the id of the attached section image to display.
+        width:
+          type: integer
+          description: >
+            For image blocks: the maximum render width in pixels. The image
+            shrinks responsively below this on narrow screens and never
+            exceeds the content column width.
+        alignment:
+          type: string
+          enum: [left, center, right]
+          description: >
+            For image blocks: horizontal alignment of the image within the
+            content column.
+        caption:
+          type: string
+          description: >
+            For image blocks: optional caption text shown beneath the image.
+        altText:
+          type: string
+          description: >
+            For image blocks: optional alternative text for the img element
+            (used by screen readers and shown if the image fails to load).
+        source:
+          type: string
+          description: >
+            For recap blocks: the slug (or generic_N id) of the section whose
+            saved answers are shown read-only.
+        recapFields:
+          type: array
+          description: >
+            For recap blocks: the fields to display from the source section.
+            Empty answers are omitted at render time.
+          items: { $ref: "#/components/schemas/RecapField" }
+
+    RecapField:
+      type: object
+      required: [fieldKey, label]
+      properties:
+        fieldKey: { type: string }
+        label: { type: string }
 
     GenericFormField:
       type: object
@@ -1174,6 +1329,9 @@ components:
           description: >
             Optional rich-text help shown between the field's label and its
             input. Sanitized server-side like text block content.
+        heading:
+          type: string
+          description: Card layout only - bold heading shown under the label pill.
         multiline: { type: boolean }
 
     GenericBlockItem:
@@ -1229,6 +1387,53 @@ components:
         notes:
           type: array
           items: { $ref: "#/components/schemas/Note" }
+
+    FormResponseSubmitRequest:
+      type: object
+      required: [sectionId, blockIndex, responseText]
+      properties:
+        sectionId: { type: string }
+        blockIndex:
+          type: integer
+          description: Position of the form block in the section's contentBlocks.
+        responseText: { type: string }
+
+    FormResponseRecord:
+      type: object
+      required: [id, cohortId, participantId, sectionId, blockIndex, formName, responseText, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        cohortId: { type: integer }
+        participantId: { type: integer }
+        sectionId: { type: string }
+        blockIndex: { type: integer }
+        formName: { type: string }
+        responseText: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    FormResponseSubmitResponse:
+      type: object
+      required: [response]
+      properties:
+        response: { $ref: "#/components/schemas/FormResponseRecord" }
+
+    AdminFormResponse:
+      allOf:
+        - $ref: "#/components/schemas/FormResponseRecord"
+        - type: object
+          required: [participantName, sectionTitle]
+          properties:
+            participantName: { type: string }
+            sectionTitle: { type: string }
+
+    AdminFormResponseListResponse:
+      type: object
+      required: [responses]
+      properties:
+        responses:
+          type: array
+          items: { $ref: "#/components/schemas/AdminFormResponse" }
 
     NoteUpsertRequest:
       type: object
@@ -1422,6 +1627,10 @@ components:
         tierAccess:
           type: object
           additionalProperties: { type: boolean }
+        levelNames:
+          type: object
+          additionalProperties: { type: string }
+          description: 'Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.'
         createdAt:
           type: string
           format: date-time
@@ -1459,6 +1668,10 @@ components:
         tierAccess:
           type: object
           additionalProperties: { type: boolean }
+        levelNames:
+          type: object
+          additionalProperties: { type: string }
+          description: 'Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.'
 
     AdminCohortUpdateRequest:
       type: object
@@ -1473,6 +1686,10 @@ components:
         tierAccess:
           type: object
           additionalProperties: { type: boolean }
+        levelNames:
+          type: object
+          additionalProperties: { type: string }
+          description: 'Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.'
 
     AdminCohortSection:
       type: object
@@ -1578,10 +1795,13 @@ components:
 
     AdminGenericSection:
       type: object
-      required: [id, title, contentBlocks, sectionType]
+      required: [id, title, contentBlocks, sectionType, defaultLevel, archived]
       properties:
         id: { type: integer }
         title: { type: string }
+        slug:
+          type: string
+          nullable: true
         contentBlocks:
           type: array
           items: { $ref: "#/components/schemas/GenericContentBlock" }
@@ -1593,6 +1813,12 @@ components:
         badgeLabel:
           type: string
           nullable: true
+        defaultLevel:
+          type: integer
+          description: Default level grouping in the section library
+        archived:
+          type: boolean
+          description: Hidden from the library view but still attached to cohorts
         createdAt:
           type: string
           format: date-time
@@ -1601,6 +1827,23 @@ components:
           type: string
           format: date-time
           nullable: true
+
+    AdminGenericSectionUsage:
+      type: object
+      required: [genericId, cohortId, cohortName, level]
+      properties:
+        genericId: { type: integer }
+        cohortId: { type: integer }
+        cohortName: { type: string }
+        level: { type: integer }
+
+    AdminGenericSectionUsageResponse:
+      type: object
+      required: [usage]
+      properties:
+        usage:
+          type: array
+          items: { $ref: "#/components/schemas/AdminGenericSectionUsage" }
 
     AdminGenericSectionListResponse:
       type: object
@@ -1632,6 +1875,14 @@ components:
         badgeLabel:
           type: string
           nullable: true
+        defaultLevel:
+          type: integer
+          nullable: true
+          description: Default level for library grouping (1-4)
+        archived:
+          type: boolean
+          nullable: true
+          description: Archive/restore flag; archived sections stay attached to cohorts
         cohortId:
           type: integer
           nullable: true

@@ -21,5 +21,7 @@ export interface GenericFormField {
   /** Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.
    */
   helpText?: string;
+  /** Card layout only - bold heading shown under the label pill. */
+  heading?: string;
   multiline: boolean;
 }

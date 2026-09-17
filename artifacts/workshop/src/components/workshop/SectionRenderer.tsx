@@ -1,10 +1,17 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type {
   Section,
   GenericContentBlock,
   GenericFormField,
 } from "@workspace/api-client-react";
-import { Lock, ExternalLink, Download } from "lucide-react";
+import {
+  getNotes,
+  getGetNotesQueryKey,
+  useSubmitFormResponse,
+} from "@workspace/api-client-react";
+import { Lock, ExternalLink, Download, Check } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   SectionHeader,
@@ -14,6 +21,9 @@ import {
   DepthQuote,
 } from "./SectionHeader";
 import { NotesField } from "./NotesField";
+import { SectionAttachedFiles } from "./SectionAttachedFiles";
+import { useResolveTemplate } from "@/hooks/use-resolve-template";
+import { LiveValuesProvider } from "@/hooks/use-live-values";
 import { CopyButton } from "./CopyButton";
 import {
   VerificationTest,
@@ -77,6 +87,9 @@ function PromptBlock({
   pill: string;
   buttonLabel?: string;
 }) {
+  // {{sectionId:fieldKey}} placeholders resolve to the participant's own
+  // saved answers before the prompt is shown or copied.
+  const resolved = useResolveTemplate(text);
   return (
     <div
       className="bg-primary rounded-lg p-6 text-white mb-6"
@@ -86,9 +99,92 @@ function PromptBlock({
         {pill}
       </span>
       <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono">
-        {text}
+        {resolved}
       </pre>
-      <CopyButton text={text} label={buttonLabel || "Copy Prompt"} />
+      <CopyButton text={resolved} label={buttonLabel || "Copy Prompt"} />
+    </div>
+  );
+}
+
+// A field block whose starting text (prefill) may reference the
+// participant's answers from other sections. The resolved value only seeds
+// the field; the participant edits and saves to this field normally.
+function FieldBlock({
+  sectionId,
+  fieldKey,
+  label,
+  placeholder,
+  helpText,
+  prefill,
+  multiline,
+}: {
+  sectionId: string;
+  fieldKey: string;
+  label: string;
+  placeholder?: string;
+  helpText?: string;
+  prefill?: string;
+  multiline: boolean;
+}) {
+  const resolvedPrefill = useResolveTemplate(prefill ?? "");
+  return (
+    <div className="mb-6">
+      <NotesField
+        sectionId={sectionId}
+        fieldKey={fieldKey}
+        label={label}
+        placeholder={placeholder}
+        helpText={helpText}
+        initialValue={resolvedPrefill}
+        multiline={multiline}
+      />
+    </div>
+  );
+}
+
+// A read-only recap of the participant's own saved answers in another
+// section (referenced by slug or generic_N id). Empty answers are omitted;
+// if nothing is saved, the whole block renders nothing. Not editable and
+// does not pre-fill anything downstream.
+function RecapBlock({
+  title,
+  source,
+  recapFields,
+}: {
+  title: string;
+  source: string;
+  recapFields: Array<{ fieldKey: string; label: string }>;
+}) {
+  const { data } = useQuery({
+    queryKey: getGetNotesQueryKey(source),
+    queryFn: () => getNotes(source),
+    staleTime: 0,
+  });
+  const byKey = new Map(
+    (data?.notes ?? []).map((n) => [n.fieldKey, (n.content ?? "").trim()]),
+  );
+  const rows = recapFields
+    .map((f) => ({ label: f.label, value: byKey.get(f.fieldKey) ?? "" }))
+    .filter((r) => r.value !== "");
+  if (rows.length === 0) return null;
+  return (
+    <div
+      className="bg-muted/40 border rounded-lg p-6 mb-6"
+      data-testid="generic-recap-block"
+    >
+      <h4 className="font-bold text-accent uppercase text-xs tracking-wider mb-4">
+        {title}
+      </h4>
+      <dl className="space-y-4">
+        {rows.map((r, i) => (
+          <div key={i}>
+            <dt className="text-xs font-medium text-muted-foreground mb-1">
+              {r.label}
+            </dt>
+            <dd className="text-foreground whitespace-pre-wrap">{r.value}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }
@@ -152,14 +248,18 @@ function CardsBlock({
   columns,
   cards,
 }: {
-  columns: 2 | 3;
+  columns: 1 | 2 | 3;
   cards: Array<{ title: string; body: string }>;
 }) {
   return (
     <div
       className={cn(
         "grid grid-cols-1 gap-4 mb-6",
-        columns === 3 ? "md:grid-cols-2 lg:grid-cols-3" : "md:grid-cols-2",
+        columns === 3
+          ? "md:grid-cols-2 lg:grid-cols-3"
+          : columns === 2
+            ? "md:grid-cols-2"
+            : "",
       )}
       data-testid="generic-cards-block"
     >
@@ -270,60 +370,138 @@ function DownloadBlock({ fileId, label }: { fileId: number; label: string }) {
   );
 }
 
-// A group of auto-saving input fields with one button that copies all current
-// answers at once. Mirrors the RicecoInputFields pattern in Day1.tsx: each
-// child field reports its live value upward into a Map, and the copy button
-// assembles from what's currently typed (not what was last saved).
+// One attached image, rendered at a chosen max-width that shrinks responsively
+// with the content column and never exceeds it. Alignment is handled with auto
+// margins on the figure. The image is served through the same gated
+// /api/files/:id/download path the download block uses (the server enforces the
+// section is unlocked for this participant). A missing/blocked image renders
+// cleanly — its alt text if present, otherwise nothing — never a broken icon.
+function ImageBlock({
+  fileId,
+  width,
+  alignment,
+  caption,
+  altText,
+}: {
+  fileId: number;
+  width?: number;
+  alignment: "left" | "center" | "right";
+  caption?: string;
+  altText?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (!fileId) return null;
+  const alignClass =
+    alignment === "left"
+      ? "mr-auto"
+      : alignment === "right"
+        ? "ml-auto"
+        : "mx-auto";
+  const maxWidth = width && width > 0 ? `${width}px` : undefined;
+  if (failed) {
+    if (!altText) return null;
+    return (
+      <div className="mb-6">
+        <figure className={cn("m-0", alignClass)} style={{ maxWidth }}>
+          <figcaption className="text-sm text-muted-foreground italic">
+            {altText}
+          </figcaption>
+        </figure>
+      </div>
+    );
+  }
+  return (
+    <div className="mb-6">
+      <figure className={cn("m-0", alignClass)} style={{ maxWidth }}>
+        <img
+          src={`/api/files/${fileId}/download`}
+          alt={altText ?? ""}
+          onError={() => setFailed(true)}
+          className="block w-full h-auto rounded-lg border border-border"
+          data-testid={`image-block-${fileId}`}
+        />
+        {caption && (
+          <figcaption className="mt-2 text-sm text-muted-foreground text-center">
+            {caption}
+          </figcaption>
+        )}
+      </figure>
+    </div>
+  );
+}
+
+// A group of auto-saving input fields whose current answers are assembled into
+// one copyable prompt, always shown in a live preview box (with the copy button
+// attached) that fills in as the participant types. Each child field reports
+// its live value upward into React state, so the assembled text reflects
+// what's currently typed, not what was last saved. Assembly: if the admin set
+// a `template`, single-brace {fieldKey} placeholders are replaced live with
+// that field's current value (empty fields resolve to nothing, so raw braces
+// never show); with a blank template, answers assemble via `copyStyle`
+// (labeled lines or joined text) exactly as before.
 function FormBlock({
   sectionId,
+  blockIndex,
   fields,
   buttonLabel,
   copyStyle,
+  template,
+  cardLayout = false,
+  collectResponses = false,
+  responsesOpen = true,
 }: {
   sectionId: string;
+  blockIndex: number;
   fields: GenericFormField[];
   buttonLabel: string;
   copyStyle: "labeled" | "joined";
+  template?: string;
+  cardLayout?: boolean;
+  collectResponses?: boolean;
+  responsesOpen?: boolean;
 }) {
-  const [copied, setCopied] = useState(false);
-  const valuesRef = useMemo(() => new Map<string, string>(), []);
+  // Live values, keyed by fieldKey. State (not a ref) so the assembled
+  // preview re-renders as the participant types.
+  const [values, setValues] = useState<Record<string, string>>({});
 
   const handleValueChange = useMemo(
     () => (key: string, value: string) => {
-      valuesRef.set(key, value);
+      setValues((prev) =>
+        prev[key] === value ? prev : { ...prev, [key]: value },
+      );
     },
-    [valuesRef],
+    [],
   );
 
-  const handleCopyAll = async () => {
+  const assembled = useMemo(() => {
+    const tpl = (template ?? "").trim();
+    if (tpl.length > 0) {
+      // Replace every {token} placeholder with that field's current value.
+      // Unknown or empty fields resolve to "" so raw braces never reach the
+      // participant.
+      return tpl.replace(/\{([^{}]+)\}/g, (_match, key: string) =>
+        (values[key.trim()] ?? "").trim(),
+      );
+    }
+    // Default assembly, same as the copy output has always been: skip empty
+    // fields, label each answer for "labeled", join with newlines (labeled)
+    // or spaces (joined).
     const parts: string[] = [];
     for (const f of fields) {
       if (!f.fieldKey) continue;
-      const v = (valuesRef.get(f.fieldKey) ?? "").trim();
+      const v = (values[f.fieldKey] ?? "").trim();
       if (v.length === 0) continue;
       parts.push(copyStyle === "labeled" ? `${f.label}: ${v}` : v);
     }
-    if (parts.length === 0) return;
-    const text = copyStyle === "labeled" ? parts.join("\n") : parts.join(" ");
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      const el = document.createElement("textarea");
-      el.value = text;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+    return copyStyle === "labeled" ? parts.join("\n") : parts.join(" ");
+  }, [template, fields, values, copyStyle]);
 
   return (
-    <div className="mb-6 space-y-5">
-      {fields.map(
-        (f) =>
-          f.fieldKey && (
+    <div className={cn("mb-6", cardLayout ? "space-y-4" : "space-y-5")}>
+      {fields.map((f) => {
+        if (!f.fieldKey) return null;
+        if (!cardLayout) {
+          return (
             <NotesField
               key={f.fieldKey}
               sectionId={sectionId}
@@ -334,19 +512,133 @@ function FormBlock({
               multiline={f.multiline ?? true}
               onValueChange={handleValueChange}
             />
-          ),
-      )}
-      <div className="flex justify-center pt-2">
-        <button
-          onClick={handleCopyAll}
-          className="inline-flex items-center gap-2 text-white font-semibold text-sm px-8 py-3 rounded-lg hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: "#1e293b" }}
-          data-testid={`form-copy-${sectionId}`}
-        >
-          📋 {copied ? "Copied!" : buttonLabel || "Copy"}
-        </button>
+          );
+        }
+        // Card layout: one bordered card per field, matching the hardcoded
+        // 6 Ways Worksheet (gold pill, bold heading, muted italic help text).
+        const help = (f.helpText ?? "").trim();
+        return (
+          <div
+            key={f.fieldKey}
+            className="bg-card p-6 border rounded-lg shadow-sm space-y-2"
+            data-testid={`form-card-${sectionId}-${f.fieldKey}`}
+          >
+            {f.label?.trim() && (
+              <span className="inline-block bg-accent text-primary font-bold px-3 py-1 rounded text-sm uppercase tracking-wider">
+                {f.label}
+              </span>
+            )}
+            {f.heading?.trim() && (
+              <div className="text-foreground font-semibold text-sm">
+                {f.heading}
+              </div>
+            )}
+            {help && (
+              <div
+                className="prose prose-sm prose-slate max-w-none text-muted-foreground text-xs italic [&_p]:my-0 [&>:first-child]:mt-0 [&>:last-child]:mb-0"
+                dangerouslySetInnerHTML={{ __html: help }}
+                data-testid={`help-${sectionId}-${f.fieldKey}`}
+              />
+            )}
+            <NotesField
+              sectionId={sectionId}
+              fieldKey={f.fieldKey}
+              label=""
+              placeholder={f.placeholder}
+              multiline={f.multiline ?? true}
+              onValueChange={handleValueChange}
+            />
+          </div>
+        );
+      })}
+      <div
+        className="bg-primary rounded-lg p-6 text-white"
+        data-testid="generic-prompt-block"
+      >
+        <span className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded mb-4">
+          Your prompt
+        </span>
+        <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono min-h-[1.5rem]">
+          {assembled ||
+            "Fill in the fields above and your prompt will assemble here."}
+        </pre>
+        <div className="flex flex-wrap items-center gap-3">
+          <CopyButton text={assembled} label={buttonLabel || "Copy"} />
+          {collectResponses && (
+            <SubmitResponseButton
+              sectionId={sectionId}
+              blockIndex={blockIndex}
+              text={assembled}
+              open={responsesOpen}
+            />
+          )}
+        </div>
       </div>
     </div>
+  );
+}
+
+// Sends the assembled text to the facilitator. Shows "Submitted" with a
+// checkmark after success; the label flips to "Resubmit" so the participant
+// can send an updated version. Disabled with "Submissions closed" when the
+// admin has closed the form.
+function SubmitResponseButton({
+  sectionId,
+  blockIndex,
+  text,
+  open,
+}: {
+  sectionId: string;
+  blockIndex: number;
+  text: string;
+  open: boolean;
+}) {
+  const { toast } = useToast();
+  const submit = useSubmitFormResponse();
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [justSubmitted, setJustSubmitted] = useState(false);
+
+  const handleSubmit = () => {
+    if (!open || submit.isPending) return;
+    submit.mutate(
+      { data: { sectionId, blockIndex, responseText: text } },
+      {
+        onSuccess: () => {
+          setHasSubmitted(true);
+          setJustSubmitted(true);
+          setTimeout(() => setJustSubmitted(false), 2000);
+        },
+        onError: (err) => {
+          const msg =
+            (err as { data?: { error?: string } })?.data?.error ??
+            "Could not submit. Please try again.";
+          toast({ title: "Submit failed", description: msg, variant: "destructive" });
+        },
+      },
+    );
+  };
+
+  const label = !open
+    ? "Submissions closed"
+    : justSubmitted
+      ? "Submitted"
+      : submit.isPending
+        ? "Submitting…"
+        : hasSubmitted
+          ? "Resubmit"
+          : "Submit";
+
+  return (
+    <button
+      type="button"
+      onClick={handleSubmit}
+      disabled={!open || submit.isPending}
+      className="inline-flex items-center gap-1.5 bg-white/10 text-white border border-white/30 px-4 py-2 rounded text-xs font-bold hover:bg-white/20 transition-colors mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+      data-testid={`submit-response-${sectionId}-${blockIndex}`}
+    >
+      {justSubmitted && <Check className="w-3.5 h-3.5" />}
+      {label}
+    </button>
   );
 }
 
@@ -404,7 +696,8 @@ function GenericSectionView({
   let promptCounter = 0;
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <LiveValuesProvider>
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <SectionHeader
         title={title}
         type={section.type}
@@ -445,7 +738,7 @@ function GenericSectionView({
             return (
               <CardsBlock
                 key={i}
-                columns={block.columns === 3 ? 3 : 2}
+                columns={block.columns === 1 ? 1 : block.columns === 3 ? 3 : 2}
                 cards={block.cards ?? []}
               />
             );
@@ -470,16 +763,16 @@ function GenericSectionView({
           case "field":
             if (!block.fieldKey) return null;
             return (
-              <div key={i} className="mb-6">
-                <NotesField
-                  sectionId={section.id}
-                  fieldKey={block.fieldKey}
-                  label={block.label ?? ""}
-                  placeholder={block.placeholder}
-                  helpText={block.helpText}
-                  multiline={block.multiline ?? true}
-                />
-              </div>
+              <FieldBlock
+                key={i}
+                sectionId={section.id}
+                fieldKey={block.fieldKey}
+                label={block.label ?? ""}
+                placeholder={block.placeholder}
+                helpText={block.helpText}
+                prefill={block.prefill}
+                multiline={block.multiline ?? true}
+              />
             );
           case "form":
             if (!block.fields || block.fields.length === 0) return null;
@@ -487,9 +780,14 @@ function GenericSectionView({
               <FormBlock
                 key={i}
                 sectionId={section.id}
+                blockIndex={i}
                 fields={block.fields}
                 buttonLabel={block.buttonLabel ?? ""}
                 copyStyle={block.copyStyle === "joined" ? "joined" : "labeled"}
+                template={block.template}
+                cardLayout={block.cardLayout ?? false}
+                collectResponses={block.collectResponses ?? false}
+                responsesOpen={block.responsesOpen ?? true}
               />
             );
           case "download":
@@ -499,6 +797,34 @@ function GenericSectionView({
                 key={i}
                 fileId={block.fileId}
                 label={block.label ?? ""}
+              />
+            );
+          case "image":
+            if (!block.fileId) return null;
+            return (
+              <ImageBlock
+                key={i}
+                fileId={block.fileId}
+                width={block.width}
+                alignment={
+                  block.alignment === "left"
+                    ? "left"
+                    : block.alignment === "right"
+                      ? "right"
+                      : "center"
+                }
+                caption={block.caption}
+                altText={block.altText}
+              />
+            );
+          case "recap":
+            if (!block.source || !block.recapFields?.length) return null;
+            return (
+              <RecapBlock
+                key={i}
+                title={block.title ?? ""}
+                source={block.source}
+                recapFields={block.recapFields}
               />
             );
           default:
@@ -512,7 +838,8 @@ function GenericSectionView({
           <NotesField sectionId={section.id} fieldKey="notes" label="Your Notes" />
         </div>
       )}
-    </div>
+      </div>
+    </LiveValuesProvider>
   );
 }
 
@@ -531,7 +858,26 @@ export function SectionRenderer({ section }: { section: Section }) {
     return <GenericSectionView section={section} title={section.title} />;
   }
 
-  switch (section.id) {
+  // Hardcoded sections render their own component, then any files attached
+  // to the section (via the admin Sections tab) as download buttons at the
+  // very bottom, below the section's notes field.
+  return (
+    <>
+      <HardcodedSectionBody section={section} />
+      {/* Keyed by section id so switching sections remounts the component,
+          preventing a brief flash of the previous section's files. */}
+      <SectionAttachedFiles key={section.id} sectionId={section.id} />
+    </>
+  );
+}
+
+function HardcodedSectionBody({ section }: { section: Section }) {
+  // Duplicated built-in sections use alias ids like "tool-safari__copy1".
+  // They render the same hardcoded content as the base section, but notes
+  // and unlocks stay keyed to the full alias id (section.id) so each copy
+  // keeps its own participant answers.
+  const baseId = section.id.replace(/__copy\d+$/, "");
+  switch (baseId) {
     case "verification-test":
       return <VerificationTest sectionId={section.id} title={section.title} />;
     case "tool-safari":

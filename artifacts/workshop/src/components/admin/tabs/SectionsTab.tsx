@@ -8,8 +8,10 @@ import {
   useAdminUpdateGenericSection,
   useAdminDeleteGenericSection,
   useAdminUnlockAllForCohort,
+  useAdminListGenericSectionUsage,
   getAdminListCohortSectionsQueryKey,
   getAdminListGenericSectionsQueryKey,
+  getAdminListGenericSectionUsageQueryKey,
   type AdminCohortSection,
   type AdminGenericSection,
   type GenericContentBlock,
@@ -50,7 +52,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X, Eye, Paperclip } from "lucide-react";
+import { Plus, ArrowUp, ArrowDown, Save, Trash2, Pencil, Unlock, X, Eye, Paperclip, ChevronRight, ChevronDown, Copy, RotateCcw, MapPin } from "lucide-react";
 import {
   SectionFilesDialog,
   type SectionFile,
@@ -61,6 +63,15 @@ interface Props {
 }
 
 type Row = AdminCohortSection & { __title?: string };
+
+// Per-browser key for remembering which level groups are collapsed in the
+// admin Sections tab. Admin app is not a sandboxed artifact, so localStorage
+// is appropriate here.
+const LEVEL_COLLAPSE_KEY = "admin-sections-collapsed-levels";
+// Same idea for the Section library's default-level groups and the Archived
+// Sections area.
+const LIBRARY_COLLAPSE_KEY = "admin-library-collapsed-levels";
+const ARCHIVED_COLLAPSE_KEY = "admin-archived-collapsed";
 
 function titleFor(row: AdminCohortSection): string {
   if (row.displayName) return row.displayName;
@@ -77,6 +88,29 @@ export function SectionsTab({ cohortId }: Props) {
   const [rows, setRows] = useState<Row[]>([]);
   const [dirty, setDirty] = useState(false);
 
+  // Per-browser collapsed/expanded state for the level groupings. Defaults to
+  // all expanded on first load (no stored value). Persisted so a collapsed
+  // level stays collapsed across reloads and sessions.
+  const [collapsedLevels, setCollapsedLevels] = useState<Record<number, boolean>>(
+    () => {
+      try {
+        const raw = localStorage.getItem(LEVEL_COLLAPSE_KEY);
+        return raw ? (JSON.parse(raw) as Record<number, boolean>) : {};
+      } catch {
+        return {};
+      }
+    },
+  );
+  useEffect(() => {
+    try {
+      localStorage.setItem(LEVEL_COLLAPSE_KEY, JSON.stringify(collapsedLevels));
+    } catch {
+      // Ignore storage write failures (e.g. private mode quota).
+    }
+  }, [collapsedLevels]);
+  const toggleLevel = (lvl: number) =>
+    setCollapsedLevels((prev) => ({ ...prev, [lvl]: !prev[lvl] }));
+
   useEffect(() => {
     if (sectionsQ.data?.sections) {
       setRows(sectionsQ.data.sections.map((s) => ({ ...s })));
@@ -85,6 +119,93 @@ export function SectionsTab({ cohortId }: Props) {
   }, [sectionsQ.data]);
 
   const generics = genericsQ.data?.sections ?? [];
+
+  // ---- Section library state ----
+  const usageQ = useAdminListGenericSectionUsage();
+  // genericId -> every (cohort, level) attachment across all cohorts.
+  const usageByGeneric = useMemo(() => {
+    const m = new Map<
+      number,
+      Array<{ cohortId: number; cohortName: string; level: number }>
+    >();
+    for (const u of usageQ.data?.usage ?? []) {
+      const list = m.get(u.genericId) ?? [];
+      list.push({
+        cohortId: u.cohortId,
+        cohortName: u.cohortName,
+        level: u.level,
+      });
+      m.set(u.genericId, list);
+    }
+    return m;
+  }, [usageQ.data]);
+
+  const activeLibrary = useMemo(
+    () => generics.filter((g) => !g.archived),
+    [generics],
+  );
+  const archivedLibrary = useMemo(
+    () => generics.filter((g) => g.archived),
+    [generics],
+  );
+  const libraryByLevel = useMemo(() => {
+    const m: Record<number, AdminGenericSection[]> = { 1: [], 2: [], 3: [], 4: [] };
+    for (const g of activeLibrary) {
+      const lvl = g.defaultLevel >= 1 && g.defaultLevel <= 4 ? g.defaultLevel : 3;
+      m[lvl]!.push(g);
+    }
+    for (const k of Object.keys(m))
+      m[Number(k)]!.sort((a, b) => a.title.localeCompare(b.title));
+    return m;
+  }, [activeLibrary]);
+
+  // Collapsed state for the library's default-level groups (persisted).
+  const [collapsedLibLevels, setCollapsedLibLevels] = useState<
+    Record<number, boolean>
+  >(() => {
+    try {
+      const raw = localStorage.getItem(LIBRARY_COLLAPSE_KEY);
+      return raw ? (JSON.parse(raw) as Record<number, boolean>) : {};
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        LIBRARY_COLLAPSE_KEY,
+        JSON.stringify(collapsedLibLevels),
+      );
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [collapsedLibLevels]);
+  const toggleLibLevel = (lvl: number) =>
+    setCollapsedLibLevels((prev) => ({ ...prev, [lvl]: !prev[lvl] }));
+
+  const [archivedCollapsed, setArchivedCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(ARCHIVED_COLLAPSE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(ARCHIVED_COLLAPSE_KEY, String(archivedCollapsed));
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [archivedCollapsed]);
+
+  // Which archived row has its "Where it's used" panel open.
+  const [whereOpenFor, setWhereOpenFor] = useState<number | null>(null);
+
+  // Type-to-confirm permanent delete target + typed text.
+  const [confirmDeleteFor, setConfirmDeleteFor] =
+    useState<AdminGenericSection | null>(null);
+  const [confirmDeleteText, setConfirmDeleteText] = useState("");
+
   const grouped = useMemo(() => {
     const m: Record<number, Row[]> = { 1: [], 2: [], 3: [], 4: [] };
     for (const r of rows) (m[r.level] ??= []).push(r);
@@ -112,11 +233,20 @@ export function SectionsTab({ cohortId }: Props) {
       const idx = sameLevel.findIndex((r) => r.id === id);
       const swapWith = sameLevel[idx + dir];
       if (!swapWith) return prev;
-      return prev.map((r) => {
-        if (r.id === item.id) return { ...r, sortOrder: swapWith.sortOrder };
-        if (r.id === swapWith.id) return { ...r, sortOrder: item.sortOrder };
-        return r;
-      });
+      // Reorder by position, then renumber the whole level sequentially.
+      // Swapping raw sortOrder values breaks when two rows share the same
+      // sortOrder (which can happen after server-side re-seeding): swapping
+      // equal values is a no-op, so rows get stuck. Renumbering also heals any
+      // existing duplicates on the next save.
+      const reordered = [...sameLevel];
+      reordered[idx] = swapWith;
+      reordered[idx + dir] = item;
+      const orderById = new Map(reordered.map((r, i) => [r.id, i + 1]));
+      return prev.map((r) =>
+        orderById.has(r.id)
+          ? { ...r, sortOrder: orderById.get(r.id)! }
+          : r,
+      );
     });
     setDirty(true);
   };
@@ -140,6 +270,20 @@ export function SectionsTab({ cohortId }: Props) {
     setDirty(true);
   };
 
+  // Insert a new row directly below the original within the same level,
+  // shifting later rows down by one.
+  const insertRowBelow = (orig: Row, newRow: Row) => {
+    setRows((prev) => {
+      const bumped = prev.map((r) =>
+        r.level === orig.level && r.sortOrder > orig.sortOrder
+          ? { ...r, sortOrder: r.sortOrder + 1 }
+          : r,
+      );
+      return [...bumped, { ...newRow, sortOrder: orig.sortOrder + 1 }];
+    });
+    setDirty(true);
+  };
+
   const bulkMut = useAdminBulkUpdateCohortSections();
   const save = () => {
     bulkMut.mutate(
@@ -158,6 +302,11 @@ export function SectionsTab({ cohortId }: Props) {
       {
         onSuccess: () => {
           toast({ title: "Section list saved" });
+          // Attachments changed server-side, so refresh usage too — the
+          // library trash uses it to decide archive vs permanent delete.
+          qc.invalidateQueries({
+            queryKey: getAdminListGenericSectionUsageQueryKey(),
+          });
           qc.invalidateQueries({
             queryKey: getAdminListCohortSectionsQueryKey(cohortId),
           });
@@ -323,6 +472,7 @@ export function SectionsTab({ cohortId }: Props) {
       label: "",
       placeholder: "",
       helpText: "",
+      prefill: "",
       multiline: true,
     },
     form: {
@@ -332,8 +482,21 @@ export function SectionsTab({ cohortId }: Props) {
       ],
       buttonLabel: "",
       copyStyle: "labeled",
+      template: "",
+      cardLayout: false,
+      formName: "",
+      collectResponses: false,
+      responsesOpen: true,
     },
     download: { type: "download", fileId: 0, label: "" },
+    image: {
+      type: "image",
+      fileId: 0,
+      width: 800,
+      alignment: "center",
+      caption: "",
+      altText: "",
+    },
   };
   const addBlock = (type: string) => {
     const def = BLOCK_DEFAULTS[type];
@@ -423,6 +586,7 @@ export function SectionsTab({ cohortId }: Props) {
     label: string;
     placeholder?: string;
     helpText?: string;
+    heading?: string;
     multiline: boolean;
   };
   const withFormFields = (
@@ -506,6 +670,84 @@ export function SectionsTab({ cohortId }: Props) {
   const updateGenMut = useAdminUpdateGenericSection();
   const deleteGenMut = useAdminDeleteGenericSection();
 
+  // Duplicate a section row. Generic sections get a full content copy (a new
+  // row in the generic section library); built-in sections get an alias id
+  // ("<base>__copy<n>") that renders the same content but keeps its own
+  // display name, level, code, and participant answers. The duplicate is
+  // inserted directly below the original.
+  const duplicateRow = (r: Row) => {
+    if (r.sectionId.startsWith("generic_")) {
+      const g = generics.find((x) => `generic_${x.id}` === r.sectionId);
+      if (!g) {
+        toast({
+          title: "Duplicate failed",
+          description: "Section content is still loading — try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      createGenMut.mutate(
+        {
+          data: {
+            title: `${g.title} (copy)`,
+            contentBlocks: (g.contentBlocks ?? []) as GenericContentBlock[],
+            goalText: g.goalText ?? null,
+            sectionType: g.sectionType,
+            showNotesField: g.showNotesField,
+            badgeLabel: g.badgeLabel ?? null,
+            defaultLevel: r.level,
+          },
+        },
+        {
+          onSuccess: (res) => {
+            const newGen = res?.section;
+            if (!newGen) return;
+            insertRowBelow(r, {
+              id: -Date.now(),
+              cohortId,
+              sectionId: `generic_${newGen.id}`,
+              level: r.level,
+              sortOrder: r.sortOrder + 1,
+              displayName: r.displayName ? `${r.displayName} (copy)` : null,
+              visible: true,
+              code: r.code ?? null,
+              codeActive: r.codeActive,
+              title: newGen.title,
+              type: newGen.sectionType,
+            });
+            qc.invalidateQueries({
+              queryKey: getAdminListGenericSectionsQueryKey(),
+            });
+            toast({
+              title: "Section duplicated",
+              description: "Click Save to persist its position in the cohort.",
+            });
+          },
+          onError: (err) => {
+            if (isAdminAuthError(err)) return;
+            toast({ title: "Duplicate failed", variant: "destructive" });
+          },
+        },
+      );
+      return;
+    }
+    const base = r.sectionId.replace(/__copy\d+$/, "");
+    let n = 1;
+    while (rows.some((x) => x.sectionId === `${base}__copy${n}`)) n += 1;
+    insertRowBelow(r, {
+      ...r,
+      id: -Date.now(),
+      sectionId: `${base}__copy${n}`,
+      sortOrder: r.sortOrder + 1,
+      displayName: `${titleFor(r)} (copy)`,
+      visible: true,
+    });
+    toast({
+      title: "Section duplicated",
+      description: "Click Save to persist it.",
+    });
+  };
+
   const submitGeneric = () => {
     if (!genForm.title.trim()) {
       toast({ title: "Title is required", variant: "destructive" });
@@ -541,7 +783,7 @@ export function SectionsTab({ cohortId }: Props) {
       );
     } else {
       createGenMut.mutate(
-        { data: payload },
+        { data: { ...payload, defaultLevel: genForm.targetLevel } },
         {
           onSuccess: (res) => {
             const newGen = res?.section;
@@ -589,12 +831,15 @@ export function SectionsTab({ cohortId }: Props) {
       { id: g.id },
       {
         onSuccess: () => {
-          toast({ title: "Generic section deleted" });
+          toast({ title: "Section permanently deleted" });
           qc.invalidateQueries({
             queryKey: getAdminListGenericSectionsQueryKey(),
           });
           qc.invalidateQueries({
             queryKey: getAdminListCohortSectionsQueryKey(cohortId),
+          });
+          qc.invalidateQueries({
+            queryKey: getAdminListGenericSectionUsageQueryKey(),
           });
         },
         onError: (err) => {
@@ -603,6 +848,42 @@ export function SectionsTab({ cohortId }: Props) {
         },
       },
     );
+  };
+
+  // Archive (hide from library, keep every cohort attachment) or restore.
+  const setArchived = (g: AdminGenericSection, archived: boolean) => {
+    updateGenMut.mutate(
+      { id: g.id, data: { title: g.title, archived } },
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({
+            queryKey: getAdminListGenericSectionsQueryKey(),
+          });
+          if (!archived) {
+            toast({ title: "Section restored to library" });
+          }
+        },
+        onError: (err) => {
+          if (isAdminAuthError(err)) return;
+          toast({
+            title: archived ? "Archive failed" : "Restore failed",
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  // The library trash: archive when the section is attached to any cohort,
+  // otherwise ask for a type-to-confirm permanent delete.
+  const trashGeneric = (g: AdminGenericSection) => {
+    const inUse = (usageByGeneric.get(g.id)?.length ?? 0) > 0;
+    if (inUse) {
+      setArchived(g, true);
+    } else {
+      setConfirmDeleteText("");
+      setConfirmDeleteFor(g);
+    }
   };
 
   return (
@@ -1078,6 +1359,23 @@ export function SectionsTab({ cohortId }: Props) {
                                   testId={`input-generic-block-field-help-${idx}`}
                                 />
                               </div>
+                              <div>
+                                <Label className="text-xs">
+                                  Starting text (optional)
+                                </Label>
+                                <Textarea
+                                  value={block.prefill ?? ""}
+                                  onChange={(e) =>
+                                    updateBlock(idx, { prefill: e.target.value })
+                                  }
+                                  placeholder="Pre-fills the field. Use {{section-id:field-key}} to insert the participant's answer from another section."
+                                  rows={2}
+                                  data-testid={`input-generic-block-field-prefill-${idx}`}
+                                />
+                                <p className="text-[11px] text-muted-foreground mt-1">
+                                  {"Placeholders like {{section-id:field-key}} are replaced with that participant's saved answer (empty if they haven't answered)."}
+                                </p>
+                              </div>
                             </div>
                           )}
                           {block.type === "form" && (
@@ -1119,6 +1417,77 @@ export function SectionsTab({ cohortId }: Props) {
                                     </SelectContent>
                                   </Select>
                                 </div>
+                              </div>
+                              <div>
+                                <Label className="text-xs">
+                                  Assembly template (optional)
+                                </Label>
+                                <Textarea
+                                  value={block.template ?? ""}
+                                  onChange={(e) =>
+                                    updateBlock(idx, { template: e.target.value })
+                                  }
+                                  placeholder={"This is {field-1} and that is {field-2}."}
+                                  rows={3}
+                                  data-testid={`input-generic-block-form-template-${idx}`}
+                                />
+                                <p className="text-[11px] text-muted-foreground mt-1">
+                                  {"Controls how answers assemble in the live preview box. Reference fields by field key in single braces, e.g. {field-1}. Empty fields resolve to nothing (no braces shown). Leave blank to assemble with the copy style above."}
+                                </p>
+                              </div>
+                              <div className="border rounded-md p-2 space-y-2 bg-muted/30">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                  Layout &amp; responses
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    checked={block.cardLayout ?? false}
+                                    onCheckedChange={(v) =>
+                                      updateBlock(idx, { cardLayout: v })
+                                    }
+                                    data-testid={`switch-generic-block-form-cardlayout-${idx}`}
+                                  />
+                                  <Label className="text-xs">
+                                    Card layout — each field in its own bordered card (6 Ways worksheet style)
+                                  </Label>
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Form name (shown in Responses tab)</Label>
+                                  <Input
+                                    value={block.formName ?? ""}
+                                    onChange={(e) =>
+                                      updateBlock(idx, { formName: e.target.value })
+                                    }
+                                    placeholder="e.g. 6 Ways Worksheet"
+                                    data-testid={`input-generic-block-form-name-${idx}`}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    checked={block.collectResponses ?? false}
+                                    onCheckedChange={(v) =>
+                                      updateBlock(idx, { collectResponses: v })
+                                    }
+                                    data-testid={`switch-generic-block-form-collect-${idx}`}
+                                  />
+                                  <Label className="text-xs">
+                                    Collect responses — adds a Submit button that sends the assembled text to you
+                                  </Label>
+                                </div>
+                                {(block.collectResponses ?? false) && (
+                                  <div className="flex items-center gap-2">
+                                    <Switch
+                                      checked={block.responsesOpen ?? true}
+                                      onCheckedChange={(v) =>
+                                        updateBlock(idx, { responsesOpen: v })
+                                      }
+                                      data-testid={`switch-generic-block-form-open-${idx}`}
+                                    />
+                                    <Label className="text-xs">
+                                      Submissions open — turn off to show "Submissions closed"
+                                    </Label>
+                                  </div>
+                                )}
                               </div>
                               <div className="space-y-2">
                                 {(block.fields ?? []).map((field, fIdx) => {
@@ -1211,6 +1580,23 @@ export function SectionsTab({ cohortId }: Props) {
                                             data-testid={`input-form-field-placeholder-${idx}-${fIdx}`}
                                           />
                                         </div>
+                                        {(block.cardLayout ?? false) && (
+                                          <div>
+                                            <Label className="text-xs">
+                                              Heading (card layout, optional)
+                                            </Label>
+                                            <Input
+                                              value={field.heading ?? ""}
+                                              onChange={(e) =>
+                                                updateFormField(idx, fIdx, {
+                                                  heading: e.target.value,
+                                                })
+                                              }
+                                              placeholder="Bold line under the label pill"
+                                              data-testid={`input-form-field-heading-${idx}-${fIdx}`}
+                                            />
+                                          </div>
+                                        )}
                                         <div className="flex items-center gap-2 pt-5">
                                           <Switch
                                             checked={field.multiline ?? true}
@@ -1320,6 +1706,125 @@ export function SectionsTab({ cohortId }: Props) {
                               </div>
                             </div>
                           )}
+                          {block.type === "image" && (
+                            <div className="space-y-2">
+                              {!editingGeneric ? (
+                                <div className="text-xs text-muted-foreground border rounded-md p-2">
+                                  Save this section first, then attach images to
+                                  it (paperclip button on the section row) to
+                                  pick one here.
+                                </div>
+                              ) : editorFiles.filter((f) =>
+                                  (f.mimeType ?? "").startsWith("image/"),
+                                ).length === 0 ? (
+                                <div className="text-xs text-muted-foreground border rounded-md p-2">
+                                  No images attached to this section yet. Use the
+                                  paperclip button on the section row to upload
+                                  images, then reopen this editor.
+                                </div>
+                              ) : (
+                                <div>
+                                  <Label className="text-xs">Image</Label>
+                                  <Select
+                                    value={block.fileId ? String(block.fileId) : ""}
+                                    onValueChange={(v) =>
+                                      updateBlock(idx, { fileId: Number(v) })
+                                    }
+                                  >
+                                    <SelectTrigger
+                                      data-testid={`select-image-file-${idx}`}
+                                    >
+                                      <SelectValue placeholder="Pick an image…" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {editorFiles
+                                        .filter((f) =>
+                                          (f.mimeType ?? "").startsWith("image/"),
+                                        )
+                                        .map((f) => (
+                                          <SelectItem
+                                            key={f.id}
+                                            value={String(f.id)}
+                                          >
+                                            {f.filename}
+                                          </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              )}
+                              <div>
+                                <Label className="text-xs">Max width (px)</Label>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  value={block.width ?? ""}
+                                  onChange={(e) =>
+                                    updateBlock(idx, {
+                                      width:
+                                        e.target.value === ""
+                                          ? undefined
+                                          : Math.max(
+                                              1,
+                                              Math.round(Number(e.target.value)),
+                                            ),
+                                    })
+                                  }
+                                  placeholder="800"
+                                  data-testid={`input-image-width-${idx}`}
+                                />
+                                <p className="text-[11px] text-muted-foreground mt-1">
+                                  Maximum width on a wide screen. The image
+                                  shrinks to fit narrower screens and never
+                                  exceeds the content column.
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="text-xs">Alignment</Label>
+                                <Select
+                                  value={block.alignment ?? "center"}
+                                  onValueChange={(v) =>
+                                    updateBlock(idx, {
+                                      alignment: v as "left" | "center" | "right",
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger
+                                    data-testid={`select-image-align-${idx}`}
+                                  >
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="left">Left</SelectItem>
+                                    <SelectItem value="center">Center</SelectItem>
+                                    <SelectItem value="right">Right</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <Label className="text-xs">Caption (optional)</Label>
+                                <Input
+                                  value={block.caption ?? ""}
+                                  onChange={(e) =>
+                                    updateBlock(idx, { caption: e.target.value })
+                                  }
+                                  placeholder="Shown beneath the image"
+                                  data-testid={`input-image-caption-${idx}`}
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Alt text (optional)</Label>
+                                <Input
+                                  value={block.altText ?? ""}
+                                  onChange={(e) =>
+                                    updateBlock(idx, { altText: e.target.value })
+                                  }
+                                  placeholder="Description for screen readers"
+                                  data-testid={`input-image-alt-${idx}`}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1341,6 +1846,7 @@ export function SectionsTab({ cohortId }: Props) {
                           <SelectItem value="field">Input field</SelectItem>
                           <SelectItem value="form">Form (fields + copy button)</SelectItem>
                           <SelectItem value="download">Download button</SelectItem>
+                          <SelectItem value="image">Image</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1398,12 +1904,28 @@ export function SectionsTab({ cohortId }: Props) {
           {sectionsQ.isLoading ? (
             <div className="text-sm text-muted-foreground">Loading…</div>
           ) : (
-            ([1, 2, 3, 4] as const).map((lvl) => (
+            ([1, 2, 3, 4] as const).map((lvl) => {
+              const collapsed = !!collapsedLevels[lvl];
+              const count = grouped[lvl].length;
+              return (
               <div key={lvl}>
-                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
-                  Level {lvl}
-                </div>
-                {grouped[lvl].length === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => toggleLevel(lvl)}
+                  className="flex items-center gap-2 w-full text-left mb-2 group"
+                  data-testid={`level-toggle-${lvl}`}
+                  aria-expanded={!collapsed}
+                >
+                  {collapsed ? (
+                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                  )}
+                  <span className="text-xs uppercase tracking-widest text-muted-foreground group-hover:text-foreground">
+                    Level {lvl} — {count}
+                  </span>
+                </button>
+                {collapsed ? null : count === 0 ? (
                   <div className="text-sm text-muted-foreground italic">
                     No sections at this level.
                   </div>
@@ -1489,14 +2011,6 @@ export function SectionsTab({ cohortId }: Props) {
                           <div className="col-span-2 flex items-center gap-3 justify-end pt-3">
                             <label className="flex items-center gap-1 text-xs">
                               <Switch
-                                checked={r.visible}
-                                onCheckedChange={(v) => update(idx, { visible: v })}
-                                data-testid={`switch-visible-${r.sectionId}`}
-                              />
-                              Visible
-                            </label>
-                            <label className="flex items-center gap-1 text-xs">
-                              <Switch
                                 checked={r.codeActive}
                                 onCheckedChange={(v) => update(idx, { codeActive: v })}
                                 data-testid={`switch-codeactive-${r.sectionId}`}
@@ -1538,11 +2052,44 @@ export function SectionsTab({ cohortId }: Props) {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => removeRow(r.id)}
-                              data-testid={`button-remove-${r.sectionId}`}
+                              onClick={() => duplicateRow(r)}
+                              title="Duplicate section"
+                              data-testid={`button-duplicate-${r.sectionId}`}
                             >
-                              <Trash2 className="w-4 h-4 text-destructive" />
+                              <Copy className="w-4 h-4" />
                             </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  data-testid={`button-remove-${r.sectionId}`}
+                                >
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Remove from this level?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    "{title}" will be removed from Level{" "}
+                                    {r.level} in this cohort only. The section
+                                    itself is not deleted.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => removeRow(r.id)}
+                                    data-testid={`button-confirm-remove-${r.sectionId}`}
+                                  >
+                                    Yes, remove
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </div>
                       );
@@ -1550,7 +2097,8 @@ export function SectionsTab({ cohortId }: Props) {
                   </div>
                 )}
               </div>
-            ))
+              );
+            })
           )}
         </CardContent>
       </Card>
@@ -1558,104 +2106,285 @@ export function SectionsTab({ cohortId }: Props) {
       {generics.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Generic section library</CardTitle>
+            <CardTitle className="text-base">Section library</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {generics.map((g) => {
-                const sectionId = `generic_${g.id}`;
-                const alreadyInCohort = rows.some(
-                  (r) => r.sectionId === sectionId,
-                );
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((lvl) => {
+                const group = libraryByLevel[lvl] ?? [];
+                if (group.length === 0) return null;
+                const collapsed = Boolean(collapsedLibLevels[lvl]);
                 return (
-                  <div
-                    key={g.id}
-                    className="flex items-center justify-between p-2 border rounded-md"
-                    data-testid={`generic-library-row-${g.id}`}
-                  >
-                    <div className="min-w-0">
-                      <div className="font-medium">{g.title}</div>
-                      <div className="text-xs text-muted-foreground font-mono">
-                        generic_{g.id} · {g.sectionType}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setViewingGeneric(g)}
-                        data-testid={`button-view-generic-${g.id}`}
-                      >
-                        <Eye className="w-4 h-4 mr-1.5" />
-                        View
-                      </Button>
-                      {alreadyInCohort ? (
-                        <Badge
-                          variant="secondary"
-                          className="text-xs"
-                          data-testid={`badge-already-added-${g.id}`}
-                        >
-                          Already added
-                        </Badge>
+                  <div key={lvl}>
+                    <button
+                      type="button"
+                      className="w-full flex items-center gap-2 py-1.5 text-left"
+                      onClick={() => toggleLibLevel(lvl)}
+                      aria-expanded={!collapsed}
+                      data-testid={`library-level-toggle-${lvl}`}
+                    >
+                      {collapsed ? (
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       ) : (
-                        <Select
-                          value=""
-                          onValueChange={(v) =>
-                            addGenericToLevel(g, Number(v))
-                          }
-                        >
-                          <SelectTrigger
-                            className="w-[150px] h-9"
-                            data-testid={`select-add-to-level-${g.id}`}
-                          >
-                            <SelectValue placeholder="Add to level…" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">Level 1</SelectItem>
-                            <SelectItem value="2">Level 2</SelectItem>
-                            <SelectItem value="3">Level 3</SelectItem>
-                            <SelectItem value="4">Level 4</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
                       )}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            data-testid={`button-delete-generic-${g.id}`}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Delete generic section?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will remove "{g.title}" from every cohort
-                              that uses it. This cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteGeneric(g)}
+                      <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                        Default Level {lvl} — {group.length}
+                      </span>
+                    </button>
+                    {!collapsed && (
+                      <div className="space-y-2 mt-1">
+                        {group.map((g) => {
+                          const sectionId = `generic_${g.id}`;
+                          const alreadyInCohort = rows.some(
+                            (r) => r.sectionId === sectionId,
+                          );
+                          return (
+                            <div
+                              key={g.id}
+                              className="flex items-center justify-between p-2 border rounded-md"
+                              data-testid={`generic-library-row-${g.id}`}
                             >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                              <div className="min-w-0">
+                                <div className="font-medium">{g.title}</div>
+                                <div className="text-xs text-muted-foreground font-mono">
+                                  generic_{g.id}
+                                  {g.slug ? ` · ${g.slug}` : ""} ·{" "}
+                                  {g.sectionType}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setViewingGeneric(g)}
+                                  data-testid={`button-view-generic-${g.id}`}
+                                >
+                                  <Eye className="w-4 h-4 mr-1.5" />
+                                  View
+                                </Button>
+                                {alreadyInCohort ? (
+                                  <Badge
+                                    className="text-xs bg-green-100 text-green-800 border border-green-300 hover:bg-green-100"
+                                    data-testid={`badge-in-cohort-${g.id}`}
+                                  >
+                                    In this cohort
+                                  </Badge>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      addGenericToLevel(g, g.defaultLevel)
+                                    }
+                                    data-testid={`button-add-to-cohort-${g.id}`}
+                                  >
+                                    <Plus className="w-4 h-4 mr-1.5" />
+                                    Add to this cohort
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => trashGeneric(g)}
+                                  title={
+                                    (usageByGeneric.get(g.id)?.length ?? 0) > 0
+                                      ? "Archive (in use by cohorts)"
+                                      : "Delete permanently"
+                                  }
+                                  data-testid={`button-delete-generic-${g.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
+              {activeLibrary.length === 0 && (
+                <div className="text-sm text-muted-foreground italic">
+                  No sections in the library.
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
+
+      {archivedLibrary.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <button
+              type="button"
+              className="w-full flex items-center gap-2 text-left"
+              onClick={() => setArchivedCollapsed((v) => !v)}
+              aria-expanded={!archivedCollapsed}
+              data-testid="archived-sections-toggle"
+            >
+              {archivedCollapsed ? (
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+              <CardTitle className="text-base">
+                Archived Sections — {archivedLibrary.length}
+              </CardTitle>
+            </button>
+          </CardHeader>
+          {!archivedCollapsed && (
+            <CardContent>
+              <div className="space-y-2">
+                {archivedLibrary.map((g) => {
+                  const usage = usageByGeneric.get(g.id) ?? [];
+                  const whereOpen = whereOpenFor === g.id;
+                  return (
+                    <div key={g.id}>
+                      <div
+                        className="flex items-center justify-between p-2 border rounded-md"
+                        data-testid={`archived-row-${g.id}`}
+                      >
+                        <div className="min-w-0">
+                          <div className="font-medium">{g.title}</div>
+                          <div className="text-xs text-muted-foreground font-mono">
+                            generic_{g.id}
+                            {g.slug ? ` · ${g.slug}` : ""} · {g.sectionType}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setWhereOpenFor(whereOpen ? null : g.id)
+                            }
+                            data-testid={`button-where-used-${g.id}`}
+                          >
+                            <MapPin className="w-4 h-4 mr-1.5" />
+                            Where it's used
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setArchived(g, false)}
+                            data-testid={`button-restore-generic-${g.id}`}
+                          >
+                            <RotateCcw className="w-4 h-4 mr-1.5" />
+                            Restore
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setConfirmDeleteText("");
+                              setConfirmDeleteFor(g);
+                            }}
+                            title="Delete permanently"
+                            data-testid={`button-delete-archived-${g.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                      {whereOpen && (
+                        <div
+                          className="mt-1 ml-4 border rounded-md p-3 bg-muted/30"
+                          data-testid={`panel-where-used-${g.id}`}
+                        >
+                          <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                            Attached to {usage.length}{" "}
+                            {usage.length === 1 ? "cohort" : "cohorts"}
+                          </div>
+                          {usage.length === 0 ? (
+                            <div className="text-sm text-muted-foreground italic">
+                              Not attached to any cohort.
+                            </div>
+                          ) : (
+                            <div className="max-h-40 overflow-y-auto space-y-1">
+                              {usage.map((u, i) => (
+                                <div
+                                  key={`${u.cohortId}-${i}`}
+                                  className="text-sm flex items-center justify-between gap-2 pr-1"
+                                >
+                                  <span className="truncate">
+                                    {u.cohortName}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                    Level {u.level}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
+      {/* Type-to-confirm permanent delete (only offered for sections not
+          attached to any cohort, or from the Archived Sections area). */}
+      <Dialog
+        open={confirmDeleteFor !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDeleteFor(null);
+            setConfirmDeleteText("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Permanently delete section?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Type <span className="font-mono font-bold">delete</span> to
+              permanently remove "{confirmDeleteFor?.title}". This also
+              removes it from any cohort that still has it and cannot be
+              undone.
+            </p>
+            <Input
+              value={confirmDeleteText}
+              onChange={(e) => setConfirmDeleteText(e.target.value)}
+              placeholder="delete"
+              data-testid="input-confirm-delete"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setConfirmDeleteFor(null);
+                setConfirmDeleteText("");
+              }}
+              data-testid="button-cancel-confirm-delete"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={confirmDeleteText.trim().toLowerCase() !== "delete"}
+              onClick={() => {
+                if (confirmDeleteFor) deleteGeneric(confirmDeleteFor);
+                setConfirmDeleteFor(null);
+                setConfirmDeleteText("");
+              }}
+              data-testid="button-confirm-delete"
+            >
+              Delete permanently
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Read-only preview dialog. Editing happens from the main section
           list (each level row has its own Edit pencil), so this is just a

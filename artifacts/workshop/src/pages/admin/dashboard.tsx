@@ -26,6 +26,7 @@ import { SectionsTab } from "@/components/admin/tabs/SectionsTab";
 import { VariantsTab } from "@/components/admin/tabs/VariantsTab";
 import { ToolSafariTab } from "@/components/admin/tabs/ToolSafariTab";
 import { ParticipantsTab } from "@/components/admin/tabs/ParticipantsTab";
+import { ResponsesTab } from "@/components/admin/tabs/ResponsesTab";
 import { FeedbackTab } from "@/components/admin/tabs/FeedbackTab";
 import { LlmToolsTab } from "@/components/admin/tabs/LlmToolsTab";
 import { SettingsTab } from "@/components/admin/tabs/SettingsTab";
@@ -254,6 +255,13 @@ export default function AdminDashboard() {
                 >
                   Participants
                 </TabsTrigger>
+                <TabsTrigger
+                  value="responses"
+                  disabled={perCohortDisabled}
+                  data-testid="tab-responses"
+                >
+                  Responses
+                </TabsTrigger>
               </div>
             </div>
           </TabsList>
@@ -306,6 +314,14 @@ export default function AdminDashboard() {
               <>
                 <CohortBanner name={activeCohort?.name ?? null} />
                 <ParticipantsTab cohortId={selectedCohortId} />
+              </>
+            ) : null}
+          </TabsContent>
+          <TabsContent value="responses">
+            {selectedCohortId != null ? (
+              <>
+                <CohortBanner name={activeCohort?.name ?? null} />
+                <ResponsesTab cohortId={selectedCohortId} />
               </>
             ) : null}
           </TabsContent>

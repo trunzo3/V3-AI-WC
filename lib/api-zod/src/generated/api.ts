@@ -94,6 +94,12 @@ export const GetCurrentParticipantResponse = zod.object({
         'Map of tier level to default-unlocked boolean, e.g. {\"1\": true, \"2\": false}',
       ),
     audienceType: zod.string(),
+    levelNames: zod
+      .record(zod.string(), zod.string())
+      .optional()
+      .describe(
+        'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
+      ),
   }),
 });
 
@@ -151,6 +157,8 @@ export const ListSectionsResponse = zod.object({
                   "field",
                   "form",
                   "download",
+                  "recap",
+                  "image",
                 ]),
                 content: zod.string().optional(),
                 label: zod.string().optional(),
@@ -159,7 +167,9 @@ export const ListSectionsResponse = zod.object({
                   .enum(["stop", "insight", "rule", "quote"])
                   .optional(),
                 title: zod.string().optional(),
-                columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+                columns: zod
+                  .union([zod.literal(1), zod.literal(2), zod.literal(3)])
+                  .optional(),
                 cards: zod
                   .array(
                     zod.object({
@@ -187,7 +197,19 @@ export const ListSectionsResponse = zod.object({
                   .describe(
                     "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
                   ),
+                heading: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "Card layout only - bold heading shown under the label pill.",
+                  ),
                 multiline: zod.boolean().optional(),
+                prefill: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "For field blocks: the field's starting text. May contain {{sectionId:fieldKey}} placeholders resolved to the participant's own saved answers. The participant can edit the result; edits save to this field normally.\n",
+                  ),
                 copyStyle: zod.enum(["labeled", "joined"]).optional(),
                 fields: zod
                   .array(
@@ -201,19 +223,102 @@ export const ListSectionsResponse = zod.object({
                         .describe(
                           "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
                         ),
+                      heading: zod
+                        .string()
+                        .optional()
+                        .describe(
+                          "Card layout only - bold heading shown under the label pill.",
+                        ),
                       multiline: zod.boolean(),
                     }),
                   )
                   .optional(),
+                preview: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+                  ),
+                cardLayout: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "For form blocks - render each field in its own bordered card. Default false.",
+                  ),
+                formName: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "For form blocks - admin-facing name shown in the Responses tab.",
+                  ),
+                collectResponses: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "For form blocks - show a Submit button that stores the assembled text. Default false.",
+                  ),
+                responsesOpen: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "For form blocks - when false, submissions are closed. Default true.",
+                  ),
+                template: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.\n",
+                  ),
                 fileId: zod
                   .number()
                   .optional()
                   .describe(
-                    "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
+                    "For download blocks: the id of a section file (attached to the same section) that the block's button downloads. For image blocks: the id of the attached section image to display.\n",
+                  ),
+                width: zod
+                  .number()
+                  .optional()
+                  .describe(
+                    "For image blocks: the maximum render width in pixels. The image shrinks responsively below this on narrow screens and never exceeds the content column width.\n",
+                  ),
+                alignment: zod
+                  .enum(["left", "center", "right"])
+                  .optional()
+                  .describe(
+                    "For image blocks: horizontal alignment of the image within the content column.\n",
+                  ),
+                caption: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "For image blocks: optional caption text shown beneath the image.\n",
+                  ),
+                altText: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "For image blocks: optional alternative text for the img element (used by screen readers and shown if the image fails to load).\n",
+                  ),
+                source: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "For recap blocks: the slug (or generic_N id) of the section whose saved answers are shown read-only.\n",
+                  ),
+                recapFields: zod
+                  .array(
+                    zod.object({
+                      fieldKey: zod.string(),
+                      label: zod.string(),
+                    }),
+                  )
+                  .optional()
+                  .describe(
+                    "For recap blocks: the fields to display from the source section. Empty answers are omitted at render time.\n",
                   ),
               })
               .describe(
-                "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.\n",
+                "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`. Prompt `content` and field `prefill` may contain `{{sectionId:fieldKey}}` placeholders, resolved client-side to the participant's own saved answer in that section\/field (empty string if unsaved).\n",
               ),
           ),
           goalText: zod.string().nullable(),
@@ -290,6 +395,33 @@ export const UpsertNoteResponse = zod.object({
     sectionId: zod.string(),
     fieldKey: zod.string(),
     content: zod.string(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * Stores the participant's assembled form text for one form block. Rejects (400) if the block is not a form with collectResponses=true, (403) if the block's responsesOpen is false, and (404) if the section is not unlocked for the participant.
+
+ * @summary Submit (or resubmit) the assembled text of a collecting form block
+ */
+export const SubmitFormResponseBody = zod.object({
+  sectionId: zod.string(),
+  blockIndex: zod
+    .number()
+    .describe("Position of the form block in the section's contentBlocks."),
+  responseText: zod.string(),
+});
+
+export const SubmitFormResponseResponse = zod.object({
+  response: zod.object({
+    id: zod.number(),
+    cohortId: zod.number(),
+    participantId: zod.number(),
+    sectionId: zod.string(),
+    blockIndex: zod.number(),
+    formName: zod.string(),
+    responseText: zod.string(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
@@ -458,6 +590,12 @@ export const AdminListCohortsResponse = zod.object({
       facilitatorMessage: zod.string(),
       homeMessage: zod.string().nullish(),
       tierAccess: zod.record(zod.string(), zod.boolean()),
+      levelNames: zod
+        .record(zod.string(), zod.string())
+        .optional()
+        .describe(
+          'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
+        ),
       createdAt: zod.coerce.date().nullish(),
       updatedAt: zod.coerce.date().nullish(),
     }),
@@ -475,6 +613,12 @@ export const AdminCreateCohortBody = zod.object({
   facilitatorMessage: zod.string().optional(),
   homeMessage: zod.string().nullish(),
   tierAccess: zod.record(zod.string(), zod.boolean()).optional(),
+  levelNames: zod
+    .record(zod.string(), zod.string())
+    .optional()
+    .describe(
+      'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
+    ),
 });
 
 /**
@@ -493,6 +637,12 @@ export const AdminGetCohortResponse = zod.object({
     facilitatorMessage: zod.string(),
     homeMessage: zod.string().nullish(),
     tierAccess: zod.record(zod.string(), zod.boolean()),
+    levelNames: zod
+      .record(zod.string(), zod.string())
+      .optional()
+      .describe(
+        'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
+      ),
     createdAt: zod.coerce.date().nullish(),
     updatedAt: zod.coerce.date().nullish(),
   }),
@@ -512,6 +662,12 @@ export const AdminUpdateCohortBody = zod.object({
   facilitatorMessage: zod.string().optional(),
   homeMessage: zod.string().nullish(),
   tierAccess: zod.record(zod.string(), zod.boolean()).optional(),
+  levelNames: zod
+    .record(zod.string(), zod.string())
+    .optional()
+    .describe(
+      'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
+    ),
 });
 
 export const AdminUpdateCohortResponse = zod.object({
@@ -523,6 +679,12 @@ export const AdminUpdateCohortResponse = zod.object({
     facilitatorMessage: zod.string(),
     homeMessage: zod.string().nullish(),
     tierAccess: zod.record(zod.string(), zod.boolean()),
+    levelNames: zod
+      .record(zod.string(), zod.string())
+      .optional()
+      .describe(
+        'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
+      ),
     createdAt: zod.coerce.date().nullish(),
     updatedAt: zod.coerce.date().nullish(),
   }),
@@ -663,6 +825,7 @@ export const AdminListGenericSectionsResponse = zod.object({
     zod.object({
       id: zod.number(),
       title: zod.string(),
+      slug: zod.string().nullish(),
       contentBlocks: zod.array(
         zod
           .object({
@@ -676,13 +839,17 @@ export const AdminListGenericSectionsResponse = zod.object({
               "field",
               "form",
               "download",
+              "recap",
+              "image",
             ]),
             content: zod.string().optional(),
             label: zod.string().optional(),
             buttonLabel: zod.string().optional(),
             variant: zod.enum(["stop", "insight", "rule", "quote"]).optional(),
             title: zod.string().optional(),
-            columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+            columns: zod
+              .union([zod.literal(1), zod.literal(2), zod.literal(3)])
+              .optional(),
             cards: zod
               .array(
                 zod.object({
@@ -710,7 +877,19 @@ export const AdminListGenericSectionsResponse = zod.object({
               .describe(
                 "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
               ),
+            heading: zod
+              .string()
+              .optional()
+              .describe(
+                "Card layout only - bold heading shown under the label pill.",
+              ),
             multiline: zod.boolean().optional(),
+            prefill: zod
+              .string()
+              .optional()
+              .describe(
+                "For field blocks: the field's starting text. May contain {{sectionId:fieldKey}} placeholders resolved to the participant's own saved answers. The participant can edit the result; edits save to this field normally.\n",
+              ),
             copyStyle: zod.enum(["labeled", "joined"]).optional(),
             fields: zod
               .array(
@@ -724,25 +903,114 @@ export const AdminListGenericSectionsResponse = zod.object({
                     .describe(
                       "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
                     ),
+                  heading: zod
+                    .string()
+                    .optional()
+                    .describe(
+                      "Card layout only - bold heading shown under the label pill.",
+                    ),
                   multiline: zod.boolean(),
                 }),
               )
               .optional(),
+            preview: zod
+              .boolean()
+              .optional()
+              .describe(
+                "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+              ),
+            cardLayout: zod
+              .boolean()
+              .optional()
+              .describe(
+                "For form blocks - render each field in its own bordered card. Default false.",
+              ),
+            formName: zod
+              .string()
+              .optional()
+              .describe(
+                "For form blocks - admin-facing name shown in the Responses tab.",
+              ),
+            collectResponses: zod
+              .boolean()
+              .optional()
+              .describe(
+                "For form blocks - show a Submit button that stores the assembled text. Default false.",
+              ),
+            responsesOpen: zod
+              .boolean()
+              .optional()
+              .describe(
+                "For form blocks - when false, submissions are closed. Default true.",
+              ),
+            template: zod
+              .string()
+              .optional()
+              .describe(
+                "For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.\n",
+              ),
             fileId: zod
               .number()
               .optional()
               .describe(
-                "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
+                "For download blocks: the id of a section file (attached to the same section) that the block's button downloads. For image blocks: the id of the attached section image to display.\n",
+              ),
+            width: zod
+              .number()
+              .optional()
+              .describe(
+                "For image blocks: the maximum render width in pixels. The image shrinks responsively below this on narrow screens and never exceeds the content column width.\n",
+              ),
+            alignment: zod
+              .enum(["left", "center", "right"])
+              .optional()
+              .describe(
+                "For image blocks: horizontal alignment of the image within the content column.\n",
+              ),
+            caption: zod
+              .string()
+              .optional()
+              .describe(
+                "For image blocks: optional caption text shown beneath the image.\n",
+              ),
+            altText: zod
+              .string()
+              .optional()
+              .describe(
+                "For image blocks: optional alternative text for the img element (used by screen readers and shown if the image fails to load).\n",
+              ),
+            source: zod
+              .string()
+              .optional()
+              .describe(
+                "For recap blocks: the slug (or generic_N id) of the section whose saved answers are shown read-only.\n",
+              ),
+            recapFields: zod
+              .array(
+                zod.object({
+                  fieldKey: zod.string(),
+                  label: zod.string(),
+                }),
+              )
+              .optional()
+              .describe(
+                "For recap blocks: the fields to display from the source section. Empty answers are omitted at render time.\n",
               ),
           })
           .describe(
-            "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.\n",
+            "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`. Prompt `content` and field `prefill` may contain `{{sectionId:fieldKey}}` placeholders, resolved client-side to the participant's own saved answer in that section\/field (empty string if unsaved).\n",
           ),
       ),
       goalText: zod.string().nullish(),
       sectionType: zod.string(),
       showNotesField: zod.boolean().optional(),
       badgeLabel: zod.string().nullish(),
+      defaultLevel: zod
+        .number()
+        .describe("Default level grouping in the section library"),
+      archived: zod
+        .boolean()
+        .describe("Hidden from the library view but still attached to cohorts"),
       createdAt: zod.coerce.date().nullish(),
       updatedAt: zod.coerce.date().nullish(),
     }),
@@ -769,13 +1037,17 @@ export const AdminCreateGenericSectionBody = zod.object({
             "field",
             "form",
             "download",
+            "recap",
+            "image",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
           buttonLabel: zod.string().optional(),
           variant: zod.enum(["stop", "insight", "rule", "quote"]).optional(),
           title: zod.string().optional(),
-          columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+          columns: zod
+            .union([zod.literal(1), zod.literal(2), zod.literal(3)])
+            .optional(),
           cards: zod
             .array(
               zod.object({
@@ -803,7 +1075,19 @@ export const AdminCreateGenericSectionBody = zod.object({
             .describe(
               "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
             ),
+          heading: zod
+            .string()
+            .optional()
+            .describe(
+              "Card layout only - bold heading shown under the label pill.",
+            ),
           multiline: zod.boolean().optional(),
+          prefill: zod
+            .string()
+            .optional()
+            .describe(
+              "For field blocks: the field's starting text. May contain {{sectionId:fieldKey}} placeholders resolved to the participant's own saved answers. The participant can edit the result; edits save to this field normally.\n",
+            ),
           copyStyle: zod.enum(["labeled", "joined"]).optional(),
           fields: zod
             .array(
@@ -817,19 +1101,102 @@ export const AdminCreateGenericSectionBody = zod.object({
                   .describe(
                     "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
                   ),
+                heading: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "Card layout only - bold heading shown under the label pill.",
+                  ),
                 multiline: zod.boolean(),
               }),
             )
             .optional(),
+          preview: zod
+            .boolean()
+            .optional()
+            .describe(
+              "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+            ),
+          cardLayout: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - render each field in its own bordered card. Default false.",
+            ),
+          formName: zod
+            .string()
+            .optional()
+            .describe(
+              "For form blocks - admin-facing name shown in the Responses tab.",
+            ),
+          collectResponses: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - show a Submit button that stores the assembled text. Default false.",
+            ),
+          responsesOpen: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - when false, submissions are closed. Default true.",
+            ),
+          template: zod
+            .string()
+            .optional()
+            .describe(
+              "For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.\n",
+            ),
           fileId: zod
             .number()
             .optional()
             .describe(
-              "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
+              "For download blocks: the id of a section file (attached to the same section) that the block's button downloads. For image blocks: the id of the attached section image to display.\n",
+            ),
+          width: zod
+            .number()
+            .optional()
+            .describe(
+              "For image blocks: the maximum render width in pixels. The image shrinks responsively below this on narrow screens and never exceeds the content column width.\n",
+            ),
+          alignment: zod
+            .enum(["left", "center", "right"])
+            .optional()
+            .describe(
+              "For image blocks: horizontal alignment of the image within the content column.\n",
+            ),
+          caption: zod
+            .string()
+            .optional()
+            .describe(
+              "For image blocks: optional caption text shown beneath the image.\n",
+            ),
+          altText: zod
+            .string()
+            .optional()
+            .describe(
+              "For image blocks: optional alternative text for the img element (used by screen readers and shown if the image fails to load).\n",
+            ),
+          source: zod
+            .string()
+            .optional()
+            .describe(
+              "For recap blocks: the slug (or generic_N id) of the section whose saved answers are shown read-only.\n",
+            ),
+          recapFields: zod
+            .array(
+              zod.object({
+                fieldKey: zod.string(),
+                label: zod.string(),
+              }),
+            )
+            .optional()
+            .describe(
+              "For recap blocks: the fields to display from the source section. Empty answers are omitted at render time.\n",
             ),
         })
         .describe(
-          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.\n",
+          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`. Prompt `content` and field `prefill` may contain `{{sectionId:fieldKey}}` placeholders, resolved client-side to the participant's own saved answer in that section\/field (empty string if unsaved).\n",
         ),
     )
     .optional(),
@@ -837,6 +1204,16 @@ export const AdminCreateGenericSectionBody = zod.object({
   sectionType: zod.string().optional(),
   showNotesField: zod.boolean().optional(),
   badgeLabel: zod.string().nullish(),
+  defaultLevel: zod
+    .number()
+    .nullish()
+    .describe("Default level for library grouping (1-4)"),
+  archived: zod
+    .boolean()
+    .nullish()
+    .describe(
+      "Archive\/restore flag; archived sections stay attached to cohorts",
+    ),
   cohortId: zod
     .number()
     .nullish()
@@ -844,6 +1221,20 @@ export const AdminCreateGenericSectionBody = zod.object({
       "When creating, also insert this generic section into the given cohort",
     ),
   insertAfterSortOrder: zod.number().nullish(),
+});
+
+/**
+ * @summary List every cohort attachment for every generic section
+ */
+export const AdminListGenericSectionUsageResponse = zod.object({
+  usage: zod.array(
+    zod.object({
+      genericId: zod.number(),
+      cohortId: zod.number(),
+      cohortName: zod.string(),
+      level: zod.number(),
+    }),
+  ),
 });
 
 /**
@@ -869,13 +1260,17 @@ export const AdminUpdateGenericSectionBody = zod.object({
             "field",
             "form",
             "download",
+            "recap",
+            "image",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
           buttonLabel: zod.string().optional(),
           variant: zod.enum(["stop", "insight", "rule", "quote"]).optional(),
           title: zod.string().optional(),
-          columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+          columns: zod
+            .union([zod.literal(1), zod.literal(2), zod.literal(3)])
+            .optional(),
           cards: zod
             .array(
               zod.object({
@@ -903,7 +1298,19 @@ export const AdminUpdateGenericSectionBody = zod.object({
             .describe(
               "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
             ),
+          heading: zod
+            .string()
+            .optional()
+            .describe(
+              "Card layout only - bold heading shown under the label pill.",
+            ),
           multiline: zod.boolean().optional(),
+          prefill: zod
+            .string()
+            .optional()
+            .describe(
+              "For field blocks: the field's starting text. May contain {{sectionId:fieldKey}} placeholders resolved to the participant's own saved answers. The participant can edit the result; edits save to this field normally.\n",
+            ),
           copyStyle: zod.enum(["labeled", "joined"]).optional(),
           fields: zod
             .array(
@@ -917,19 +1324,102 @@ export const AdminUpdateGenericSectionBody = zod.object({
                   .describe(
                     "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
                   ),
+                heading: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "Card layout only - bold heading shown under the label pill.",
+                  ),
                 multiline: zod.boolean(),
               }),
             )
             .optional(),
+          preview: zod
+            .boolean()
+            .optional()
+            .describe(
+              "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+            ),
+          cardLayout: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - render each field in its own bordered card. Default false.",
+            ),
+          formName: zod
+            .string()
+            .optional()
+            .describe(
+              "For form blocks - admin-facing name shown in the Responses tab.",
+            ),
+          collectResponses: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - show a Submit button that stores the assembled text. Default false.",
+            ),
+          responsesOpen: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - when false, submissions are closed. Default true.",
+            ),
+          template: zod
+            .string()
+            .optional()
+            .describe(
+              "For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.\n",
+            ),
           fileId: zod
             .number()
             .optional()
             .describe(
-              "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
+              "For download blocks: the id of a section file (attached to the same section) that the block's button downloads. For image blocks: the id of the attached section image to display.\n",
+            ),
+          width: zod
+            .number()
+            .optional()
+            .describe(
+              "For image blocks: the maximum render width in pixels. The image shrinks responsively below this on narrow screens and never exceeds the content column width.\n",
+            ),
+          alignment: zod
+            .enum(["left", "center", "right"])
+            .optional()
+            .describe(
+              "For image blocks: horizontal alignment of the image within the content column.\n",
+            ),
+          caption: zod
+            .string()
+            .optional()
+            .describe(
+              "For image blocks: optional caption text shown beneath the image.\n",
+            ),
+          altText: zod
+            .string()
+            .optional()
+            .describe(
+              "For image blocks: optional alternative text for the img element (used by screen readers and shown if the image fails to load).\n",
+            ),
+          source: zod
+            .string()
+            .optional()
+            .describe(
+              "For recap blocks: the slug (or generic_N id) of the section whose saved answers are shown read-only.\n",
+            ),
+          recapFields: zod
+            .array(
+              zod.object({
+                fieldKey: zod.string(),
+                label: zod.string(),
+              }),
+            )
+            .optional()
+            .describe(
+              "For recap blocks: the fields to display from the source section. Empty answers are omitted at render time.\n",
             ),
         })
         .describe(
-          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.\n",
+          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`. Prompt `content` and field `prefill` may contain `{{sectionId:fieldKey}}` placeholders, resolved client-side to the participant's own saved answer in that section\/field (empty string if unsaved).\n",
         ),
     )
     .optional(),
@@ -937,6 +1427,16 @@ export const AdminUpdateGenericSectionBody = zod.object({
   sectionType: zod.string().optional(),
   showNotesField: zod.boolean().optional(),
   badgeLabel: zod.string().nullish(),
+  defaultLevel: zod
+    .number()
+    .nullish()
+    .describe("Default level for library grouping (1-4)"),
+  archived: zod
+    .boolean()
+    .nullish()
+    .describe(
+      "Archive\/restore flag; archived sections stay attached to cohorts",
+    ),
   cohortId: zod
     .number()
     .nullish()
@@ -950,6 +1450,7 @@ export const AdminUpdateGenericSectionResponse = zod.object({
   section: zod.object({
     id: zod.number(),
     title: zod.string(),
+    slug: zod.string().nullish(),
     contentBlocks: zod.array(
       zod
         .object({
@@ -963,13 +1464,17 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             "field",
             "form",
             "download",
+            "recap",
+            "image",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
           buttonLabel: zod.string().optional(),
           variant: zod.enum(["stop", "insight", "rule", "quote"]).optional(),
           title: zod.string().optional(),
-          columns: zod.union([zod.literal(2), zod.literal(3)]).optional(),
+          columns: zod
+            .union([zod.literal(1), zod.literal(2), zod.literal(3)])
+            .optional(),
           cards: zod
             .array(
               zod.object({
@@ -997,7 +1502,19 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             .describe(
               "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
             ),
+          heading: zod
+            .string()
+            .optional()
+            .describe(
+              "Card layout only - bold heading shown under the label pill.",
+            ),
           multiline: zod.boolean().optional(),
+          prefill: zod
+            .string()
+            .optional()
+            .describe(
+              "For field blocks: the field's starting text. May contain {{sectionId:fieldKey}} placeholders resolved to the participant's own saved answers. The participant can edit the result; edits save to this field normally.\n",
+            ),
           copyStyle: zod.enum(["labeled", "joined"]).optional(),
           fields: zod
             .array(
@@ -1011,25 +1528,114 @@ export const AdminUpdateGenericSectionResponse = zod.object({
                   .describe(
                     "Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.\n",
                   ),
+                heading: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "Card layout only - bold heading shown under the label pill.",
+                  ),
                 multiline: zod.boolean(),
               }),
             )
             .optional(),
+          preview: zod
+            .boolean()
+            .optional()
+            .describe(
+              "Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.\n",
+            ),
+          cardLayout: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - render each field in its own bordered card. Default false.",
+            ),
+          formName: zod
+            .string()
+            .optional()
+            .describe(
+              "For form blocks - admin-facing name shown in the Responses tab.",
+            ),
+          collectResponses: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - show a Submit button that stores the assembled text. Default false.",
+            ),
+          responsesOpen: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - when false, submissions are closed. Default true.",
+            ),
+          template: zod
+            .string()
+            .optional()
+            .describe(
+              "For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.\n",
+            ),
           fileId: zod
             .number()
             .optional()
             .describe(
-              "For download blocks: the id of a section file (attached to the same section) that the block's button downloads.\n",
+              "For download blocks: the id of a section file (attached to the same section) that the block's button downloads. For image blocks: the id of the attached section image to display.\n",
+            ),
+          width: zod
+            .number()
+            .optional()
+            .describe(
+              "For image blocks: the maximum render width in pixels. The image shrinks responsively below this on narrow screens and never exceeds the content column width.\n",
+            ),
+          alignment: zod
+            .enum(["left", "center", "right"])
+            .optional()
+            .describe(
+              "For image blocks: horizontal alignment of the image within the content column.\n",
+            ),
+          caption: zod
+            .string()
+            .optional()
+            .describe(
+              "For image blocks: optional caption text shown beneath the image.\n",
+            ),
+          altText: zod
+            .string()
+            .optional()
+            .describe(
+              "For image blocks: optional alternative text for the img element (used by screen readers and shown if the image fails to load).\n",
+            ),
+          source: zod
+            .string()
+            .optional()
+            .describe(
+              "For recap blocks: the slug (or generic_N id) of the section whose saved answers are shown read-only.\n",
+            ),
+          recapFields: zod
+            .array(
+              zod.object({
+                fieldKey: zod.string(),
+                label: zod.string(),
+              }),
+            )
+            .optional()
+            .describe(
+              "For recap blocks: the fields to display from the source section. Empty answers are omitted at render time.\n",
             ),
         })
         .describe(
-          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.\n",
+          "One block of a generic section body. `type` discriminates the shape: text\/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`. Prompt `content` and field `prefill` may contain `{{sectionId:fieldKey}}` placeholders, resolved client-side to the participant's own saved answer in that section\/field (empty string if unsaved).\n",
         ),
     ),
     goalText: zod.string().nullish(),
     sectionType: zod.string(),
     showNotesField: zod.boolean().optional(),
     badgeLabel: zod.string().nullish(),
+    defaultLevel: zod
+      .number()
+      .describe("Default level grouping in the section library"),
+    archived: zod
+      .boolean()
+      .describe("Hidden from the library view but still attached to cohorts"),
     createdAt: zod.coerce.date().nullish(),
     updatedAt: zod.coerce.date().nullish(),
   }),
@@ -1359,6 +1965,41 @@ export const AdminSetParticipantActiveResponse = zod.object({
     .describe(
       "Participant row. List endpoint also includes noteCount\/unlockedCount; mutation endpoints return only the base participant fields.",
     ),
+});
+
+/**
+ * @summary List form submissions for a cohort, newest first
+ */
+export const AdminListCohortFormResponsesParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const AdminListCohortFormResponsesQueryParams = zod.object({
+  sectionId: zod.coerce.string().optional(),
+  blockIndex: zod.coerce.number().optional(),
+});
+
+export const AdminListCohortFormResponsesResponse = zod.object({
+  responses: zod.array(
+    zod
+      .object({
+        id: zod.number(),
+        cohortId: zod.number(),
+        participantId: zod.number(),
+        sectionId: zod.string(),
+        blockIndex: zod.number(),
+        formName: zod.string(),
+        responseText: zod.string(),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      })
+      .and(
+        zod.object({
+          participantName: zod.string(),
+          sectionTitle: zod.string(),
+        }),
+      ),
+  ),
 });
 
 /**

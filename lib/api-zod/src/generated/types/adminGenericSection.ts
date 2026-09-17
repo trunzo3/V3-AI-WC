@@ -18,11 +18,16 @@ import type { GenericContentBlock } from "./genericContentBlock";
 export interface AdminGenericSection {
   id: number;
   title: string;
+  slug?: string | null;
   contentBlocks: GenericContentBlock[];
   goalText?: string | null;
   sectionType: string;
   showNotesField?: boolean;
   badgeLabel?: string | null;
+  /** Default level grouping in the section library */
+  defaultLevel: number;
+  /** Hidden from the library view but still attached to cohorts */
+  archived: boolean;
   createdAt?: Date | null;
   updatedAt?: Date | null;
 }

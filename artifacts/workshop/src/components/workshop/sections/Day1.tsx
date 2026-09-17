@@ -885,6 +885,8 @@ export function SixWaysWorksheet({ sectionId, title }: SectionProps) {
           </div>
         ))}
       </div>
+
+      <NotesField sectionId={sectionId} fieldKey="notes" label="Your Notes" />
     </div>
   );
 }

@@ -96,8 +96,19 @@ function buildAllSections(): ReadonlyArray<HardcodedSection> {
 
 export const ALL_SECTIONS: ReadonlyArray<HardcodedSection> = buildAllSections();
 
+/**
+ * Duplicated built-in sections are stored in cohort_sections with an alias id
+ * of the form `<baseId>__copy<n>` (e.g. `tool-safari__copy1`). The alias keeps
+ * its own display name / level / code / notes / unlocks, but renders the same
+ * hardcoded content as the base section. This strips the alias suffix.
+ */
+export function baseSectionId(id: string): string {
+  return id.replace(/__copy\d+$/, "");
+}
+
 export function getHardcodedSection(id: string): HardcodedSection | undefined {
-  return ALL_SECTIONS.find((s) => s.id === id);
+  const base = baseSectionId(id);
+  return ALL_SECTIONS.find((s) => s.id === base);
 }
 
 export function isGenericSectionId(sectionId: string): boolean {

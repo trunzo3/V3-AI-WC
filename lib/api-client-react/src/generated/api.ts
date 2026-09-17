@@ -39,9 +39,12 @@ import type {
   AdminFeedbackCategoryResponse,
   AdminFeedbackCategoryUpdateRequest,
   AdminFeedbackListResponse,
+  AdminFormResponseListResponse,
   AdminGenericSectionListResponse,
   AdminGenericSectionRequest,
   AdminGenericSectionResponse,
+  AdminGenericSectionUsageResponse,
+  AdminListCohortFormResponsesParams,
   AdminListFeedbackParams,
   AdminLlmToolCreateRequest,
   AdminLlmToolListResponse,
@@ -73,6 +76,8 @@ import type {
   FeedbackListResponse,
   FeedbackResponse,
   FeedbackUpsertRequest,
+  FormResponseSubmitRequest,
+  FormResponseSubmitResponse,
   HealthStatus,
   LlmToolsResponse,
   LoginRequest,
@@ -1013,6 +1018,101 @@ export const useUpsertNote = <
   TContext
 > => {
   return useMutation(getUpsertNoteMutationOptions(options));
+};
+
+/**
+ * Stores the participant's assembled form text for one form block. Rejects (400) if the block is not a form with collectResponses=true, (403) if the block's responsesOpen is false, and (404) if the section is not unlocked for the participant.
+
+ * @summary Submit (or resubmit) the assembled text of a collecting form block
+ */
+export const getSubmitFormResponseUrl = () => {
+  return `/api/responses`;
+};
+
+export const submitFormResponse = async (
+  formResponseSubmitRequest: FormResponseSubmitRequest,
+  options?: RequestInit,
+): Promise<FormResponseSubmitResponse> => {
+  return customFetch<FormResponseSubmitResponse>(getSubmitFormResponseUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(formResponseSubmitRequest),
+  });
+};
+
+export const getSubmitFormResponseMutationOptions = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | ErrorResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitFormResponse>>,
+    TError,
+    { data: BodyType<FormResponseSubmitRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitFormResponse>>,
+  TError,
+  { data: BodyType<FormResponseSubmitRequest> },
+  TContext
+> => {
+  const mutationKey = ["submitFormResponse"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitFormResponse>>,
+    { data: BodyType<FormResponseSubmitRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return submitFormResponse(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitFormResponseMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitFormResponse>>
+>;
+export type SubmitFormResponseMutationBody =
+  BodyType<FormResponseSubmitRequest>;
+export type SubmitFormResponseMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | ErrorResponse | NotFoundResponse
+>;
+
+/**
+ * @summary Submit (or resubmit) the assembled text of a collecting form block
+ */
+export const useSubmitFormResponse = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | ErrorResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitFormResponse>>,
+    TError,
+    { data: BodyType<FormResponseSubmitRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitFormResponse>>,
+  TError,
+  { data: BodyType<FormResponseSubmitRequest> },
+  TContext
+> => {
+  return useMutation(getSubmitFormResponseMutationOptions(options));
 };
 
 /**
@@ -2886,6 +2986,87 @@ export const useAdminCreateGenericSection = <
 };
 
 /**
+ * @summary List every cohort attachment for every generic section
+ */
+export const getAdminListGenericSectionUsageUrl = () => {
+  return `/api/admin/generic-sections/usage`;
+};
+
+export const adminListGenericSectionUsage = async (
+  options?: RequestInit,
+): Promise<AdminGenericSectionUsageResponse> => {
+  return customFetch<AdminGenericSectionUsageResponse>(
+    getAdminListGenericSectionUsageUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminListGenericSectionUsageQueryKey = () => {
+  return [`/api/admin/generic-sections/usage`] as const;
+};
+
+export const getAdminListGenericSectionUsageQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListGenericSectionUsage>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListGenericSectionUsage>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAdminListGenericSectionUsageQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListGenericSectionUsage>>
+  > = ({ signal }) =>
+    adminListGenericSectionUsage({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListGenericSectionUsage>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListGenericSectionUsageQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListGenericSectionUsage>>
+>;
+export type AdminListGenericSectionUsageQueryError =
+  ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List every cohort attachment for every generic section
+ */
+
+export function useAdminListGenericSectionUsage<
+  TData = Awaited<ReturnType<typeof adminListGenericSectionUsage>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListGenericSectionUsage>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListGenericSectionUsageQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Update a generic section body
  */
 export const getAdminUpdateGenericSectionUrl = (id: number) => {
@@ -4657,6 +4838,131 @@ export const useAdminSetParticipantActive = <
 > => {
   return useMutation(getAdminSetParticipantActiveMutationOptions(options));
 };
+
+/**
+ * @summary List form submissions for a cohort, newest first
+ */
+export const getAdminListCohortFormResponsesUrl = (
+  cohortId: number,
+  params?: AdminListCohortFormResponsesParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/cohorts/${cohortId}/responses?${stringifiedParams}`
+    : `/api/admin/cohorts/${cohortId}/responses`;
+};
+
+export const adminListCohortFormResponses = async (
+  cohortId: number,
+  params?: AdminListCohortFormResponsesParams,
+  options?: RequestInit,
+): Promise<AdminFormResponseListResponse> => {
+  return customFetch<AdminFormResponseListResponse>(
+    getAdminListCohortFormResponsesUrl(cohortId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminListCohortFormResponsesQueryKey = (
+  cohortId: number,
+  params?: AdminListCohortFormResponsesParams,
+) => {
+  return [
+    `/api/admin/cohorts/${cohortId}/responses`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getAdminListCohortFormResponsesQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListCohortFormResponses>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  cohortId: number,
+  params?: AdminListCohortFormResponsesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListCohortFormResponses>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getAdminListCohortFormResponsesQueryKey(cohortId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListCohortFormResponses>>
+  > = ({ signal }) =>
+    adminListCohortFormResponses(cohortId, params, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!cohortId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListCohortFormResponses>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListCohortFormResponsesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListCohortFormResponses>>
+>;
+export type AdminListCohortFormResponsesQueryError =
+  ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List form submissions for a cohort, newest first
+ */
+
+export function useAdminListCohortFormResponses<
+  TData = Awaited<ReturnType<typeof adminListCohortFormResponses>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  cohortId: number,
+  params?: AdminListCohortFormResponsesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListCohortFormResponses>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListCohortFormResponsesQueryOptions(
+    cohortId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Delete a participant and all their data

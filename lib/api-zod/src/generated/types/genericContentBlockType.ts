@@ -27,4 +27,6 @@ export const GenericContentBlockType = {
   field: "field",
   form: "form",
   download: "download",
+  recap: "recap",
+  image: "image",
 } as const;

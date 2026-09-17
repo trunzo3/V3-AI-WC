@@ -56,6 +56,11 @@ export interface Participant {
  */
 export type CohortTierAccess = { [key: string]: boolean };
 
+/**
+ * Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.
+ */
+export type CohortLevelNames = { [key: string]: string };
+
 export interface Cohort {
   id: number;
   name: string;
@@ -65,6 +70,8 @@ export interface Cohort {
   /** Map of tier level to default-unlocked boolean, e.g. {"1": true, "2": false} */
   tierAccess: CohortTierAccess;
   audienceType: string;
+  /** Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults. */
+  levelNames?: CohortLevelNames;
 }
 
 export interface LoginResponse {
@@ -103,6 +110,8 @@ export const GenericContentBlockType = {
   field: "field",
   form: "form",
   download: "download",
+  recap: "recap",
+  image: "image",
 } as const;
 
 export type GenericContentBlockVariant =
@@ -119,6 +128,7 @@ export type GenericContentBlockColumns =
   (typeof GenericContentBlockColumns)[keyof typeof GenericContentBlockColumns];
 
 export const GenericContentBlockColumns = {
+  NUMBER_1: 1,
   NUMBER_2: 2,
   NUMBER_3: 3,
 } as const;
@@ -151,11 +161,31 @@ export interface GenericFormField {
   /** Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.
    */
   helpText?: string;
+  /** Card layout only - bold heading shown under the label pill. */
+  heading?: string;
   multiline: boolean;
 }
 
 /**
- * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.
+ * For image blocks: horizontal alignment of the image within the content column.
+
+ */
+export type GenericContentBlockAlignment =
+  (typeof GenericContentBlockAlignment)[keyof typeof GenericContentBlockAlignment];
+
+export const GenericContentBlockAlignment = {
+  left: "left",
+  center: "center",
+  right: "right",
+} as const;
+
+export interface RecapField {
+  fieldKey: string;
+  label: string;
+}
+
+/**
+ * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`. Prompt `content` and field `prefill` may contain `{{sectionId:fieldKey}}` placeholders, resolved client-side to the participant's own saved answer in that section/field (empty string if unsaved).
 
  */
 export interface GenericContentBlock {
@@ -176,12 +206,49 @@ export interface GenericContentBlock {
   /** Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.
    */
   helpText?: string;
+  /** Card layout only - bold heading shown under the label pill. */
+  heading?: string;
   multiline?: boolean;
+  /** For field blocks: the field's starting text. May contain {{sectionId:fieldKey}} placeholders resolved to the participant's own saved answers. The participant can edit the result; edits save to this field normally.
+   */
+  prefill?: string;
   copyStyle?: GenericContentBlockCopyStyle;
   fields?: GenericFormField[];
-  /** For download blocks: the id of a section file (attached to the same section) that the block's button downloads.
+  /** Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.
+   */
+  preview?: boolean;
+  /** For form blocks - render each field in its own bordered card. Default false. */
+  cardLayout?: boolean;
+  /** For form blocks - admin-facing name shown in the Responses tab. */
+  formName?: string;
+  /** For form blocks - show a Submit button that stores the assembled text. Default false. */
+  collectResponses?: boolean;
+  /** For form blocks - when false, submissions are closed. Default true. */
+  responsesOpen?: boolean;
+  /** For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.
+   */
+  template?: string;
+  /** For download blocks: the id of a section file (attached to the same section) that the block's button downloads. For image blocks: the id of the attached section image to display.
    */
   fileId?: number;
+  /** For image blocks: the maximum render width in pixels. The image shrinks responsively below this on narrow screens and never exceeds the content column width.
+   */
+  width?: number;
+  /** For image blocks: horizontal alignment of the image within the content column.
+   */
+  alignment?: GenericContentBlockAlignment;
+  /** For image blocks: optional caption text shown beneath the image.
+   */
+  caption?: string;
+  /** For image blocks: optional alternative text for the img element (used by screen readers and shown if the image fails to load).
+   */
+  altText?: string;
+  /** For recap blocks: the slug (or generic_N id) of the section whose saved answers are shown read-only.
+   */
+  source?: string;
+  /** For recap blocks: the fields to display from the source section. Empty answers are omitted at render time.
+   */
+  recapFields?: RecapField[];
 }
 
 export type SectionGeneric = {
@@ -236,6 +303,38 @@ export interface Note {
 
 export interface NotesResponse {
   notes: Note[];
+}
+
+export interface FormResponseSubmitRequest {
+  sectionId: string;
+  /** Position of the form block in the section's contentBlocks. */
+  blockIndex: number;
+  responseText: string;
+}
+
+export interface FormResponseRecord {
+  id: number;
+  cohortId: number;
+  participantId: number;
+  sectionId: string;
+  blockIndex: number;
+  formName: string;
+  responseText: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FormResponseSubmitResponse {
+  response: FormResponseRecord;
+}
+
+export type AdminFormResponse = FormResponseRecord & {
+  participantName: string;
+  sectionTitle: string;
+};
+
+export interface AdminFormResponseListResponse {
+  responses: AdminFormResponse[];
 }
 
 export interface NoteUpsertRequest {
@@ -352,6 +451,11 @@ export interface AdminMeResponse {
 
 export type AdminCohortTierAccess = { [key: string]: boolean };
 
+/**
+ * Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.
+ */
+export type AdminCohortLevelNames = { [key: string]: string };
+
 export interface AdminCohort {
   id: number;
   name: string;
@@ -360,6 +464,8 @@ export interface AdminCohort {
   facilitatorMessage: string;
   homeMessage?: string | null;
   tierAccess: AdminCohortTierAccess;
+  /** Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults. */
+  levelNames?: AdminCohortLevelNames;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -374,6 +480,11 @@ export interface AdminCohortResponse {
 
 export type AdminCohortCreateRequestTierAccess = { [key: string]: boolean };
 
+/**
+ * Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.
+ */
+export type AdminCohortCreateRequestLevelNames = { [key: string]: string };
+
 export interface AdminCohortCreateRequest {
   /** @minLength 1 */
   name: string;
@@ -383,9 +494,16 @@ export interface AdminCohortCreateRequest {
   facilitatorMessage?: string;
   homeMessage?: string | null;
   tierAccess?: AdminCohortCreateRequestTierAccess;
+  /** Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults. */
+  levelNames?: AdminCohortCreateRequestLevelNames;
 }
 
 export type AdminCohortUpdateRequestTierAccess = { [key: string]: boolean };
+
+/**
+ * Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.
+ */
+export type AdminCohortUpdateRequestLevelNames = { [key: string]: string };
 
 export interface AdminCohortUpdateRequest {
   /** @minLength 1 */
@@ -396,6 +514,8 @@ export interface AdminCohortUpdateRequest {
   facilitatorMessage?: string;
   homeMessage?: string | null;
   tierAccess?: AdminCohortUpdateRequestTierAccess;
+  /** Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults. */
+  levelNames?: AdminCohortUpdateRequestLevelNames;
 }
 
 export interface AdminCohortSection {
@@ -468,13 +588,29 @@ export interface AdminVariantUpsertResponse {
 export interface AdminGenericSection {
   id: number;
   title: string;
+  slug?: string | null;
   contentBlocks: GenericContentBlock[];
   goalText?: string | null;
   sectionType: string;
   showNotesField?: boolean;
   badgeLabel?: string | null;
+  /** Default level grouping in the section library */
+  defaultLevel: number;
+  /** Hidden from the library view but still attached to cohorts */
+  archived: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
+}
+
+export interface AdminGenericSectionUsage {
+  genericId: number;
+  cohortId: number;
+  cohortName: string;
+  level: number;
+}
+
+export interface AdminGenericSectionUsageResponse {
+  usage: AdminGenericSectionUsage[];
 }
 
 export interface AdminGenericSectionListResponse {
@@ -493,6 +629,10 @@ export interface AdminGenericSectionRequest {
   sectionType?: string;
   showNotesField?: boolean;
   badgeLabel?: string | null;
+  /** Default level for library grouping (1-4) */
+  defaultLevel?: number | null;
+  /** Archive/restore flag; archived sections stay attached to cohorts */
+  archived?: boolean | null;
   /** When creating, also insert this generic section into the given cohort */
   cohortId?: number | null;
   insertAfterSortOrder?: number | null;
@@ -692,6 +832,11 @@ export type NotFoundResponse = ErrorResponse;
  * Conflict — request cannot complete in the current state
  */
 export type ConflictResponse = ErrorResponse;
+
+export type AdminListCohortFormResponsesParams = {
+  sectionId?: string;
+  blockIndex?: number;
+};
 
 export type AdminListFeedbackParams = {
   cohort_id?: string;

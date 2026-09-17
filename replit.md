@@ -74,6 +74,10 @@ Two surface areas:
     create/edit dialog).
   - Cohorts have a `home_message` HTML field rendered above the action cards
     on the participant home page (`data-testid="home-message"`).
+  - Cohorts can rename the level group headings per cohort (Cohorts → edit →
+    "Level names"). Stored as `settings.levelNames` (`{"1": "..."}`), exposed
+    as `levelNames` on cohort responses and `/api/auth/me`; used by the
+    participant sidebar and the workbook TOC. Blank = app default label.
   - The participant home header shows the cohort name (from `/api/auth/me`)
     in place of the legacy "VESTIBULE" / "Cohort: CODE" label.
   - Tool Safari upload uses a styled "Upload PDF Guide" button that triggers
@@ -174,13 +178,83 @@ Sections come from two sources:
 2. **Generic sections** — created by admins, stored in `generic_sections`,
    referenced by id `generic_<id>` from `cohort_sections`. Bodies are stored
    as a `content_blocks` jsonb array; block `type` is one of
-   `text | prompt | callout | cards | steps | link | field | form | download`
+   `text | prompt | callout | cards | steps | link | field | form | download | image | recap`
    (union in `lib/db/src/schema/generic-sections.ts`, zod validation in
    `admin.ts`). Text blocks render as HTML (Tiptap WYSIWYG); prompt blocks
    render as a navy box with a gold "Prompt N" pill and a CopyButton.
    `download` blocks reference a file attached to the same section
    (`{type:"download", fileId, label?}`) and render one download button.
+   Prompt `content` and field `prefill` (the field's optional starting text)
+   may contain `{{sectionId:fieldKey}}` placeholders that resolve to the
+   participant's own saved answer from another section (empty string if
+   unsaved, never raw `{{...}}` on screen). The left side accepts a section
+   id (`generic_7`, hardcoded id) or a seeded module slug
+   (`{{prompt-2:org-website}}`). Resolution happens client-side via
+   `hooks/use-resolve-template.ts` (the GET /notes/:ref route maps a slug to
+   its generic_N id server-side) and server-side in `workbook.ts` for the
+   PDF (slug→id map built from `generic_sections.slug`). A field's prefill
+   only seeds the input; edits save to that field normally and never write
+   back to the referenced source field.
+   Seeded generic modules: `generic_sections.slug` is a stable,
+   author-defined key (unique, null for admin-created sections). The module
+   list lives in `api-server/src/lib/seeded-generic-sections.ts`
+   (`SEEDED_GENERIC_MODULES`: slug, title, badgeLabel, showNotesField,
+   level, sortOrder, code, contentBlocks). `pnpm --filter
+   @workspace/api-server run seed` upserts each module by slug (reseeding
+   restores seeded content in place — never duplicates, never renumbers)
+   and ensures a cohort_sections row in the default WORKSHOP cohort at the
+   module's level, locked (`code_active=true`) behind the module's code;
+   existing cohort_sections rows are never modified, so admin placement
+   changes survive reseeds. Reseeding never deletes modules — removing a
+   module from `SEEDED_GENERIC_MODULES` stops it being recreated, but its
+   existing `generic_sections`/`cohort_sections` rows must be deleted by
+   hand and the remaining cohort_sections `sort_order` gap closed by SQL.
+   Current seeded modules: the fourteen "AI Builder" Level 3 modules
+   (sortOrder 1–14, each behind its own code):
+   `what-vibe-coding-is` (PATH), `the-idea` (IDEA), `prompt-1` "Start
+   Your App Build" (ONE), `app-anatomy` (ANATOMY), `prompt-2` "Make It
+   Yours" (TWO), `when-it-doesnt-work` (FIX), `product-requirements`
+   (REQ), `build-your-prd` (PRD), `overnight`
+   (OVERNIGHT), `showcase` (SHOW), `iteration-mechanics` (MECH),
+   `build-sprint` (SPRINT), `github-save-point` (SAVE), `closing` (SHIP).
+   `build-your-prd` uses a `form` block with `preview: true`: its four
+   fields assemble into a live preview box (labeled `${label}: ${value}`,
+   empty fields skipped) that updates as the participant types, with the
+   copy button attached to that box.
+   **Form block options (all optional, all default to legacy behavior):**
+   `cardLayout` renders each field in its own bordered card (gold uppercase
+   label pill, optional bold per-field `heading`, muted italic helpText,
+   then the input — same look as the hardcoded 6 Ways Worksheet); Copy and
+   the assembled text are unchanged. `collectResponses` (default false)
+   adds a Submit button next to Copy that POSTs the assembled text to
+   `POST /api/responses` (`{sectionId, blockIndex, responseText}`;
+   `blockIndex` = position in `contentBlocks`) — stored in `form_responses`
+   (unique per participant+section+block; resubmit updates the row). The
+   button shows "Submitted" + checkmark then "Resubmit". `responsesOpen`
+   (default true) false → disabled "Submissions closed" and the API returns
+   403. The route rejects non-form / non-collecting blocks (400) and locked
+   sections (404, via `lib/section-access.ts`). `formName` labels the form
+   in the admin **Responses** tab (COHORT group, `tabs/ResponsesTab.tsx`):
+   `GET /api/admin/cohorts/:cohortId/responses?sectionId=&blockIndex=`,
+   newest first, polled every 2s, "New" badge for arrivals since the tab
+   opened, filter dropdown of collecting forms attached to the cohort,
+   per-card Copy and "Copy all" (participant name line + text per entry).
+   The OpenAPI operationId is `adminListCohortFormResponses` — an id ending
+   in "Responses" collides with orval's generated names.
+   `prompt-2` is self-contained: its prompt references its own fields
+   (`{{prompt-2:org-website}}` and `{{prompt-2:make-it-yours-details}}`),
+   both saved in the same module. Every note save (debounced mutation,
+   blur, and unmount keepalive paths in `hooks/use-auto-save.ts`)
+   invalidates ALL `/api/notes/*` react-query entries, because the same
+   section's notes may be cached under both its numeric id and its slug —
+   this keeps placeholder resolution live while the participant types
+   without navigating away.
    The legacy `content` and `prompt_block` columns have been dropped.
+   Hardcoded sections don't use download blocks: `SectionRenderer` appends
+   `components/workshop/SectionAttachedFiles.tsx` below every hardcoded
+   section, which lists the section's attached files (excluding Tool Safari
+   library files) as one download button each and renders nothing when the
+   section has no files.
 
 Running the seed (`pnpm --filter @workspace/api-server run seed`) performs an
 **additive-only** sync: it inserts any sections from `ALL_SECTIONS` that are

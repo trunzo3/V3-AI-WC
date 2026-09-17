@@ -10,7 +10,6 @@
 
 import {
   db,
-  pool,
   cohortsTable,
   llmToolsTable,
   safariLibraryTable,
@@ -22,8 +21,28 @@ import {
 import { eq, sql } from "drizzle-orm";
 import { logger } from "./lib/logger";
 import { seedCohortSections, addMissingSectionsForCohort } from "./lib/cohort-sections";
+import {
+  ensureSeededGenericSections,
+  BASE_COHORT_CODES,
+} from "./lib/seeded-generic-sections";
 
-const DEFAULT_COHORT_CODE = "WORKSHOP";
+/**
+ * Per-cohort creation settings for the baseline cohorts the seed always ensures
+ * exist. WORKSHOP uses the default tier access; LIVE2026 is the dedicated
+ * live-event cohort and unlocks Level 3 so its attached modules are visible.
+ * Any code in BASE_COHORT_CODES without an entry here falls back to a name equal
+ * to the code and DEFAULT_TIER_ACCESS.
+ */
+const COHORT_SETUP: Record<
+  string,
+  { name: string; tierAccess: Record<string, boolean> }
+> = {
+  WORKSHOP: { name: "Default Workshop", tierAccess: DEFAULT_TIER_ACCESS },
+  LIVE2026: {
+    name: "Live Event",
+    tierAccess: { "1": true, "2": false, "3": true, "4": false },
+  },
+};
 
 const DEFAULT_LLM_TOOLS = [
   { name: "Gemini", displayLabel: "Gemini", url: "https://gemini.google.com" },
@@ -59,33 +78,34 @@ const DEFAULT_APP_SETTINGS: Array<{ key: string; value: string }> = [
   },
 ];
 
-async function ensureDefaultCohort(): Promise<void> {
-  const [existing] = await db
-    .select()
-    .from(cohortsTable)
-    .where(
-      sql`lower(${cohortsTable.cohortCode}) = ${DEFAULT_COHORT_CODE.toLowerCase()}`,
-    )
-    .limit(1);
-  if (existing) {
-    logger.info({ cohortId: existing.id }, "Default cohort already exists.");
-    return;
-  }
-  const [created] = await db
-    .insert(cohortsTable)
-    .values({
-      name: "Default Workshop",
-      audienceType: "general",
-      cohortCode: DEFAULT_COHORT_CODE,
-      facilitatorMessage: DEFAULT_FACILITATOR_MESSAGE,
+async function ensureSeedCohorts(): Promise<void> {
+  for (const code of BASE_COHORT_CODES) {
+    const setup = COHORT_SETUP[code] ?? {
+      name: code,
       tierAccess: DEFAULT_TIER_ACCESS,
-    })
-    .returning();
-  if (!created) throw new Error("Failed to create default cohort.");
-  logger.info(
-    { cohortId: created.id, code: DEFAULT_COHORT_CODE },
-    "Created default cohort.",
-  );
+    };
+    // Insert-if-missing that is safe against concurrent boots (autoscale cold
+    // starts can run this seed in several instances at once). onConflictDoNothing
+    // makes a losing racer a no-op instead of throwing on the cohort_code unique
+    // index; the re-select below then resolves the existing row either way.
+    await db
+      .insert(cohortsTable)
+      .values({
+        name: setup.name,
+        audienceType: "general",
+        cohortCode: code,
+        facilitatorMessage: DEFAULT_FACILITATOR_MESSAGE,
+        tierAccess: setup.tierAccess,
+      })
+      .onConflictDoNothing();
+    const [existing] = await db
+      .select({ id: cohortsTable.id })
+      .from(cohortsTable)
+      .where(sql`lower(${cohortsTable.cohortCode}) = ${code.toLowerCase()}`)
+      .limit(1);
+    if (!existing) throw new Error(`Failed to ensure cohort "${code}".`);
+    logger.info({ cohortId: existing.id, code }, "Cohort ensured.");
+  }
 }
 
 /**
@@ -195,23 +215,22 @@ async function ensureAppSettings(): Promise<void> {
   }
 }
 
-async function main(): Promise<void> {
+/**
+ * Idempotent, additive-only seed. Every step inserts-if-missing or upserts by a
+ * stable key and never deletes admin-configured data, so it is safe to run both
+ * as a CLI (see seed-cli.ts) and on every server startup (see index.ts). This is
+ * what keeps production self-healing: the seeded content (incl. all 13 Level 3
+ * modules) and cohort attachments are guaranteed to exist on each deploy.
+ */
+export async function runSeed(): Promise<void> {
   logger.info("Running seed...");
-  await ensureDefaultCohort();
+  await ensureSeedCohorts();
   await backfillTierAccess();
   await addMissingSectionsAllCohorts();
+  await ensureSeededGenericSections();
   await ensureLlmTools();
   await ensureSafariLibrary();
   await ensureFeedbackCategories();
   await ensureAppSettings();
   logger.info("Seed complete.");
 }
-
-main()
-  .catch((err) => {
-    logger.error({ err }, "Seed failed.");
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await pool.end();
-  });

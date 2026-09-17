@@ -14,15 +14,17 @@ All participant endpoints require an authenticated session cookie
  * OpenAPI spec version: 0.1.0
  */
 import type { GenericBlockItem } from "./genericBlockItem";
+import type { GenericContentBlockAlignment } from "./genericContentBlockAlignment";
 import type { GenericContentBlockColumns } from "./genericContentBlockColumns";
 import type { GenericContentBlockCopyStyle } from "./genericContentBlockCopyStyle";
 import type { GenericContentBlockStyle } from "./genericContentBlockStyle";
 import type { GenericContentBlockType } from "./genericContentBlockType";
 import type { GenericContentBlockVariant } from "./genericContentBlockVariant";
 import type { GenericFormField } from "./genericFormField";
+import type { RecapField } from "./recapField";
 
 /**
- * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`.
+ * One block of a generic section body. `type` discriminates the shape: text/prompt use `content`; callout uses `variant`, `title?`, `content`; cards uses `columns` + `cards`; steps uses `ordered` + `items`; link uses `url` + `label` + `style`; field uses `fieldKey`, `label`, `placeholder?`, `helpText?`, `prefill?`, `multiline`; form uses `fields` + `buttonLabel` + `copyStyle`; download uses `fileId` + `label?`. Prompt `content` and field `prefill` may contain `{{sectionId:fieldKey}}` placeholders, resolved client-side to the participant's own saved answer in that section/field (empty string if unsaved).
 
  */
 export interface GenericContentBlock {
@@ -43,10 +45,47 @@ export interface GenericContentBlock {
   /** Optional rich-text help shown between the field's label and its input. Sanitized server-side like text block content.
    */
   helpText?: string;
+  /** Card layout only - bold heading shown under the label pill. */
+  heading?: string;
   multiline?: boolean;
+  /** For field blocks: the field's starting text. May contain {{sectionId:fieldKey}} placeholders resolved to the participant's own saved answers. The participant can edit the result; edits save to this field normally.
+   */
+  prefill?: string;
   copyStyle?: GenericContentBlockCopyStyle;
   fields?: GenericFormField[];
-  /** For download blocks: the id of a section file (attached to the same section) that the block's button downloads.
+  /** Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.
+   */
+  preview?: boolean;
+  /** For form blocks - render each field in its own bordered card. Default false. */
+  cardLayout?: boolean;
+  /** For form blocks - admin-facing name shown in the Responses tab. */
+  formName?: string;
+  /** For form blocks - show a Submit button that stores the assembled text. Default false. */
+  collectResponses?: boolean;
+  /** For form blocks - when false, submissions are closed. Default true. */
+  responsesOpen?: boolean;
+  /** For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.
+   */
+  template?: string;
+  /** For download blocks: the id of a section file (attached to the same section) that the block's button downloads. For image blocks: the id of the attached section image to display.
    */
   fileId?: number;
+  /** For image blocks: the maximum render width in pixels. The image shrinks responsively below this on narrow screens and never exceeds the content column width.
+   */
+  width?: number;
+  /** For image blocks: horizontal alignment of the image within the content column.
+   */
+  alignment?: GenericContentBlockAlignment;
+  /** For image blocks: optional caption text shown beneath the image.
+   */
+  caption?: string;
+  /** For image blocks: optional alternative text for the img element (used by screen readers and shown if the image fails to load).
+   */
+  altText?: string;
+  /** For recap blocks: the slug (or generic_N id) of the section whose saved answers are shown read-only.
+   */
+  source?: string;
+  /** For recap blocks: the fields to display from the source section. Empty answers are omitted at render time.
+   */
+  recapFields?: RecapField[];
 }

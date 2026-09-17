@@ -1,0 +1,24 @@
+Build one thing: a field that arrives pre-filled with a value the participant typed in an earlier section, and stays editable.
+
+Today a participant's answers are saved per section, per field, in the notes table — keyed by participant, sectionId, fieldKey. A section can read its own saved answers. Nothing reads an answer a participant saved in a DIFFERENT section. This adds that.
+
+The mechanism: inside a prompt block or a field block, the text can contain a placeholder written as {{sectionId:fieldKey}}. When the block renders for a participant, that placeholder is replaced by whatever that participant saved in that section and field.
+
+  - In a field block: the resolved value becomes the field's starting text. The participant can edit it, and editing saves to this field normally. It is not locked.
+  - In a prompt block: the resolved value is substituted into the prompt text before it's copied.
+  - If the participant saved nothing there yet, the placeholder resolves to an empty string. Nothing breaks, no raw {{...}} shows on screen.
+
+Where it resolves: on the participant side, at render time, using the same read the notes route already does — just pointed at the referenced section instead of the current one. The reference is always to the participant's own saved value; one participant can never see another's.
+
+Reference points already in the code:
+  - The GET notes route reads (participant, sectionId, fieldKey). Reuse that exact query shape.
+  - Prompt blocks already render copyable text; field blocks already load a starting value and save edits.
+
+--- Acceptance check ---
+
+Create two test sections. In the first, a field with fieldKey "test-source". In the second, a field whose starting text is {{first-section-id:test-source}}, and a prompt block containing "Your answer was {{first-section-id:test-source}}".
+
+Confirm:
+  - Type "hello" in the first section's field, then open the second section: its field starts filled with "hello", and the prompt block copies "Your answer was hello".
+  - Edit the second field to "goodbye" and reload: it keeps "goodbye" (it saved to its own field, it did not overwrite the source).
+  - A brand-new participant who never touched the first section sees the second field empty and the prompt reads "Your answer was ", with no visible {{...}}.

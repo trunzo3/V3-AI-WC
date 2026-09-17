@@ -1,0 +1,110 @@
+Load sixteen workshop modules into the seeded generic sections. These are the Level 3 "AI Builder" curriculum. Add them all to SEEDED_GENERIC_MODULES in artifacts/api-server/src/lib/seeded-generic-sections.ts, following the exact structure the two test modules already use. Each is a generic section with a permanent slug, attached to Level 3 of the default cohort, locked behind its code.
+
+Also: delete the leftover test sections and test participants from earlier rounds — the id-based "Prefill Source Test" / "Prefill Target Test", and the slug-based "prefill-source" / "prefill-demo". They were scaffolding.
+
+All sixteen use badge labels, notes on/off, and codes exactly as specified. showNotesField follows the "notes" column. Block types are the ones already built: text, prompt (with optional label), callout (variant stop/insight/rule/quote, optional title), cards (columns + array of {title, body}), steps (ordered + array of {title, body}), link (url/label/style), field (fieldKey/label/helpText/multiline), form (fields array + buttonLabel + copyStyle), download.
+
+Two modules use cross-section prefill by slug: module "prompt-2" references {{readiness-check:org-website}}, and module "prompt-replit" references {{build-your-prd:replit-prompt}}. Those two source slugs (readiness-check, build-your-prd) — readiness-check is a custom section the admin will create by hand, and build-your-prd is module 9 below. The placeholder must resolve to empty and show nothing if the source has no saved value yet.
+
+sortOrder runs 1–16 in the order listed.
+
+=== THE SIXTEEN ===
+
+1. slug "what-vibe-coding-is" · badge "Reference" · notes off · code PATH
+   - callout(insight): goal — no title, content "See where the work used to go, and where it goes now."
+   - cards(2): [{title:"The old path", body:"Idea → Developer → App. Or Idea → Vendor → Buy. Someone sits between you and the thing."}, {title:"The new path", body:"Idea → AI → App. The app is the same. You're the same. The middleman changed."}]
+   - callout(insight, title:"The takeaway"): "The middleman changed, not you. Same predictive-text engine you met before — now mapping intention to code instead of intention to prose."
+
+2. slug "the-idea" · badge "Exercise" · notes off · code IDEA
+   - text: "Two directions people arrive with: build something new, or replace something that doesn't fit."
+   - form(labeled, buttonLabel "Copy"): fields [{fieldKey:"build-or-replace", label:"What do you want to build or replace?", multiline:true}, {fieldKey:"who-for", label:"Who's it for?", multiline:false}]
+   - callout(quote): "You'll come back to this. It's the thing you build before you leave."
+
+3. slug "prompt-1" · badge "Exercise" · notes on · code ONE
+   - text: "Open Replit. Start a new project. All you need is the box."
+   - prompt: "Build an event registration app for a nonprofit. People can sign up for an event, and I can see a list of everyone who registered."
+   - callout(stop, title:"Stop here and wait"): "It takes a few minutes. We'll talk while it works."
+   - text: "When you come back: What did it build that you didn't ask for? What's missing?"
+   - callout(insight, title:"The takeaway"): "Nobody said remember the registrants. They said I can see a list, and it worked out it needed a database."
+
+4. slug "app-anatomy" · badge "Reference" · notes off · code ANATOMY
+   - text: "Know the four parts, so you know where to look when something breaks."
+   - cards(2): [{title:"Front of house", body:"What the user sees. Screen, buttons, layout."}, {title:"The kitchen", body:"The rules. What happens when someone does something."}, {title:"The walk-in", body:"What it remembers between visits."}, {title:"The front door", body:"Who's allowed in, and how."}]
+   - callout(insight, title:"The takeaway"): "You describe what you want. The AI works out which parts it needs. You need their names for when something goes wrong."
+
+5. slug "make-it-yours" · badge "Exercise" · notes on · code YOURS
+   - text: "It works. It's generic. What would make it belong to your organization?"
+   - field: fieldKey "make-it-yours-idea", label "What would make it yours?", helpText "Name it before you prompt. This is what you're about to ask for.", multiline true
+   - callout(quote): "The colors and the logo came out of the room first. You wrote the next prompt without knowing it."
+
+6. slug "prompt-2" · badge "Exercise" · notes on · code TWO
+   - prompt: "Look at {{readiness-check:org-website}} and restyle the app to match — same colors, fonts, and logo."
+   - callout(stop, title:"Stop here and wait"): ""
+   - text: "Did it get your branding? What did it get right? What did it miss?"
+   - callout(insight, title:"The takeaway"): "Point it at something you already have, and it gets closer. When it misses, you say more."
+
+7. slug "when-it-doesnt-work" · badge "Reference" · notes on · code FIX
+   - text: "Which room? Name where the problem lives before you re-prompt. Telling it the room stops it guessing."
+   - cards(2): [{title:"Front of house", body:"it looks wrong"}, {title:"The kitchen", body:"it does the wrong thing"}, {title:"The walk-in", body:"it forgot"}, {title:"The front door", body:"nobody can get in"}]
+   - callout(insight, title:"Say more"): "Same prompt, different results. The ones that worked on the second try said more."
+   - prompt: "That didn't match. Our primary color is [#______] and our headings use [font]. Here's a screenshot of our homepage — use it as the reference."
+   - text: "Or drag a screenshot straight in. It reads images."
+   - callout(rule, title:"The takeaway"): "Three strikes. Three tries, no fix — stop, roll back, describe it differently. Checkpoints save automatically; going back is the cheapest move you have."
+
+8. slug "product-requirements" · badge "Reference" · notes off · code REQ
+   - text: "Everyone who builds has product requirements. The only question is where they live — two sentences in the box, a pointer at something that exists, or written down first."
+   - cards(2): [{title:"Straight to the box", body:"One-shot it, and it guesses all four parts. Fine for simple builds."}, {title:"Think it through first", body:"Answer the four questions, and it guesses none. Worth it as the build gets complex."}]
+   - callout(insight, title:"The takeaway"): "More detail up front means fewer rounds later. A tradeoff, not a rule."
+
+9. slug "build-your-prd" · badge "Flagship Exercise" · notes off · code PRD
+   - text: "Turn your idea into a prompt. Let Claude interview you."
+   - prompt (label "The interview prompt"): "You're going to help me plan an app I'm about to build with AI. I'm not a developer.\n\nInterview me. Ask one question at a time and wait for my answer before asking the next. Keep your questions short and in plain English — no technical terms.\n\nWork through these four things, in this order:\n\n1. What people see and do when they open it\n2. What rules it follows — what happens when someone does something\n3. What it needs to remember between visits\n4. Who's allowed in, and how they get in\n\nIf I don't know an answer, suggest something reasonable and move on. If my idea is getting too big, tell me and help me cut it down to the smallest version worth building.\n\nWhen we're done, write me a short prompt I can paste into Replit. Write it as a person describing what they want — plain sentences, no bullet lists, no technical terms, no mention of databases or components. Six sentences or fewer.\n\nStart by asking me what I want to build."
+   - link(button): url "https://claude.ai", label "Open Claude"
+   - text: "Or write it yourself — four fields, same four questions."
+   - form(labeled, buttonLabel "Copy"): fields [{fieldKey:"see-and-do", label:"What do people see and do?", multiline:true}, {fieldKey:"the-rules", label:"What are the rules?", multiline:true}, {fieldKey:"remember", label:"What does it need to remember?", multiline:true}, {fieldKey:"who-gets-in", label:"Who gets in, and how?", multiline:true}]
+   - field: fieldKey "replit-prompt", label "Your Replit prompt", helpText "Paste what Claude gave you here. You'll need it next.", multiline true
+   - callout(insight, title:"The takeaway"): "You already know how to talk to an LLM. Here you use that to prepare a better input for a different AI. Fewer iterations, less credit burn."
+
+10. slug "prompt-replit" · badge "Exercise" · notes off · code BUILD
+   - text: "Your prompt, from the last section. Copy it. Paste it into a new Replit project. Run it."
+   - prompt: "{{build-your-prd:replit-prompt}}"
+   - callout(quote, title:"The takeaway"): "Five minutes of pasting. Everything before it was the work."
+
+11. slug "overnight" · badge "Exercise" · notes on · code OVERNIGHT
+   - text: "Go look at what you built. Change one thing. Just talk to it."
+   - field: fieldKey "overnight-plan", label "The one thing I'll try tonight", helpText "Come back with it.", multiline true
+   - callout(quote, title:"The takeaway"): "Whoever iterates tonight, unsupervised, did the thing this whole workshop exists to produce."
+
+12. slug "showcase" · badge "Exercise" · notes on · code SHOW
+   - form(labeled, buttonLabel "Copy"): fields [{fieldKey:"what-it-does", label:"What does it do?", multiline:true}, {fieldKey:"whats-broken", label:"What's broken?", multiline:true}]
+   - callout(insight, title:"The takeaway"): "A broken build is the most useful thing in the room. Same lesson, higher stakes."
+
+13. slug "iteration-mechanics" · badge "Reference" · notes off · code MECH
+   - text: "The parts of the screen you ignored yesterday."
+   - cards(2): [{title:"Plan vs. Build", body:"Talk it through, or go make the thing."}, {title:"Agent vs. Assistant", body:"Agent takes a goal across the app. Assistant makes one change — faster, cheaper, narrower."}, {title:"Checkpoints", body:"Automatic saves. Roll back to the last version that worked."}, {title:"Visual editor", body:"Click the text, change the text. No prompt, no credits."}, {title:"Three strikes", body:"Three tries, no fix? Stop. Roll back. Say it differently."}, {title:"One or a list", body:"One change when it matters. A numbered list when they're small. Never a paragraph of five tangled requests."}]
+   - callout(insight, title:"The takeaway"): "The four rooms are also your diagnostic. Where it breaks is where you look."
+
+14. slug "build-sprint" · badge "Exercise" · notes on · code SPRINT
+   - steps(ordered): [{title:"Which room?", body:"Name where the problem lives."}, {title:"Roll back", body:"Return to the last version that worked."}, {title:"Say more", body:"Be specific about what's wrong."}, {title:"Three strikes", body:"Three tries, then change approach."}, {title:"Raise your hand", body:"Someone is walking the room."}]
+   - steps(unordered): [{title:"It does the main thing", body:""}, {title:"It's deployed, you have a link", body:""}, {title:"The link works on your phone", body:""}]
+   - callout(rule, title:"The takeaway"): "A working public URL is the goal. Deployed beats perfect."
+
+15. slug "github-save-point" · badge "Exercise" · notes off · code SAVE
+   - callout(insight): "A save button. Not a developer workflow. Branches and pull requests are somebody else's problem."
+   - steps(ordered): [{title:"Open the Git panel", body:""}, {title:"Connect GitHub", body:""}, {title:"Create a repository", body:""}, {title:"Push", body:""}]
+   - callout(quote, title:"The takeaway"): "Your code now lives somewhere you can get it back from."
+
+16. slug "closing" · badge "Orientation" · notes off · code SHIP
+   - cards(3): [{title:"An app", body:"Your idea, live on a URL."}, {title:"A repo", body:"Somewhere your work survives."}, {title:"A loop", body:"Prompt. Look. Say more."}]
+   - callout(quote): "The middleman is gone. The thinking is still yours."
+   - link(button): url "https://example.com/feedback", label "Feedback"
+
+=== ACCEPTANCE CHECK ===
+
+- After seeding, all sixteen appear in Level 3 of the default cohort in order 1–16, each locked behind its code.
+- The four old test sections and their test participants are gone.
+- Seeding twice produces exactly one row per slug.
+- A participant who unlocks "prompt-2" sees the org-website prefill resolve from a value saved in a section slugged "readiness-check" (create a quick throwaway one to test, then note it's the admin's job to build for real).
+- A participant who saves a prompt in "build-your-prd" then opens "prompt-replit" sees it resolve in the prompt block.
+- No raw {{...}} anywhere on screen or in the workbook PDF.
+- Every block type renders without console errors.

@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Lock, ChevronDown, ChevronRight, LogOut, ExternalLink } from "lucide-react";
 import type { Section } from "@workspace/api-client-react";
 import { useParticipantLogout, useListLlmTools, useGetCurrentParticipant } from "@workspace/api-client-react";
-import { clearSession, getSession } from "@/lib/auth";
+import { clearSession } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 
 interface SidebarProps {
@@ -29,7 +29,6 @@ export function Sidebar({
   onSelectSection,
   onNavigateHome,
 }: SidebarProps) {
-  const session = getSession();
   const logoutMutation = useParticipantLogout();
   const llmToolsQuery = useListLlmTools();
   const llmTools = (llmToolsQuery.data?.tools ?? []).filter(
@@ -37,44 +36,29 @@ export function Sidebar({
   );
   const { data: meResp } = useGetCurrentParticipant();
   const workbookEnabled = (meResp?.cohort as any)?.workbookEnabled ?? false;
+  // Admin can rename level groups per cohort (Cohorts → edit → Level names).
+  const levelNames = meResp?.cohort?.levelNames ?? {};
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
-  const expandKey = `workshop-sidebar-expanded-${session?.participantId ?? "anon"}`;
 
   const levels = Array.from(new Set(sections.map((s) => s.level))).sort();
 
-  const [expanded, setExpanded] = useState<Record<number, boolean>>(() => {
-    try {
-      const raw = localStorage.getItem(expandKey);
-      if (raw) return JSON.parse(raw);
-    } catch {}
-    // Default: only level 1 expanded.
-    const init: Record<number, boolean> = {};
-    levels.forEach((lv) => (init[lv] = lv === 1));
-    return init;
-  });
-
-  // Persist expanded state.
+  // On load, levels containing at least one unlocked section start expanded;
+  // levels with no unlocks start collapsed. Recomputed on every page load —
+  // intentionally not persisted, so manual toggles from a previous session
+  // are forgotten. Initialized once when section data first arrives (sections
+  // load async), then left alone so it never fights manual toggles.
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const expandedInitialized = useRef(false);
   useEffect(() => {
-    try {
-      localStorage.setItem(expandKey, JSON.stringify(expanded));
-    } catch {}
-  }, [expanded, expandKey]);
-
-  // Auto-expand the level of the active section, once per active-section
-  // change. Reading `sections` through a ref keeps refetches (new array
-  // identity every 4s) and manual collapses from re-triggering this effect.
-  const sectionsRef = useRef(sections);
-  sectionsRef.current = sections;
-  useEffect(() => {
-    if (!activeSectionId) return;
-    const sec = sectionsRef.current.find((s) => s.id === activeSectionId);
-    if (sec) {
-      setExpanded((prev) =>
-        prev[sec.level] ? prev : { ...prev, [sec.level]: true },
-      );
+    if (expandedInitialized.current || sections.length === 0) return;
+    expandedInitialized.current = true;
+    const initial: Record<number, boolean> = {};
+    for (const s of sections) {
+      if (s.unlocked) initial[s.level] = true;
     }
-  }, [activeSectionId]);
+    setExpanded(initial);
+  }, [sections]);
 
   const toggleLevel = (level: number) =>
     setExpanded((prev) => ({ ...prev, [level]: !prev[level] }));
@@ -195,7 +179,7 @@ export function Sidebar({
                     ) : (
                       <ChevronRight className="w-3.5 h-3.5" />
                     )}
-                    {LEVEL_LABELS[level] ?? `Level ${level}`}
+                    {levelNames[String(level)] ?? LEVEL_LABELS[level] ?? `Level ${level}`}
                   </span>
                   <span className="text-[10px] text-muted-foreground/70">
                     {unlockedInLevel}/{items.length}

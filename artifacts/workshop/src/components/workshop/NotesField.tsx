@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useAutoSave } from "@/hooks/use-auto-save";
+import { useLiveValues } from "@/hooks/use-live-values";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -21,10 +22,12 @@ interface NotesFieldProps {
 
 export function NotesField({ sectionId, fieldKey, label, placeholder, helpText, initialValue = "", className = "", minHeight = "min-h-[100px]", multiline = true, onValueChange }: NotesFieldProps) {
   const [value, setValue, flushSave] = useAutoSave(sectionId, fieldKey, initialValue);
+  const reportValue = useLiveValues()?.reportValue;
 
   useEffect(() => {
     onValueChange?.(fieldKey, value);
-  }, [value, fieldKey, onValueChange]);
+    reportValue?.(fieldKey, value);
+  }, [value, fieldKey, onValueChange, reportValue]);
 
   return (
     <div className={`space-y-2 ${className}`}>
