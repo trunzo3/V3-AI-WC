@@ -16,6 +16,7 @@ import Workshop from "@/pages/workshop";
 import Levels from "@/pages/levels";
 import AdminLogin from "@/pages/admin/login";
 import AdminDashboard from "@/pages/admin/dashboard";
+import AdminBoard from "@/pages/admin/board";
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -45,6 +46,7 @@ function Router() {
       <Route path="/workshop" component={Workshop} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/board/:cohortId/:sectionId/:blockIndex" component={AdminBoard} />
       <Route component={NotFound} />
     </Switch>
   );

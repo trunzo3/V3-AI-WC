@@ -282,6 +282,24 @@ Sections come from two sources:
    with " · " as a bold line (`response-identifiers-<id>`) under the
    form · section · time line; card Copy and Copy all never include it.
    The workbook still prints identifier fields with the rest of the form.
+   **Board view** (`pages/admin/board.tsx`, wouter route
+   `/admin/board/:cohortId/:sectionId/:blockIndex`): projector-style
+   full-screen wall of one form's submissions, opened in a new tab via the
+   Responses tab "Open board" button (`button-open-board`, enabled only
+   when a specific form is selected). Read-only; polls the same admin
+   responses endpoint (+ cohort, participants, sections, generic library
+   for names/totals) every 2s; admin-session gated like the dashboard.
+   Header (`board-header`): navy, cohort + form name, pulsing gold dot
+   (static under reduced motion) with "N of T submitted" or, when any card
+   has a table number, "N tables submitted" (distinct). Cards
+   (`board-card-<id>`): title "Table N" (+ Table name subline) or
+   participant name — table fields are read from `identifiers` first, then
+   from "Table number:"/"Table name:" lines in the text; body = "The goal:"
+   value, else first labeled value, at 24px, else full text; footer
+   relative time + NEW tag (baseline = first load). Click expands to full
+   width with a `Label: value` definition list (split on first ": ",
+   case-insensitive labels; unparseable → full text). Uses the app's
+   Lora/Poppins fonts and tokens; no extra font loads.
    `scripts/t4day5-setup.mjs` flags Table number / Table name on the
    Mini-PRD form and, on re-run, patches only that flag onto the live
    section (it otherwise never rewrites existing content).

@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Presentation } from "lucide-react";
 
 interface Props {
   cohortId: number;
@@ -130,6 +130,16 @@ export function ResponsesTab({ cohortId }: Props) {
     return seen == null || seen !== r.updatedAt;
   };
 
+  const openBoard = () => {
+    if (!selected) return;
+    const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+    window.open(
+      `${base}/admin/board/${cohortId}/${encodeURIComponent(selected.sectionId)}/${selected.blockIndex}`,
+      "_blank",
+      "noopener",
+    );
+  };
+
   const copyAll = async () => {
     const text = responses
       .map((r) => `${r.participantName}\n${r.responseText}`)
@@ -165,6 +175,16 @@ export function ResponsesTab({ cohortId }: Props) {
               </SelectContent>
             </Select>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openBoard}
+            disabled={!selected}
+            title={selected ? "Open the projector board in a new tab" : "Select a form first"}
+            data-testid="button-open-board"
+          >
+            <Presentation className="w-3.5 h-3.5 mr-1" /> Open board
+          </Button>
           <Button
             variant="outline"
             size="sm"
