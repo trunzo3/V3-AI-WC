@@ -1,0 +1,22 @@
+Add a projector "Board" view to the admin Responses tab. Read replit.md first. Plan first and wait for approval. Do not change existing tables, endpoints (other than reading from the existing responses endpoint), section behavior, or the workbook.
+
+WHERE IT LIVES
+- In the Responses tab, next to the form filter, add a button "Open board". It is enabled only when a specific form is selected (not "All forms"). Clicking it opens a new browser tab at /admin/board/:cohortId/:sectionId/:blockIndex.
+- The board page requires the admin session, same as the rest of the admin panel. It has no admin sidebar or tabs — full-screen content only.
+
+WHAT THE BOARD SHOWS
+- Header bar in navy: cohort name on the left, the form name beside it, and on the right a live count with a pulsing gold dot. The count reads "<submitted> of <total> submitted", where total is the number of participants in the cohort; for a form whose assembled text begins with a "Table number:" line, count distinct table numbers instead and read "<n> tables submitted".
+- Below the header, a responsive grid of cards (min 420px wide, 22px gap, cream page background, white cards with a gold left edge, DM Serif Display for card titles, DM Sans for everything else — match the app's existing tokens).
+- Each card shows:
+  - Title: if the response text contains a "Table number:" line, show "Table <number>" with the "Table name:" value as a smaller subline if present. Otherwise show the participant's name.
+  - Body: if the response contains a "The goal:" line (or the first labeled line when there is no goal line), show that value at 24px. Otherwise show the full response text.
+  - Footer: "Submitted <relative time>", and a NEW tag for cards that arrived since the page opened.
+- Clicking a card expands it to full width and shows the rest of the response as a definition list: each "Label: value" line of the assembled text as a bold label and its value. Clicking again collapses it.
+- Newest first. Refresh every 2 seconds using the existing admin responses endpoint with the section and block filters. A resubmission updates the card in place.
+- Empty state: "No submissions yet."
+- Respect prefers-reduced-motion (no pulse). Keyboard focus visible on cards.
+
+PARSING
+- The assembled text is the labeled copy format the form already produces: one "Label: value" per line, in field order. Parse by splitting on the first ": " of each line; labels are matched case-insensitively. If parsing fails for a response, fall back to showing the full text.
+
+Add data-testids on the button, the board header, and cards. Update replit.md. When done, tell me how to open the board for the Mini-PRD in cohort T4DAY5.
