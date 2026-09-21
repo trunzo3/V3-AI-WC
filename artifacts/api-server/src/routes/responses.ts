@@ -19,6 +19,10 @@ const submitSchema = z.object({
   // Generous cap; assembled prompts are a few KB at most. Prevents a single
   // oversized submission from bloating the admin's 2s polling payload.
   responseText: z.string().max(20000, "Response is too long."),
+  // Identifier field values (label -> value); small by construction.
+  identifiers: z
+    .record(z.string().trim().min(1).max(200), z.string().trim().max(500))
+    .optional(),
 });
 
 /**
@@ -58,6 +62,7 @@ router.post("/responses", requireParticipant, async (req, res) => {
   }
   const { participantId, cohortId } = getParticipantContext(req);
   const { sectionId, blockIndex, responseText } = parsed.data;
+  const submittedIdentifiers = parsed.data.identifiers ?? {};
 
   // Same unlock rule as notes/files: assigned to cohort, visible, unlocked.
   const unlocked = await isSectionUnlockedForParticipant(
@@ -85,17 +90,29 @@ router.post("/responses", requireParticipant, async (req, res) => {
     return;
   }
 
+  // Only the labels configured as identifier fields on this form are kept,
+  // in field order, so a client can't inject arbitrary admin-visible
+  // metadata and the stored key order is authoritative.
+  const identifierEntries: Array<[string, string]> = [];
+  for (const f of found.block.fields) {
+    if (!f.identifier) continue;
+    const v = (submittedIdentifiers[f.label] ?? "").trim();
+    if (v.length > 0) identifierEntries.push([f.label, v]);
+  }
+  const identifiers =
+    identifierEntries.length > 0 ? Object.fromEntries(identifierEntries) : null;
+
   const formName = (found.block.formName ?? "").trim();
   const [saved] = await db
     .insert(formResponsesTable)
-    .values({ cohortId, participantId, sectionId, blockIndex, formName, responseText })
+    .values({ cohortId, participantId, sectionId, blockIndex, formName, responseText, identifiers })
     .onConflictDoUpdate({
       target: [
         formResponsesTable.participantId,
         formResponsesTable.sectionId,
         formResponsesTable.blockIndex,
       ],
-      set: { responseText, formName, cohortId, updatedAt: new Date() },
+      set: { responseText, formName, cohortId, identifiers, updatedAt: new Date() },
     })
     .returning();
 

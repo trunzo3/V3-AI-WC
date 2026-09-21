@@ -164,6 +164,9 @@ export interface GenericFormField {
   /** Card layout only - bold heading shown under the label pill. */
   heading?: string;
   multiline: boolean;
+  /** Identifier field (e.g. table number). Excluded from the copied and submitted text; stored with the submission and shown on the admin response card. Default false.
+   */
+  identifier?: boolean;
 }
 
 /**
@@ -305,12 +308,21 @@ export interface NotesResponse {
   notes: Note[];
 }
 
+/**
+ * Identifier field values, label -> value. Omit when the form has none.
+ */
+export type FormResponseSubmitRequestIdentifiers = { [key: string]: string };
+
 export interface FormResponseSubmitRequest {
   sectionId: string;
   /** Position of the form block in the section's contentBlocks. */
   blockIndex: number;
   responseText: string;
+  /** Identifier field values, label -> value. Omit when the form has none. */
+  identifiers?: FormResponseSubmitRequestIdentifiers;
 }
+
+export type FormResponseRecordIdentifiers = { [key: string]: string } | null;
 
 export interface FormResponseRecord {
   id: number;
@@ -320,6 +332,7 @@ export interface FormResponseRecord {
   blockIndex: number;
   formName: string;
   responseText: string;
+  identifiers?: FormResponseRecordIdentifiers;
   createdAt: string;
   updatedAt: string;
 }

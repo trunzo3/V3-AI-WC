@@ -32,6 +32,7 @@ function form(opts, ...fields) {
     fields: fields.map((f) => ({
       fieldKey: key(f.label),
       label: f.label,
+      ...(f.identifier ? { identifier: true } : {}),
       ...(f.heading ? { heading: f.heading } : {}),
       ...(f.help ? { helpText: `<p>${f.help}</p>` } : {}),
       ...(f.placeholder ? { placeholder: f.placeholder } : {}),
@@ -79,8 +80,8 @@ const plan = [
       ["Pick a scribe", "Someone to type into the Workshop Companion for the group."],
       ["Document your requirements", "Fill in the boxes below, then Copy and Submit. Anthony builds from what you submit."]),
     form({ name: "Mini-PRD", collect: true, copyStyle: "labeled", button: "Copy my PRD" },
-      { label: "Table number", heading: "Required.", multiline: false },
-      { label: "Table name", heading: "Optional.", multiline: false },
+      { label: "Table number", heading: "Required.", multiline: false, identifier: true },
+      { label: "Table name", heading: "Optional.", multiline: false, identifier: true },
       { label: "One sentence", heading: "What should it do that nobody has to do by hand anymore?" },
       { label: "Login", heading: "Who gets in, and what each role can see." },
       { label: "Front end", heading: "What people see and touch." },
@@ -317,6 +318,7 @@ const rows = [];
 let order = 0;
 let created = 0;
 let relevelled = 0;
+let identifierPatched = 0;
 for (const [code, item] of plan) {
   let sectionId;
   if (typeof item === "string") {
@@ -333,6 +335,41 @@ for (const [code, item] of plan) {
       await api("PUT", `/admin/generic-sections/${g.id}`, { defaultLevel: 4 });
       relevelled++;
       console.log("set default level 4", g.id, item.title);
+    }
+    // Targeted content patch (existing content is otherwise never rewritten):
+    // make sure the form fields flagged `identifier` in the plan carry that
+    // flag on the live section. Only the flag changes; the PUT sends the
+    // live blocks back as-is otherwise.
+    const wantIdentifier = new Set(
+      item.contentBlocks.flatMap((b) =>
+        b.type === "form" ? b.fields.filter((f) => f.identifier).map((f) => f.fieldKey) : [],
+      ),
+    );
+    if (wantIdentifier.size > 0 && Array.isArray(g.contentBlocks) && g.contentBlocks.length > 0) {
+      let changed = false;
+      const patched = g.contentBlocks.map((b) => {
+        if (b.type !== "form") return b;
+        return {
+          ...b,
+          fields: b.fields.map((f) => {
+            if (!wantIdentifier.has(f.fieldKey) || f.identifier === true) return f;
+            changed = true;
+            return { ...f, identifier: true };
+          }),
+        };
+      });
+      if (changed) {
+        const { section } = await api("PUT", `/admin/generic-sections/${g.id}`, { contentBlocks: patched });
+        const flagged = section.contentBlocks
+          .flatMap((b) => (b.type === "form" ? b.fields : []))
+          .filter((f) => f.identifier)
+          .map((f) => f.label);
+        if (flagged.length !== wantIdentifier.size) {
+          throw new Error(`identifier flag did not persist on ${item.title} (server may be running old code)`);
+        }
+        identifierPatched++;
+        console.log("flagged identifier fields", g.id, item.title, flagged.join(", "));
+      }
     }
     sectionId = `generic_${g.id}`;
   }
@@ -363,5 +400,6 @@ for (const s of after) {
 }
 console.log("generic sections created:", created);
 console.log("generic sections moved to library level 4:", relevelled);
+console.log("sections with identifier fields flagged:", identifierPatched);
 console.log("layout:", summary);
 console.log("level 4 order:", after.filter((s) => s.level === 4 && s.visible).map((s) => `${s.code}:${s.title}`).join(" | "));

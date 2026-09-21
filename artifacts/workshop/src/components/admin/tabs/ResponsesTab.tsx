@@ -211,6 +211,12 @@ function ResponseCard({
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
+  // Identifier field values (e.g. "Table 6 · The Breezers"). Display only —
+  // deliberately absent from the card Copy and from Copy all.
+  const identifierLine = Object.values(r.identifiers ?? {})
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0)
+    .join(" · ");
   return (
     <div
       className="border rounded-lg p-4 bg-card space-y-2"
@@ -238,6 +244,14 @@ function ResponseCard({
             {r.formName?.trim() || `Form ${r.blockIndex + 1}`} · {r.sectionTitle}{" "}
             · {fmt(r.updatedAt)}
           </div>
+          {identifierLine && (
+            <div
+              className="font-semibold text-sm"
+              data-testid={`response-identifiers-${r.id}`}
+            >
+              {identifierLine}
+            </div>
+          )}
         </div>
         <Button
           variant="ghost"

@@ -6,6 +6,7 @@ import {
   timestamp,
   uniqueIndex,
   index,
+  json,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -30,6 +31,12 @@ export const formResponsesTable = pgTable(
     blockIndex: integer("block_index").notNull(),
     formName: text("form_name").notNull().default(""),
     responseText: text("response_text").notNull().default(""),
+    // Identifier field values (label -> value) captured at submit time; these
+    // are excluded from response_text. Null for submissions made before the
+    // identifier flag existed or forms without identifier fields. Plain
+    // `json` (not jsonb) on purpose: it preserves the key order the client
+    // sent (= the form's field order), which the admin card relies on.
+    identifiers: json("identifiers").$type<Record<string, string>>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

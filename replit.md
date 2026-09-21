@@ -271,6 +271,20 @@ Sections come from two sources:
    per-card Copy and "Copy all" (participant name line + text per entry).
    The OpenAPI operationId is `adminListCohortFormResponses` — an id ending
    in "Responses" collides with orval's generated names.
+   **Identifier fields:** a form field with `identifier: true` (editor
+   checkbox "Identifier — show on the response card, exclude from copied
+   text", `checkbox-form-field-identifier-<block>-<field>`) is left out of
+   the assembled preview/Copy/submitted text (a `{key}` template token for
+   it resolves to ""). Its value is sent as `identifiers` (label → value,
+   in field order) with the submission and stored in
+   `form_responses.identifiers` (plain `json`, not `jsonb`, to keep field
+   order; null for older rows). The Responses card shows the values joined
+   with " · " as a bold line (`response-identifiers-<id>`) under the
+   form · section · time line; card Copy and Copy all never include it.
+   The workbook still prints identifier fields with the rest of the form.
+   `scripts/t4day5-setup.mjs` flags Table number / Table name on the
+   Mini-PRD form and, on re-run, patches only that flag onto the live
+   section (it otherwise never rewrites existing content).
    `prompt-2` is self-contained: its prompt references its own fields
    (`{{prompt-2:org-website}}` and `{{prompt-2:make-it-yours-details}}`),
    both saved in the same module. Every note save (debounced mutation,

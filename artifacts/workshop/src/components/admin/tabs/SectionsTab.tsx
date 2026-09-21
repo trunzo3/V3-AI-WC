@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Badge } from "@/components/ui/badge";
@@ -628,6 +629,7 @@ export function SectionsTab({ cohortId }: Props) {
     helpText?: string;
     heading?: string;
     multiline: boolean;
+    identifier?: boolean;
   };
   const withFormFields = (
     blockIdx: number,
@@ -1680,6 +1682,22 @@ export function SectionsTab({ cohortId }: Props) {
                                           />
                                           <Label className="text-xs">Multiline</Label>
                                         </div>
+                                      </div>
+                                      <div className="flex items-start gap-2">
+                                        <Checkbox
+                                          id={`form-field-identifier-${idx}-${fIdx}`}
+                                          checked={field.identifier ?? false}
+                                          onCheckedChange={(v) =>
+                                            updateFormField(idx, fIdx, { identifier: v === true })
+                                          }
+                                          data-testid={`checkbox-form-field-identifier-${idx}-${fIdx}`}
+                                        />
+                                        <Label
+                                          htmlFor={`form-field-identifier-${idx}-${fIdx}`}
+                                          className="text-xs font-normal leading-snug"
+                                        >
+                                          Identifier — show on the response card, exclude from copied text
+                                        </Label>
                                       </div>
                                       <div>
                                         <Label className="text-xs">

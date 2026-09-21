@@ -1385,6 +1385,12 @@ components:
           type: string
           description: Card layout only - bold heading shown under the label pill.
         multiline: { type: boolean }
+        identifier:
+          type: boolean
+          description: >
+            Identifier field (e.g. table number). Excluded from the copied and
+            submitted text; stored with the submission and shown on the admin
+            response card. Default false.
 
     GenericBlockItem:
       type: object
@@ -1449,6 +1455,10 @@ components:
           type: integer
           description: Position of the form block in the section's contentBlocks.
         responseText: { type: string }
+        identifiers:
+          type: object
+          additionalProperties: { type: string }
+          description: Identifier field values, label -> value. Omit when the form has none.
 
     FormResponseRecord:
       type: object
@@ -1461,6 +1471,10 @@ components:
         blockIndex: { type: integer }
         formName: { type: string }
         responseText: { type: string }
+        identifiers:
+          type: object
+          nullable: true
+          additionalProperties: { type: string }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 

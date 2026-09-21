@@ -996,6 +996,7 @@ const contentBlockSchema = z
             helpText: z.string().optional(),
             heading: z.string().optional(),
             multiline: z.boolean(),
+            identifier: z.boolean().optional(),
           }),
         )
         .min(1, "A form block must have at least one field."),

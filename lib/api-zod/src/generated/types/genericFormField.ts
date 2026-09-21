@@ -24,4 +24,7 @@ export interface GenericFormField {
   /** Card layout only - bold heading shown under the label pill. */
   heading?: string;
   multiline: boolean;
+  /** Identifier field (e.g. table number). Excluded from the copied and submitted text; stored with the submission and shown on the admin response card. Default false.
+   */
+  identifier?: boolean;
 }

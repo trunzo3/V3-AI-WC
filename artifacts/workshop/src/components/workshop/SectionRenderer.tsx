@@ -479,22 +479,38 @@ function FormBlock({
       // Replace every {token} placeholder with that field's current value.
       // Unknown or empty fields resolve to "" so raw braces never reach the
       // participant.
-      return tpl.replace(/\{([^{}]+)\}/g, (_match, key: string) =>
-        (values[key.trim()] ?? "").trim(),
+      const identifierKeys = new Set(
+        fields.filter((f) => f.identifier).map((f) => f.fieldKey),
       );
+      return tpl.replace(/\{([^{}]+)\}/g, (_match, key: string) => {
+        const k = key.trim();
+        return identifierKeys.has(k) ? "" : (values[k] ?? "").trim();
+      });
     }
     // Default assembly, same as the copy output has always been: skip empty
     // fields, label each answer for "labeled", join with newlines (labeled)
     // or spaces (joined).
     const parts: string[] = [];
     for (const f of fields) {
-      if (!f.fieldKey) continue;
+      if (!f.fieldKey || f.identifier) continue;
       const v = (values[f.fieldKey] ?? "").trim();
       if (v.length === 0) continue;
       parts.push(copyStyle === "labeled" ? `${f.label}: ${v}` : v);
     }
     return copyStyle === "labeled" ? parts.join("\n") : parts.join(" ");
   }, [template, fields, values, copyStyle]);
+
+  // Identifier fields (e.g. table number) travel alongside the submission,
+  // label -> value, instead of inside the copied/submitted text.
+  const identifiers = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const f of fields) {
+      if (!f.identifier || !f.fieldKey) continue;
+      const v = (values[f.fieldKey] ?? "").trim();
+      if (v.length > 0) out[f.label] = v;
+    }
+    return out;
+  }, [fields, values]);
 
   return (
     <div className={cn("mb-6", cardLayout ? "space-y-4" : "space-y-5")}>
@@ -569,6 +585,7 @@ function FormBlock({
               sectionId={sectionId}
               blockIndex={blockIndex}
               text={assembled}
+              identifiers={identifiers}
               open={responsesOpen}
             />
           )}
@@ -586,11 +603,13 @@ function SubmitResponseButton({
   sectionId,
   blockIndex,
   text,
+  identifiers,
   open,
 }: {
   sectionId: string;
   blockIndex: number;
   text: string;
+  identifiers: Record<string, string>;
   open: boolean;
 }) {
   const { toast } = useToast();
@@ -601,7 +620,14 @@ function SubmitResponseButton({
   const handleSubmit = () => {
     if (!open || submit.isPending) return;
     submit.mutate(
-      { data: { sectionId, blockIndex, responseText: text } },
+      {
+        data: {
+          sectionId,
+          blockIndex,
+          responseText: text,
+          ...(Object.keys(identifiers).length > 0 ? { identifiers } : {}),
+        },
+      },
       {
         onSuccess: () => {
           setHasSubmitted(true);

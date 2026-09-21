@@ -13,10 +13,13 @@ All participant endpoints require an authenticated session cookie
 
  * OpenAPI spec version: 0.1.0
  */
+import type { FormResponseSubmitRequestIdentifiers } from "./formResponseSubmitRequestIdentifiers";
 
 export interface FormResponseSubmitRequest {
   sectionId: string;
   /** Position of the form block in the section's contentBlocks. */
   blockIndex: number;
   responseText: string;
+  /** Identifier field values, label -> value. Omit when the form has none. */
+  identifiers?: FormResponseSubmitRequestIdentifiers;
 }

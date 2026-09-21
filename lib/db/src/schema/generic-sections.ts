@@ -51,6 +51,10 @@ export type GenericContentBlock =
         // Card layout only: bold heading shown under the label pill.
         heading?: string;
         multiline: boolean;
+        // Identifier field (e.g. table number/name): kept out of the copied /
+        // submitted text, stored with the submission and shown on the admin
+        // response card instead. Default false.
+        identifier?: boolean;
       }>;
       buttonLabel: string;
       copyStyle: "labeled" | "joined";

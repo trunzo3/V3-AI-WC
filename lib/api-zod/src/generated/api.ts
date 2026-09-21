@@ -230,6 +230,12 @@ export const ListSectionsResponse = zod.object({
                           "Card layout only - bold heading shown under the label pill.",
                         ),
                       multiline: zod.boolean(),
+                      identifier: zod
+                        .boolean()
+                        .optional()
+                        .describe(
+                          "Identifier field (e.g. table number). Excluded from the copied and submitted text; stored with the submission and shown on the admin response card. Default false.\n",
+                        ),
                     }),
                   )
                   .optional(),
@@ -411,6 +417,12 @@ export const SubmitFormResponseBody = zod.object({
     .number()
     .describe("Position of the form block in the section's contentBlocks."),
   responseText: zod.string(),
+  identifiers: zod
+    .record(zod.string(), zod.string())
+    .optional()
+    .describe(
+      "Identifier field values, label -> value. Omit when the form has none.",
+    ),
 });
 
 export const SubmitFormResponseResponse = zod.object({
@@ -422,6 +434,7 @@ export const SubmitFormResponseResponse = zod.object({
     blockIndex: zod.number(),
     formName: zod.string(),
     responseText: zod.string(),
+    identifiers: zod.record(zod.string(), zod.string()).nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   }),
@@ -936,6 +949,12 @@ export const AdminListGenericSectionsResponse = zod.object({
                       "Card layout only - bold heading shown under the label pill.",
                     ),
                   multiline: zod.boolean(),
+                  identifier: zod
+                    .boolean()
+                    .optional()
+                    .describe(
+                      "Identifier field (e.g. table number). Excluded from the copied and submitted text; stored with the submission and shown on the admin response card. Default false.\n",
+                    ),
                 }),
               )
               .optional(),
@@ -1134,6 +1153,12 @@ export const AdminCreateGenericSectionBody = zod.object({
                     "Card layout only - bold heading shown under the label pill.",
                   ),
                 multiline: zod.boolean(),
+                identifier: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "Identifier field (e.g. table number). Excluded from the copied and submitted text; stored with the submission and shown on the admin response card. Default false.\n",
+                  ),
               }),
             )
             .optional(),
@@ -1357,6 +1382,12 @@ export const AdminUpdateGenericSectionBody = zod.object({
                     "Card layout only - bold heading shown under the label pill.",
                   ),
                 multiline: zod.boolean(),
+                identifier: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "Identifier field (e.g. table number). Excluded from the copied and submitted text; stored with the submission and shown on the admin response card. Default false.\n",
+                  ),
               }),
             )
             .optional(),
@@ -1561,6 +1592,12 @@ export const AdminUpdateGenericSectionResponse = zod.object({
                     "Card layout only - bold heading shown under the label pill.",
                   ),
                 multiline: zod.boolean(),
+                identifier: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "Identifier field (e.g. table number). Excluded from the copied and submitted text; stored with the submission and shown on the admin response card. Default false.\n",
+                  ),
               }),
             )
             .optional(),
@@ -2016,6 +2053,7 @@ export const AdminListCohortFormResponsesResponse = zod.object({
         blockIndex: zod.number(),
         formName: zod.string(),
         responseText: zod.string(),
+        identifiers: zod.record(zod.string(), zod.string()).nullish(),
         createdAt: zod.coerce.date(),
         updatedAt: zod.coerce.date(),
       })
