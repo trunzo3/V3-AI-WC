@@ -320,7 +320,7 @@ const LAYOUT = [
   ["SHAPE", { title: "Where It Earns Its Place" }],
   ["WRONG", { title: "Human in the Loop" }],
   ["WRONG", { title: "Pattern Matching and Hallucination" }],
-  ["WRONG", { builtin: "what-ai-is" }],
+  ["WRONG", { title: "What AI Is / Is Not", anyKind: true }],
   ["WRONG", { new: "LLM Peer Review" }],
   ["WRONG", { title: "Cognitive Erosion" }],
   ["WRONG", { new: "Cognitive Growth" }],
@@ -376,10 +376,15 @@ if (dst) {
 }
 
 // Section lookup through the cohort's own rows only.
-const genericRows = rows.filter((r) => r.sectionId.startsWith("generic_"));
-function rowByTitle(title) {
-  const matches = genericRows.filter((r) => (generics.get(Number(r.sectionId.slice(8)))?.title ?? r.title) === title);
-  if (matches.length !== 1) throw new Error(`expected exactly one row titled "${title}" in cohort ${dst?.id ?? "(planned)"}, found ${matches.length}`);
+// Only Level 4 rows are candidates: the same title can exist at other levels
+// (e.g. the built-in what-ai-is lives in Level 1 on production while Level 4
+// carries a made-editable library copy of it).
+const l4Rows = rows.filter((r) => r.level === 4);
+const genericRows = l4Rows.filter((r) => r.sectionId.startsWith("generic_"));
+const rowTitle = (r) => (r.sectionId.startsWith("generic_") ? generics.get(Number(r.sectionId.slice(8)))?.title ?? r.title : r.title);
+function rowByTitle(title, { genericOnly = true } = {}) {
+  const matches = (genericOnly ? genericRows : l4Rows).filter((r) => rowTitle(r) === title);
+  if (matches.length !== 1) throw new Error(`expected exactly one Level 4 row titled "${title}" in cohort ${dst?.id ?? "(planned)"}, found ${matches.length}`);
   return matches[0];
 }
 
@@ -455,8 +460,8 @@ for (const spec of NEW_SECTIONS) {
 // ----- STEP 4 ---------------------------------------------------------------
 console.log("\nSTEP 4: Level 4 order, codes, visibility");
 const builtinRow = (id) => {
-  const r = rows.find((x) => x.sectionId === id);
-  if (!r) throw new Error(`built-in row ${id} not in cohort`);
+  const r = l4Rows.find((x) => x.sectionId === id);
+  if (!r) throw new Error(`built-in row ${id} not in cohort at Level 4`);
   return r;
 };
 const layoutRows = [];
@@ -467,7 +472,8 @@ for (const [code, e] of LAYOUT) {
   else if (e.new) sectionId = newIds.get(e.new);
   else {
     let row;
-    try { row = rowByTitle(e.title); } catch (err) { if (e.was) row = rowByTitle(e.was); else throw err; }
+    const opt = { genericOnly: !e.anyKind };
+    try { row = rowByTitle(e.title, opt); } catch (err) { if (e.was) row = rowByTitle(e.was, opt); else throw err; }
     sectionId = row.sectionId;
   }
   layoutRows.push({ sectionId, level: 4, sortOrder: order++, displayName: null, visible: true, code, codeActive: true });
@@ -487,6 +493,12 @@ for (const r of layoutRows) finalRows.push({ ...r, sortOrder: order++ });
 const hiddenL4 = rows.filter((x) => x.level === 4 && !seen.has(x.sectionId)).sort((a, b) => a.sortOrder - b.sortOrder);
 for (const r of hiddenL4) {
   finalRows.push({ sectionId: r.sectionId, level: 4, sortOrder: order++, displayName: r.displayName ?? null, visible: false, code: r.code ?? null, codeActive: r.codeActive ?? true });
+}
+const allIds = finalRows.map((r) => r.sectionId);
+if (new Set(allIds).size !== allIds.length) throw new Error(`duplicate sectionId in layout: ${allIds.filter((x, i) => allIds.indexOf(x) !== i).join(", ")}`);
+const addedCount = [...newIds.values()].filter((sid) => !rows.some((r) => r.sectionId === sid)).length;
+if (finalRows.length !== rows.length + addedCount) {
+  throw new Error(`row count mismatch: ${rows.length} existing + ${addedCount} new != ${finalRows.length}`);
 }
 const titleOf = (sid) => {
   if (sid.startsWith("generic_<new:")) return sid.slice(13, -1) + " (new)";

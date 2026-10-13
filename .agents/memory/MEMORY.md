@@ -12,3 +12,4 @@
 - [Orval Params collision](orval-operationid-naming.md) — endpoints with path+query params break codegen (TS2308 in lib/api-zod); add explicit re-export in lib/api-zod/src/index.ts.
 - [zod v4 partial() keeps defaults](zod-partial-defaults.md) — never derive an update schema via createSchema.partial() when the create schema has .default(); absent fields get reset (wiped prod content once).
 - [jsonb key order](jsonb-key-order.md) — Postgres jsonb reorders object keys: never compare stored blocks with JSON.stringify, never rely on object key order for display.
+- [Cohort layout scripts](cohort-layout-scripts.md) — resolve layout rows from the target cohort's own Level 4 rows by title, never hardcode built-in ids; prod cohorts may carry made-editable copies.
