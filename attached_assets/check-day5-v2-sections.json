@@ -1,0 +1,1598 @@
+[
+  {
+    "order": 1,
+    "sectionId": "generic_12747",
+    "code": "SEE",
+    "title": "Three Ways to Put AI to Work",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "You ask, it answers. Copilot and other chatbots. For drafting, summarizing, thinking out loud.",
+            "title": "CHAT"
+          },
+          {
+            "body": "You set the steps, it runs them. n8n, Power Automate. For work that happens the same way every time.",
+            "title": "AUTOMATE"
+          },
+          {
+            "body": "You give it a goal, it finds the path. A task, software, or a whole workflow — Replit, Lovable, Copilot Studio. For work where the steps are not known in advance.",
+            "title": "DELEGATE"
+          }
+        ],
+        "columns": 3
+      },
+      {
+        "type": "text",
+        "content": "Shown as examples. Not approved for Caltrans use."
+      },
+      {
+        "type": "callout",
+        "content": "On the left, you do the work. On the right, it does the work.",
+        "variant": "insight"
+      },
+      {
+        "type": "text",
+        "content": "<p>What does my division do by hand that it shouldn't?</p>"
+      }
+    ]
+  },
+  {
+    "order": 2,
+    "sectionId": "generic_12766",
+    "code": "SEE",
+    "title": "Consider the Work",
+    "kind": "library",
+    "badgeLabel": "INDIVIDUAL",
+    "goalText": "Something your division could use.",
+    "sectionType": "exercise",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>You are not going to build software today. You will be speaking it into existence. Describe it well enough that what comes back is what you meant. Same skill you use with IT, with a vendor, and with the person two doors down.</p>"
+      },
+      {
+        "type": "steps",
+        "items": [
+          {
+            "body": "Your work, your department's work, cross-department work, etc.",
+            "title": "Look at your organization"
+          },
+          {
+            "body": "What is the process? Where does it stall? What automation or connection would make it better?",
+            "title": "Name what is done by hand"
+          },
+          {
+            "body": "A dashboard, connectivity between two data sets, a way to distribute information, etc.",
+            "title": "Pick something to improve"
+          },
+          {
+            "body": "What it should do that would solve (part of) the problem.",
+            "title": "Write it in 3 or fewer sentences"
+          }
+        ],
+        "ordered": true
+      },
+      {
+        "type": "form",
+        "fields": [
+          {
+            "label": "YOUR IDEA",
+            "heading": "What should it do that would solve (part of) the problem?",
+            "fieldKey": "your_idea",
+            "helpText": "<p>3 sentences or fewer.</p>",
+            "multiline": true
+          }
+        ],
+        "formName": "Consider the Work",
+        "copyStyle": "labeled",
+        "cardLayout": true,
+        "buttonLabel": "Copy",
+        "responsesOpen": true,
+        "collectResponses": true
+      },
+      {
+        "type": "text",
+        "content": "<p><strong>Then, at your table</strong></p>"
+      },
+      {
+        "type": "steps",
+        "items": [
+          {
+            "body": "3 or fewer sentences each. Forty seconds. No selling it.",
+            "title": "Share yours"
+          },
+          {
+            "body": "Which would help the most people, or remove the most tedious step? Debate briefly.",
+            "title": "Find the one"
+          },
+          {
+            "body": "One per table. Share with the room during the debrief.",
+            "title": "Pick it"
+          }
+        ],
+        "ordered": true
+      }
+    ]
+  },
+  {
+    "order": 3,
+    "sectionId": "generic_12748",
+    "code": "SEE",
+    "title": "Anatomy of Working Software",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>You're opening a restaurant. How do people get in?</p>"
+      },
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "Login. Who gets in, and what each role can see.",
+            "title": "THE DOOR"
+          },
+          {
+            "body": "Front end. What people see and touch.",
+            "title": "THE DINING ROOM"
+          },
+          {
+            "body": "Logic. Where the rules run.",
+            "title": "THE KITCHEN"
+          },
+          {
+            "body": "Database. Where everything is stored.",
+            "title": "THE FREEZER"
+          }
+        ],
+        "columns": 2
+      },
+      {
+        "type": "text",
+        "content": "<p>Describe those four and you have written a Product Requirements Document.</p>"
+      }
+    ]
+  },
+  {
+    "order": 4,
+    "sectionId": "generic_12770",
+    "code": "SEE",
+    "title": "Build Your Mini-PRD",
+    "kind": "library",
+    "badgeLabel": "GROUP",
+    "goalText": "One build per table.",
+    "sectionType": "exercise",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "steps",
+        "items": [
+          {
+            "body": "Someone to type into the Workshop Companion for the group.",
+            "title": "Pick a scribe"
+          },
+          {
+            "body": "Fill in the boxes below, then Copy and Submit. Anthony builds from what you submit.",
+            "title": "Document your requirements"
+          }
+        ],
+        "ordered": true
+      },
+      {
+        "type": "form",
+        "fields": [
+          {
+            "label": "Table number",
+            "heading": "Required.",
+            "fieldKey": "table_number",
+            "multiline": false,
+            "identifier": true
+          },
+          {
+            "label": "Table name",
+            "heading": "Optional.",
+            "fieldKey": "table_name",
+            "multiline": false,
+            "identifier": true
+          },
+          {
+            "label": "The Goal",
+            "heading": "In three sentences or fewer: what should it do that nobody has to do by hand anymore?",
+            "fieldKey": "one_sentence",
+            "multiline": true
+          },
+          {
+            "label": "Login",
+            "heading": "Who gets in, and what each role can see.",
+            "fieldKey": "login",
+            "multiline": true
+          },
+          {
+            "label": "Front end",
+            "heading": "What people see and touch.",
+            "fieldKey": "front_end",
+            "multiline": true
+          },
+          {
+            "label": "Logic",
+            "heading": "Where the rules run.",
+            "fieldKey": "logic",
+            "multiline": true
+          },
+          {
+            "label": "Database",
+            "heading": "Where everything is stored.",
+            "fieldKey": "database",
+            "multiline": true
+          },
+          {
+            "label": "Requirements and considerations",
+            "heading": "Anything the build has to respect.",
+            "fieldKey": "requirements_and_considerations",
+            "multiline": true
+          }
+        ],
+        "formName": "Mini-PRD",
+        "copyStyle": "labeled",
+        "cardLayout": true,
+        "buttonLabel": "Copy my PRD",
+        "responsesOpen": true,
+        "collectResponses": true
+      },
+      {
+        "type": "text",
+        "content": "<p><strong>Your builds</strong></p><p>Links to the working prototypes will be added here during lunch.</p>"
+      }
+    ]
+  },
+  {
+    "order": 5,
+    "sectionId": "generic_12750",
+    "code": "SEE",
+    "title": "The Tools You Have",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>At work.</p>"
+      },
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "General purpose. Drafting, summarizing, reorganizing, planning. Works across Outlook, Teams, Word, and SharePoint inside the Caltrans tenant. Best at language tasks on your own material. Weak at facts it was not given, numbers, anything it has to look up.",
+            "title": "MICROSOFT COPILOT"
+          },
+          {
+            "body": "Purpose-built. Answers questions against a defined mobility dataset. Narrow, and accurate inside its lane. Best at the questions it was built for. Weak at anything outside the data it was pointed at.",
+            "title": "TRAFFIC MOBILITY INSIGHT"
+          },
+          {
+            "body": "Purpose-built. Same architecture, different data: crash and safety records. Best at pattern questions on safety data. Weak at general drafting. It is not a writing tool.",
+            "title": "ROAD SAFETY INSIGHT"
+          }
+        ],
+        "columns": 3
+      },
+      {
+        "type": "text",
+        "content": "<p>At home: Claude, ChatGPT, Gemini.</p>"
+      }
+    ]
+  },
+  {
+    "order": 6,
+    "sectionId": "generic_12749",
+    "code": "SHAPE",
+    "title": "AI, ML, and LLMs",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>Artificial Intelligence is the broad field. Machine Learning is a subset of AI — it is already in your life: fraud detection at Visa, Face ID, Netflix recommendations, Outlook spam filtering, Google Maps routing. Large Language Models are a subset of Machine Learning — Claude, ChatGPT, Gemini — and they power tools like Copilot, NotebookLM, Notion AI, Canva AI, and Gamma.</p>"
+      },
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "A vast knowledge base, trained on an enormous amount of text.",
+            "title": "LARGE"
+          },
+          {
+            "body": "Natural, like you're typing or speaking to a person.",
+            "title": "LANGUAGE"
+          },
+          {
+            "body": "The name of the tool itself: Claude, GPT, Gemini, and the rest.",
+            "title": "MODEL"
+          }
+        ],
+        "columns": 3
+      },
+      {
+        "type": "callout",
+        "content": "The goal isn't to know everything. It's to know enough to lead, experiment, and decide.",
+        "variant": "rule"
+      }
+    ]
+  },
+  {
+    "order": 7,
+    "sectionId": "generic_12751",
+    "code": "SHAPE",
+    "title": "Many Ways In",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>How are you using LLMs today? Every one of these is a language task. None requires the tool to know a fact it was not given.</p>"
+      },
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "Memos, emails, talking points. The blank page problem.",
+            "title": "DRAFT"
+          },
+          {
+            "body": "Five reports into one view. Twenty comments into three themes.",
+            "title": "SYNTHESIZE"
+          },
+          {
+            "body": "Forty pages into one. What survives is what matters.",
+            "title": "DISTILL"
+          },
+          {
+            "body": "Options and angles you had not considered.",
+            "title": "BRAINSTORM"
+          },
+          {
+            "body": "A sequence. An agenda. The questions before a vendor call.",
+            "title": "PLAN"
+          }
+        ],
+        "columns": 2
+      }
+    ]
+  },
+  {
+    "order": 8,
+    "sectionId": "generic_12767",
+    "code": "SHAPE",
+    "title": "Draft with Instructions and Role",
+    "kind": "library",
+    "badgeLabel": "INDIVIDUAL",
+    "goalText": "See what each part of a prompt changes.",
+    "sectionType": "exercise",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>Run these three in order, in a new Copilot chat each time. Notice what changes.</p>"
+      },
+      {
+        "type": "prompt",
+        "label": "1st prompt · Instruction",
+        "content": "Write an email about a new policy requiring staff to complete training within 30 days."
+      },
+      {
+        "type": "prompt",
+        "label": "2nd prompt · Instruction + Role",
+        "content": "You are a supportive supervisor who knows your team is stretched thin. Write an email about a new policy requiring staff to complete training within 30 days."
+      },
+      {
+        "type": "prompt",
+        "label": "3rd prompt · Switch the role",
+        "content": "You are a construction foreman who runs a tight ship. Write an email about a new policy requiring staff to complete training within 30 days."
+      },
+      {
+        "type": "form",
+        "fields": [
+          {
+            "label": "DEBRIEF",
+            "heading": "How did the role change it?",
+            "fieldKey": "debrief",
+            "multiline": true
+          }
+        ],
+        "formName": "Role notes",
+        "copyStyle": "labeled",
+        "cardLayout": true,
+        "buttonLabel": "Copy",
+        "collectResponses": false
+      }
+    ]
+  },
+  {
+    "order": 9,
+    "sectionId": "riceco-framework",
+    "code": "SHAPE",
+    "title": "The RICECO Framework",
+    "kind": "built-in"
+  },
+  {
+    "order": 10,
+    "sectionId": "generic_12768",
+    "code": "SHAPE",
+    "title": "Context",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "Everything typed so far. That is what it works from. A fouled chat stays fouled — the bad assumption is in the context.",
+            "title": "ONE CHAT"
+          },
+          {
+            "body": "Files, mail, documents. Some tools read what you point them at. Whether yours does is a configuration question, not a capability one.",
+            "title": "WHAT IT CAN REACH"
+          },
+          {
+            "body": "What it remembers. Claude and GPT carry memory and projects. Copilot chat, as you have it, starts fresh each time.",
+            "title": "ACROSS SESSIONS"
+          },
+          {
+            "body": "What you hand it, plus what it fetches. The leap that makes agents useful and risky at once.",
+            "title": "TO AN AGENT"
+          }
+        ],
+        "columns": 2
+      },
+      {
+        "type": "text",
+        "content": "<p>Bad context is why more prompting stops helping. Know which layer the problem is in.</p>"
+      },
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "The topic wandered. Twenty exchanges in, the chat is somewhere else. Start a new one.",
+            "title": "DRIFT"
+          },
+          {
+            "body": "A bad assumption got baked in. Every answer now leans into it. Edit the earlier prompt, or abandon the chat.",
+            "title": "FOULED"
+          },
+          {
+            "body": "Same wrong thing, again. More prompting will not fix it. The context is the problem. Sunset it.",
+            "title": "BAD REPLIES"
+          }
+        ],
+        "columns": 3
+      }
+    ]
+  },
+  {
+    "order": 11,
+    "sectionId": "generic_12756",
+    "code": "SHAPE",
+    "title": "Create Your Context",
+    "kind": "library",
+    "badgeLabel": "INDIVIDUAL",
+    "goalText": "What do you want it to remember about you?",
+    "sectionType": "exercise",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "steps",
+        "items": [
+          {
+            "body": "Where a generic answer wouldn't work, because of your audience, your division, or how it has to sound.",
+            "title": "Pick a task where the tool would need to know you"
+          },
+          {
+            "body": "Role, acronyms, formatting. Skip the rest.",
+            "title": "Fill in the boxes that would have the most impact"
+          },
+          {
+            "body": "How did your context document influence it?",
+            "title": "Copy, paste into a new Copilot chat, then type the task"
+          }
+        ],
+        "ordered": true
+      },
+      {
+        "type": "form",
+        "fields": [
+          {
+            "label": "ROLE",
+            "heading": "What should AI know about your role?",
+            "fieldKey": "role",
+            "helpText": "<p>Your title or function and where you sit in the organization.</p>",
+            "multiline": true
+          },
+          {
+            "label": "WORK",
+            "heading": "What should AI know about the work you're responsible for?",
+            "fieldKey": "work",
+            "helpText": "<p>Recurring responsibilities that affect the help you need.</p>",
+            "multiline": true
+          },
+          {
+            "label": "TERMS",
+            "heading": "What terminology or acronyms should AI understand without explanation?",
+            "fieldKey": "terms",
+            "helpText": "<p>Only terms you use regularly.</p>",
+            "multiline": true
+          },
+          {
+            "label": "RULES",
+            "heading": "What standing rules or constraints should AI always account for?",
+            "fieldKey": "rules",
+            "helpText": "<p>Requirements that apply across most of your work.</p>",
+            "multiline": true
+          },
+          {
+            "label": "TONE",
+            "heading": "What should AI know about your preferred tone?",
+            "fieldKey": "tone",
+            "helpText": "<p>How responses should generally sound.</p>",
+            "multiline": true
+          },
+          {
+            "label": "FORMAT",
+            "heading": "How do you prefer information to be organized?",
+            "fieldKey": "format",
+            "helpText": "<p>BLUF, bullets, sections, tables, or narrative.</p>",
+            "multiline": true
+          },
+          {
+            "label": "DEPTH",
+            "heading": "How much detail do you usually want?",
+            "fieldKey": "depth",
+            "helpText": "<p>Your normal level of depth or concision.</p>",
+            "multiline": true
+          },
+          {
+            "label": "DELIVERABLES",
+            "heading": "What kinds of deliverables do you commonly want AI to produce?",
+            "fieldKey": "deliverables",
+            "helpText": "<p>Emails, memos, briefings, talking points, or analyses.</p>",
+            "multiline": true
+          },
+          {
+            "label": "AVOID",
+            "heading": "What should AI avoid doing?",
+            "fieldKey": "avoid",
+            "helpText": "<p>Recurring response habits that make the output less useful.</p>",
+            "multiline": true
+          }
+        ],
+        "formName": "Portable context",
+        "copyStyle": "labeled",
+        "cardLayout": true,
+        "buttonLabel": "Copy my context",
+        "collectResponses": false
+      }
+    ]
+  },
+  {
+    "order": 12,
+    "sectionId": "generic_12772",
+    "code": "SHAPE",
+    "title": "Power Follow-Ups",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "\"ELI12\" (Explain like I'm 12)",
+            "title": "SIMPLIFY"
+          },
+          {
+            "body": "\"Make the case against this.\"",
+            "title": "FLIP"
+          },
+          {
+            "body": "\"Turn this into a table.\"",
+            "title": "FORMAT"
+          },
+          {
+            "body": "\"Where did that come from?\"",
+            "title": "SOURCE"
+          },
+          {
+            "body": "\"What would you remove?\"",
+            "title": "CUT"
+          }
+        ],
+        "columns": 3
+      },
+      {
+        "type": "callout",
+        "title": "Key Principle",
+        "content": "The first response is raw material, not a final product. Every follow-up is an editing decision.",
+        "variant": "insight"
+      }
+    ]
+  },
+  {
+    "order": 13,
+    "sectionId": "generic_12752",
+    "code": "SHAPE",
+    "title": "Real Work",
+    "kind": "library",
+    "badgeLabel": "INDIVIDUAL",
+    "goalText": "Leave with one finished.",
+    "sectionType": "exercise",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>Your real queue. Not the important things — the recurring, language-heavy things. \"A briefing memo due Thursday.\" \"Forty public comments to summarize.\" The one you name is the one you work on. Real material. Real deadline.</p>"
+      },
+      {
+        "type": "form",
+        "fields": [
+          {
+            "label": "DRAFT",
+            "heading": "Create something new — email, report, talking points, agenda",
+            "fieldKey": "draft",
+            "helpText": "<p>Ex: Memos, emails, talking points. The blank page problem.</p>",
+            "multiline": true,
+            "placeholder": "Add your notes here…"
+          },
+          {
+            "label": "SYNTHESIZE",
+            "heading": "Combine many things into one view",
+            "fieldKey": "synthesize",
+            "helpText": "<p>Ex: Five reports into one view. Twenty comments into three themes.</p>",
+            "multiline": true,
+            "placeholder": "Add your notes here…"
+          },
+          {
+            "label": "DISTILL",
+            "heading": "Shrink something long down to what matters",
+            "fieldKey": "distill",
+            "helpText": "<p>Ex: Forty pages into one. What survives is what matters.</p>",
+            "multiline": true,
+            "placeholder": "Add your notes here…"
+          },
+          {
+            "label": "BRAINSTORM",
+            "heading": "Generate options and angles",
+            "fieldKey": "brainstorm",
+            "helpText": "<p>Ex: Options and angles you had not considered.</p>",
+            "multiline": true,
+            "placeholder": "Add your notes here…"
+          },
+          {
+            "label": "PLAN",
+            "heading": "Sequence the work",
+            "fieldKey": "plan",
+            "helpText": "<p>Ex: A rollout sequence. An agenda. The questions before a vendor call.</p>",
+            "multiline": true,
+            "placeholder": "Add your notes here…"
+          }
+        ],
+        "formName": "Real work",
+        "copyStyle": "labeled",
+        "cardLayout": true,
+        "buttonLabel": "Copy my notes",
+        "collectResponses": false
+      }
+    ]
+  },
+  {
+    "order": 14,
+    "sectionId": "generic_12754",
+    "code": "SHAPE",
+    "title": "Where It Earns Its Place",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>Which of your real tasks suit the tools you actually have? Recurring, language-heavy work. Not anything the number has to be right on.</p>"
+      },
+      {
+        "type": "text",
+        "content": "<p>An agent is different. You hand it a goal. It decides what files to create, writes them, hits errors, reads the errors, fixes them, and keeps going until something ran. Their words went in. An agent did the rest.</p>"
+      }
+    ]
+  },
+  {
+    "order": 15,
+    "sectionId": "generic_12753",
+    "code": "WRONG",
+    "title": "Human in the Loop",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>The fix isn't better AI. It's a human in the loop. Beginning: you direct. Middle: AI processes. End: you edit and oversee it.</p>"
+      },
+      {
+        "type": "callout",
+        "title": "The trap",
+        "content": "These systems perform trust. They don't earn it. The better they get at the performance, the harder it is to remember. Your job: understand it. Don't trust it.",
+        "variant": "stop"
+      }
+    ]
+  },
+  {
+    "order": 16,
+    "sectionId": "generic_12755",
+    "code": "WRONG",
+    "title": "Pattern Matching and Hallucination",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>An LLM predicts the next word based on massive training data. It's not retrieving a fixed answer; it's generating a likely sequence. When it lands on truth, we call it an answer. When it lands on false, we call it a hallucination. Same process either way. It doesn't know it's right. It doesn't know it's wrong. It's always guessing.</p>"
+      },
+      {
+        "type": "text",
+        "content": "<p>More context means better predictions. \"Mary ___\" could be anything. \"Mary had a little ___\" is almost certainly one word. Vague prompts get vague outputs. Your context is the lever.</p>"
+      },
+      {
+        "type": "callout",
+        "title": "When AI gets caught",
+        "content": "You: That statistic you cited — where did it come from?\nAI: It's from the 2023 National Workforce Study by the Bureau of Labor Statistics.\nYou: I can't find that study. Does it exist?\nAI: I filled in a pattern that I thought belonged there.",
+        "variant": "quote"
+      }
+    ]
+  },
+  {
+    "order": 17,
+    "sectionId": "generic_12769",
+    "code": "WRONG",
+    "title": "What AI Is / Is Not",
+    "kind": "library",
+    "badgeLabel": null,
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "Pattern matching, not thinking. The same process produces correct answers and hallucinations.",
+            "title": "Core Concept"
+          }
+        ],
+        "columns": 1
+      },
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "<ul><li><strong>Probabilistic</strong><br />Always guessing what comes next. Whether output is true or fabricated, the process is identical.</li><li><strong>Pattern Matching at Scale</strong><br />It finds connections humans might miss.</li><li><strong>A Confident Communicator</strong><br />It sounds authoritative, even when wrong.</li></ul>",
+            "title": "It IS"
+          },
+          {
+            "body": "<ul><li><strong>Thinking or Knowing</strong><br />There is no reasoning. There is prediction.</li><li><strong>Sentient or Caring</strong><br />It does not have feelings or intent.</li><li><strong>A Reliable Fact Database</strong><br />It is a reasoning engine, not a search engine.</li></ul>",
+            "title": "It Is NOT"
+          }
+        ],
+        "columns": 2
+      }
+    ]
+  },
+  {
+    "order": 18,
+    "sectionId": "generic_12771",
+    "code": "WRONG",
+    "title": "LLM Peer Review",
+    "kind": "library",
+    "badgeLabel": "INDIVIDUAL",
+    "goalText": "Two sets of eyes are better than one.",
+    "sectionType": "exercise",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "steps",
+        "items": [
+          {
+            "body": "One tool writes it.",
+            "title": "Draft"
+          },
+          {
+            "body": "A different chat reads it.",
+            "title": "Critique"
+          },
+          {
+            "body": "Back to the first chat.",
+            "title": "Revise"
+          }
+        ],
+        "ordered": true
+      },
+      {
+        "type": "prompt",
+        "label": "Chat A · Draft",
+        "content": "Draft a [what you need].\n\n[Paste or describe your material.]"
+      },
+      {
+        "type": "prompt",
+        "label": "Chat B · Critique",
+        "content": "You are a skeptical reviewer. Below is a draft. What is wrong, unsupported, or missing? Critique only. Do not rewrite it.\n\n[PASTE THE DRAFT FROM CHAT A]"
+      },
+      {
+        "type": "prompt",
+        "label": "Back to Chat A · Revise",
+        "content": "Here's what Chat B said. Is this critique useful? Tell me which points you accept and which you reject, and why. Then revise the draft.\n\n[PASTE CHAT B'S CRITIQUE]"
+      },
+      {
+        "type": "callout",
+        "content": "Different models catch different errors and carry different biases. Using them to check each other is a structural safeguard, not just a best practice.",
+        "variant": "insight"
+      }
+    ]
+  },
+  {
+    "order": 19,
+    "sectionId": "generic_12757",
+    "code": "WRONG",
+    "title": "Cognitive Erosion",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>One possible pattern in how people use AI. The label is who wrote the first draft.</p>"
+      },
+      {
+        "type": "steps",
+        "items": [
+          {
+            "body": "I did the thinking and made the first attempt. AI helps me find weaknesses.",
+            "title": "Here's a draft. Critique it."
+          },
+          {
+            "body": "I supply the draft and the reasoning. AI reshapes it. I judge what to accept.",
+            "title": "Here's a draft. Rewrite it."
+          },
+          {
+            "body": "AI makes the first attempt. I check it against my purpose and the evidence, then make the decision myself.",
+            "title": "Draft it. I'll adjust."
+          },
+          {
+            "body": "Confidence in past results starts to replace real scrutiny.",
+            "title": "Draft it. I'll skim it."
+          },
+          {
+            "body": "I pass the answer along without checking its reasoning.",
+            "title": "Draft it. I'll send it as is."
+          }
+        ],
+        "ordered": true
+      },
+      {
+        "type": "callout",
+        "content": "The risk is not that AI wrote the first draft. It's repeatedly giving up the work of questioning, checking and explaining.",
+        "variant": "insight"
+      },
+      {
+        "type": "text",
+        "content": "<p>Ask yourself: What thinking disappeared? Can you still explain and defend what you sent?</p>"
+      },
+      {
+        "type": "text",
+        "content": "<p><strong>What it looks like from your chair</strong></p>"
+      },
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "\"This doesn't sound like them.\" \"This could describe any organization.\" \"It keeps repeating the same point.\" \"Where did that detail come from?\"",
+            "title": "What feels different?"
+          },
+          {
+            "body": "Repeated \"not X, but Y\" phrasing. Everything packaged into tidy threes. Inflated vocabulary: \"delve,\" \"tapestry,\" \"pivotal.\" Chatbot leftovers: \"Certainly! Here's…\"",
+            "title": "Patterns you may recognize"
+          }
+        ],
+        "columns": 2
+      },
+      {
+        "type": "callout",
+        "title": "Enough to ask",
+        "content": "These are conversation cues, not proof. Ask: \"How did you use AI on this?\"",
+        "variant": "rule"
+      }
+    ]
+  },
+  {
+    "order": 20,
+    "sectionId": "generic_12773",
+    "code": "WRONG",
+    "title": "Cognitive Growth",
+    "kind": "library",
+    "badgeLabel": "INDIVIDUAL",
+    "goalText": "What will you reinforce?",
+    "sectionType": "exercise",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>Five ways to ask AI to deepen your understanding while you do real work. Add the subject and any approved context in the chat.</p>"
+      },
+      {
+        "type": "prompt",
+        "label": "Explain it",
+        "content": "Explain it using something I know.\n\nSubject: [what you are trying to understand]\nSomething I know well: [an area you already understand]"
+      },
+      {
+        "type": "prompt",
+        "label": "Connect it",
+        "content": "Connect it to what I've learned.\n\nSubject: [what you are trying to understand]\nWhat I've learned so far: [paste the ideas or material]"
+      },
+      {
+        "type": "prompt",
+        "label": "Another way",
+        "content": "Show me another way to look at this.\n\n[Paste or describe the work]"
+      },
+      {
+        "type": "prompt",
+        "label": "Challenge it",
+        "content": "Here's my reasoning. Challenge it.\n\n[Your reasoning]"
+      },
+      {
+        "type": "prompt",
+        "label": "Apply it",
+        "content": "Show me how this applies to my work.\n\nMy task: [describe it]\nConstraints: [what it has to work within]"
+      },
+      {
+        "type": "callout",
+        "content": "Use an approved tool with material permitted in that tool. Important facts still need an authoritative source or a knowledgeable person.",
+        "variant": "rule"
+      },
+      {
+        "type": "text",
+        "content": "<p><strong>What leaders reinforce</strong></p>"
+      },
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "\"Walk me through how you reached that recommendation.\"",
+            "title": "ASK FOR THE REASONING"
+          },
+          {
+            "body": "\"What do you understand better after working through this?\"",
+            "title": "MAKE LEARNING VISIBLE"
+          },
+          {
+            "body": "\"Good catch. What helped you spot that?\"",
+            "title": "REWARD THE CATCH"
+          },
+          {
+            "body": "\"Here's how I used AI to challenge my own thinking.\"",
+            "title": "MODEL IT YOURSELF"
+          }
+        ],
+        "columns": 2
+      },
+      {
+        "type": "form",
+        "fields": [
+          {
+            "label": "NEXT WEEK",
+            "heading": "Which of these will your team see you do next week?",
+            "fieldKey": "next_week",
+            "helpText": "<p>Pick one behavior and name the situation where you will use it.</p>",
+            "multiline": true
+          }
+        ],
+        "formName": "Next week",
+        "copyStyle": "labeled",
+        "cardLayout": true,
+        "buttonLabel": "Copy",
+        "collectResponses": false
+      }
+    ]
+  },
+  {
+    "order": 21,
+    "sectionId": "generic_12758",
+    "code": "BALANCE",
+    "title": "What Else Is Possible",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>Beyond Copilot, Traffic Mobility Insight, and Road Safety Insight. Remember the three ways: Chat, Automate, Delegate.</p>"
+      },
+      {
+        "type": "text",
+        "content": "<p><strong>Automate — the path is fixed, AI can live inside it</strong></p>"
+      },
+      {
+        "type": "steps",
+        "items": [
+          {
+            "body": "Something happens.",
+            "title": "Trigger"
+          },
+          {
+            "body": "Summarize, classify, extract.",
+            "title": "AI step"
+          },
+          {
+            "body": "Update, route, create.",
+            "title": "Action"
+          },
+          {
+            "body": "Notify, store, send.",
+            "title": "Output"
+          }
+        ],
+        "ordered": true
+      },
+      {
+        "type": "text",
+        "content": "<p>The workflow does not decide what happens next. You already did.</p>"
+      },
+      {
+        "type": "text",
+        "content": "<p>Delegate — the path is discovered while the work is happening. Example: \"Prepare Monday's executive brief.\" The agent pulls the calendar, project data, email updates, and policy news, asks what's missing, searches an alternate source, synthesizes, drafts. The path changes when the evidence changes.</p>"
+      },
+      {
+        "type": "callout",
+        "content": "Some of the people you lead have used these tools. They know the gap.",
+        "variant": "insight"
+      }
+    ]
+  },
+  {
+    "order": 22,
+    "sectionId": "generic_12760",
+    "code": "BALANCE",
+    "title": "Data Safety",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>Before we talk about AI safety, let's talk about data safety. Optimize entirely for efficiency and everything is wide open. Optimize entirely for safety and we'd never send an email. Every organization lives somewhere in the middle.</p>"
+      },
+      {
+        "type": "text",
+        "content": "<p>\"Is this safe?\" is not a question that has an answer. Safe compared to what? For which material? Against which alternative you already use?</p>"
+      },
+      {
+        "type": "text",
+        "content": "<p><strong>Where does your sensitive data live right now?</strong></p>"
+      },
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "BCPs, contracts, draft correspondence. SharePoint? A shared drive? A laptop?",
+            "title": "DOCUMENTS"
+          },
+          {
+            "body": "Who else can read it, including the vendor?",
+            "title": "EMAIL"
+          },
+          {
+            "body": "Payroll and personnel files. State system, or a vendor?",
+            "title": "PEOPLE"
+          }
+        ],
+        "columns": 3
+      },
+      {
+        "type": "text",
+        "content": "<p><strong>How your tools handle your data</strong></p>"
+      },
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "Stored on Microsoft's servers. Encrypted. Not used to build products for others. Kept until you delete it.",
+            "title": "OUTLOOK & SHAREPOINT"
+          },
+          {
+            "body": "Stored on the vendor's servers. Encrypted. Not used to build products for others. Kept 4+ years by federal law.",
+            "title": "PAYROLL / HR"
+          },
+          {
+            "body": "Stored in Microsoft's government cloud. Encrypted. Not used to build products for others, by contract. Kept per the state agreement.",
+            "title": "COPILOT, CALTRANS TENANT"
+          },
+          {
+            "body": "Stored on the AI company's servers. Encrypted. Used to build products for others only if model improvement is on. Kept until you delete it.",
+            "title": "CONSUMER AI"
+          }
+        ],
+        "columns": 2
+      },
+      {
+        "type": "callout",
+        "content": "The security question is not \"is AI safe?\" It's \"what's the data, what are the settings, and what does my organization allow?\"",
+        "variant": "insight"
+      },
+      {
+        "type": "callout",
+        "content": "For a staffer, safety is a toggle. For you, safety is a policy: which tools your people may use, and how you find out when they use something else.",
+        "variant": "rule"
+      }
+    ]
+  },
+  {
+    "order": 23,
+    "sectionId": "generic_12774",
+    "code": "BALANCE",
+    "title": "Red / Yellow / Green",
+    "kind": "library",
+    "badgeLabel": "GROUP",
+    "goalText": "Define data safety — for yourself.",
+    "sectionType": "exercise",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "Normal business data in an approved system.",
+            "title": "GREEN · RELATIVELY SAFE"
+          },
+          {
+            "body": "Sensitive or contextual. Needs safeguards.",
+            "title": "YELLOW · IT DEPENDS"
+          },
+          {
+            "body": "Should not be shared casually in any system.",
+            "title": "RED · RISKY"
+          }
+        ],
+        "columns": 3
+      },
+      {
+        "type": "text",
+        "content": "<p>Say it out loud. Twice per scenario: model improvement ON, then OFF. No answer key. The point is hearing the room disagree.</p>"
+      },
+      {
+        "type": "form",
+        "fields": [
+          {
+            "label": "SCENARIO 1",
+            "heading": "You paste a draft public-facing press release into an LLM to make it clearer.",
+            "fieldKey": "scenario_1",
+            "multiline": true,
+            "placeholder": "ON: red, yellow or green. OFF: red, yellow or green. Why?"
+          },
+          {
+            "label": "SCENARIO 2",
+            "heading": "You paste a contractor's name, contact details, and specific contract terms into an LLM to help draft a follow-up email.",
+            "fieldKey": "scenario_2",
+            "multiline": true,
+            "placeholder": "ON: red, yellow or green. OFF: red, yellow or green. Why?"
+          },
+          {
+            "label": "SCENARIO 3",
+            "heading": "You paste an email thread with the Legislature's staff about a pending bill into an LLM to help draft a response.",
+            "fieldKey": "scenario_3",
+            "multiline": true,
+            "placeholder": "ON: red, yellow or green. OFF: red, yellow or green. Why?"
+          },
+          {
+            "label": "SCENARIO 4",
+            "heading": "You paste public comments from a project hearing, naming specific residents and parcels, into an LLM to find patterns.",
+            "fieldKey": "scenario_4",
+            "multiline": true,
+            "placeholder": "ON: red, yellow or green. OFF: red, yellow or green. Why?"
+          },
+          {
+            "label": "SCENARIO 5",
+            "heading": "You attach meeting notes that include a personnel discussion to pull out action items.",
+            "fieldKey": "scenario_5",
+            "multiline": true,
+            "placeholder": "ON: red, yellow or green. OFF: red, yellow or green. Why?"
+          },
+          {
+            "label": "SCENARIO 6",
+            "heading": "You attach a district's quarterly delivery summary (projects, status, dollar figures) to draft an update for the Director.",
+            "fieldKey": "scenario_6",
+            "multiline": true,
+            "placeholder": "ON: red, yellow or green. OFF: red, yellow or green. Why?"
+          },
+          {
+            "label": "WHAT CHANGES THE CALL",
+            "heading": "What would move a Yellow to Green for you?",
+            "fieldKey": "what_changes_the_call",
+            "multiline": true
+          }
+        ],
+        "formName": "Red / Yellow / Green",
+        "copyStyle": "labeled",
+        "cardLayout": true,
+        "buttonLabel": "Copy my calls",
+        "collectResponses": false
+      },
+      {
+        "type": "callout",
+        "content": "The governance question is not \"is AI safe?\" It's \"what's the data, what are the settings, and what does my organization allow?\"",
+        "variant": "insight"
+      }
+    ]
+  },
+  {
+    "order": 24,
+    "sectionId": "generic_12759",
+    "code": "LEAD",
+    "title": "Shadow AI",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "callout",
+        "content": "Shadow AI is evidence. It tells leaders where capability, policy, and user need are out of alignment.",
+        "variant": "insight"
+      },
+      {
+        "type": "text",
+        "content": "<p>You did not choose it. Copilot arrived in an update — every M365 tenant got it. Gemini arrived in a browser patch that IT approved as a security fix. Connectors arrive through your own tools: an approved tool with an admin panel connects to anything. The question is not whether you have shadow AI. It is whether you can see it.</p>"
+      },
+      {
+        "type": "text",
+        "content": "<p><strong>Read the signal — the workaround is telling you something</strong></p>"
+      },
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "The approved tool cannot do the job. People reach outside when the sanctioned option stops short.",
+            "title": "CAPABILITY"
+          },
+          {
+            "body": "The rules do not match the work. A blanket restriction collides with a legitimate operational need.",
+            "title": "POLICY"
+          },
+          {
+            "body": "People do not know the sanctioned path. The capability may exist; they just don't know how to reach it.",
+            "title": "ENABLEMENT"
+          }
+        ],
+        "columns": 3
+      },
+      {
+        "type": "text",
+        "content": "<p>Before you punish the workaround, diagnose the gap.</p>"
+      },
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "Finds a person.",
+            "title": "\"WHO IS USING UNAPPROVED AI?\""
+          },
+          {
+            "body": "Finds the gap.",
+            "title": "\"WHAT ARE THEY TRYING TO ACCOMPLISH THAT THEY CANNOT ACCOMPLISH ANOTHER WAY?\""
+          }
+        ],
+        "columns": 2
+      },
+      {
+        "type": "callout",
+        "title": "Governing before educating",
+        "content": "\"When the Governor's 2023 AI executive order came out, the energy went into governing AI — policies, procedures, guardrails. Almost none went into educating people on responsible use. That was a miss.\" — Assistant chief, state department. Public panel, state technology conference, August 2026.",
+        "variant": "quote"
+      },
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "Catch it. Stop it. People learn what not to tell you. The behavior gets harder to see, not less common.",
+            "title": "SURVEILLANCE"
+          },
+          {
+            "body": "See it. Understand it. Ask what the tool is doing for them. Visibility gives you something you can actually govern.",
+            "title": "SUNLIGHT"
+          }
+        ],
+        "columns": 2
+      },
+      {
+        "type": "text",
+        "content": "<p>Make the sanctioned path win. People choose the approved path when it gives them more, not merely when policy tells them to: approved data, shared prompts, internal knowledge, better integrations, reusable workflows. Compliance is not the incentive. Capability is.</p>"
+      },
+      {
+        "type": "callout",
+        "title": "Trust but verify",
+        "content": "Enable, train, make the path known — that sets the direction and gets people to tell you what they use. Then check at machine speed. AI runs at machine speed, so the check on it has to.",
+        "variant": "rule"
+      },
+      {
+        "type": "text",
+        "content": "<p>Questions, ideas, or tool requests: AI@dot.ca.gov</p>"
+      },
+      {
+        "type": "form",
+        "fields": [
+          {
+            "label": "HONEST GUESS",
+            "heading": "What is your division already using that you cannot see?",
+            "fieldKey": "honest_guess",
+            "helpText": "<p>Not what they may use. What they use. Personal ChatGPT. Claude on a phone.</p>",
+            "multiline": true
+          },
+          {
+            "label": "WHY",
+            "heading": "What need is that tool meeting that the sanctioned path does not?",
+            "fieldKey": "why",
+            "multiline": true
+          },
+          {
+            "label": "MONDAY",
+            "heading": "Sunlight or surveillance? Say which, and name the first move.",
+            "fieldKey": "monday",
+            "multiline": true
+          }
+        ],
+        "formName": "Bring it home",
+        "copyStyle": "labeled",
+        "cardLayout": true,
+        "buttonLabel": "Copy",
+        "collectResponses": false
+      }
+    ]
+  },
+  {
+    "order": 25,
+    "sectionId": "generic_12761",
+    "code": "LEAD",
+    "title": "The Change Message Framework",
+    "kind": "library",
+    "badgeLabel": "REFERENCE",
+    "goalText": null,
+    "sectionType": "reference",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>You already wrote it. Now say it in order.</p>"
+      },
+      {
+        "type": "steps",
+        "items": [
+          {
+            "body": "What changed outside.",
+            "title": "Forces"
+          },
+          {
+            "body": "How we do it today.",
+            "title": "Practices"
+          },
+          {
+            "body": "What that costs now.",
+            "title": "Consequences"
+          },
+          {
+            "body": "What we saw.",
+            "title": "A stronger path"
+          },
+          {
+            "body": "What is different in 90 days.",
+            "title": "Impact"
+          }
+        ],
+        "ordered": true
+      },
+      {
+        "type": "text",
+        "content": "<p>Five sentences. Repeated in the all-hands, the hallway, and the one-on-one until it sticks.</p>"
+      },
+      {
+        "type": "cards",
+        "cards": [
+          {
+            "body": "\"Here is a better way.\" Lands as a preference. Preferences lose to the status quo.",
+            "title": "SKIP THE COST"
+          },
+          {
+            "body": "\"Here is what today costs. Here is the better way.\" Lands as a recovery. The same words, in that order, move people.",
+            "title": "NAME THE COST FIRST"
+          }
+        ],
+        "columns": 2
+      },
+      {
+        "type": "text",
+        "content": "<p>The brain registers a gain only against a loss. Steps 2–3 are the loss. Steps 4–5 are the gain. Skip either half and the message stops working.</p>"
+      }
+    ]
+  },
+  {
+    "order": 26,
+    "sectionId": "generic_12762",
+    "code": "LEAD",
+    "title": "Create Your Change Message",
+    "kind": "library",
+    "badgeLabel": "INDIVIDUAL",
+    "goalText": "One sentence each. Eight minutes.",
+    "sectionType": "exercise",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "form",
+        "fields": [
+          {
+            "label": "FORCES",
+            "heading": "The external pressure",
+            "fieldKey": "forces",
+            "multiline": true
+          },
+          {
+            "label": "CURRENT PRACTICES",
+            "heading": "How we do it today",
+            "fieldKey": "current_practices",
+            "multiline": true
+          },
+          {
+            "label": "CONSEQUENCES",
+            "heading": "What that costs now",
+            "fieldKey": "consequences",
+            "multiline": true
+          },
+          {
+            "label": "A STRONGER PATH",
+            "heading": "What we saw",
+            "fieldKey": "stronger_path",
+            "multiline": true
+          },
+          {
+            "label": "IMPACT",
+            "heading": "What is different in 90 days",
+            "fieldKey": "impact",
+            "multiline": true
+          }
+        ],
+        "formName": "Change message",
+        "copyStyle": "labeled",
+        "cardLayout": true,
+        "buttonLabel": "Copy my five sentences",
+        "responsesOpen": true,
+        "collectResponses": true
+      },
+      {
+        "type": "text",
+        "content": "<p>Hand it to the person next to you. They read your five sentences out loud, in order. Which sentence is weakest? Which one would your division argue with?</p>"
+      }
+    ]
+  },
+  {
+    "order": 27,
+    "sectionId": "generic_12763",
+    "code": "LEAD",
+    "title": "Two Sentences",
+    "kind": "library",
+    "badgeLabel": "INDIVIDUAL",
+    "goalText": "The ones you would actually say.",
+    "sectionType": "exercise",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "text",
+        "content": "<p>Rewrite your Forces and Current Practices sentences as speech. Who hears it: a direct report who did not ask. Competent, busy, quietly skeptical. Then say it to your partner. They answer one question only: \"What did you just hear me asking you to do?\" If the answer is \"nothing yet,\" the opening worked.</p>"
+      },
+      {
+        "type": "form",
+        "fields": [
+          {
+            "label": "SENTENCE ONE",
+            "heading": "What changed outside your division.",
+            "fieldKey": "sentence_one",
+            "multiline": true
+          },
+          {
+            "label": "SENTENCE TWO",
+            "heading": "How your division does that work today — said so they nod, not flinch.",
+            "fieldKey": "sentence_two",
+            "multiline": true
+          }
+        ],
+        "formName": "Two sentences",
+        "copyStyle": "joined",
+        "cardLayout": true,
+        "buttonLabel": "Copy",
+        "responsesOpen": true,
+        "collectResponses": true
+      }
+    ]
+  },
+  {
+    "order": 28,
+    "sectionId": "generic_12765",
+    "code": "LEAD",
+    "title": "Talk It Out",
+    "kind": "library",
+    "badgeLabel": "INDIVIDUAL",
+    "goalText": null,
+    "sectionType": "exercise",
+    "showNotesField": true,
+    "contentBlocks": [
+      {
+        "type": "form",
+        "fields": [
+          {
+            "label": "WHAT CLICKED",
+            "heading": "One insight, technique, or moment that stuck.",
+            "fieldKey": "what_clicked",
+            "helpText": "<p>An insight, technique, risk, or reward that stuck.</p>",
+            "multiline": true
+          },
+          {
+            "label": "WHO NEEDS TO HEAR IT",
+            "heading": "A peer CEA who was not in this room. What would you tell them first?",
+            "fieldKey": "who_needs_to_hear_it",
+            "helpText": "<p>A peer CEA, your boss, someone else who was not in this room. What would you tell them first?</p>",
+            "multiline": true
+          }
+        ],
+        "formName": "What clicked",
+        "copyStyle": "labeled",
+        "cardLayout": true,
+        "buttonLabel": "Copy",
+        "responsesOpen": true,
+        "collectResponses": true
+      },
+      {
+        "type": "text",
+        "content": "<p>Tell us how we did — two minutes in the Feedback tab, now, while it is fresh. Tomorrow: Day 6 — Leading for Lasting Impact. Same room.</p>"
+      }
+    ]
+  }
+]
