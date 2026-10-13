@@ -1,0 +1,115 @@
+Goal: build a revised copy of the Day 5 cohort for Caltrans WITHOUT changing the original. Duplicate the existing cohort "Tier 4 CEA Leadership — Day 5" (code T4DAY5), then apply the content changes below to the COPY only. The original cohort and every library section attached to it must stay exactly as they are now.
+
+HOW TO BUILD IT
+- Write a new script, scripts/caltrans-day5-v2.mjs, modeled on scripts/t4day5-setup.mjs: it logs in with ADMIN_PASSWORD and works only through the existing admin API. No schema changes, no direct SQL, no new block types, no hardcoded sections. Everything it creates must be an ordinary library (generic) section that I can edit later with the pencil icon in the admin Sections editor.
+- Default mode is a dry run that changes nothing and prints the full plan: every section to create or edit, and the final Level 4 order with codes and visibility. Only write when APPLY=1. Support API_BASE so it can run against the published app, which is where the real cohort lives.
+- Safe to re-run: if a cohort with code T4DAY5V2 already exists, reuse it instead of duplicating again. Find sections through that cohort's own section rows (GET /admin/cohorts/:id/sections), never by title alone, because the library will now hold two sections with the same title (the original and the copy).
+- Safety check: before editing any library section, confirm it is attached ONLY to the new cohort. If it is attached to any other cohort, stop with an error and change nothing.
+
+STEP 1: DUPLICATE
+Use POST /api/admin/cohorts/:id/duplicate on the cohort with code T4DAY5. New name: "Tier 4 CEA Leadership — Day 5 (v2)". New code: T4DAY5V2.
+
+STEP 2: EDIT THESE COPIED SECTIONS (in the new cohort only)
+Keep every block not mentioned exactly as it is.
+
+A. "Three Ways to Put AI to Work": add a text block directly after the cards block: "Shown as examples. Not approved for Caltrans use."
+
+B. "Consider the Work":
+- Replace the steps block with an ordered steps block:
+  1. "Look at your organization" / "Your work, your department's work, cross-department work, etc."
+  2. "Name what is done by hand" / "What is the process? Where does it stall? What automation or connection would make it better?"
+  3. "Pick something to improve" / "A dashboard, connectivity between two data sets, a way to distribute information, etc."
+  4. "Write it in 3 or fewer sentences" / "What it should do that would solve (part of) the problem."
+- Replace the form block with: cardLayout true, buttonLabel "Copy", copyStyle "labeled", formName "Consider the Work", collectResponses true, responsesOpen true. One multiline field: fieldKey "your_idea", label "YOUR IDEA", heading "What should it do that would solve (part of) the problem?", helpText "<p>3 sentences or fewer.</p>".
+- After the form, add a text block "<p><strong>Then, at your table</strong></p>" followed by an ordered steps block:
+  1. "Share yours" / "3 or fewer sentences each. Forty seconds. No selling it."
+  2. "Find the one" / "Which would help the most people, or remove the most tedious step? Debate briefly."
+  3. "Pick it" / "One per table. Share with the room during the debrief."
+
+C. "Cognitive Erosion": replace ALL content blocks with:
+- text: "<p>One possible pattern in how people use AI. The label is who wrote the first draft.</p>"
+- ordered steps:
+  1. "Here's a draft. Critique it." / "I did the thinking and made the first attempt. AI helps me find weaknesses."
+  2. "Here's a draft. Rewrite it." / "I supply the draft and the reasoning. AI reshapes it. I judge what to accept."
+  3. "Draft it. I'll adjust." / "AI makes the first attempt. I check it against my purpose and the evidence, then make the decision myself."
+  4. "Draft it. I'll skim it." / "Confidence in past results starts to replace real scrutiny."
+  5. "Draft it. I'll send it as is." / "I pass the answer along without checking its reasoning."
+- callout (insight): "The risk is not that AI wrote the first draft. It's repeatedly giving up the work of questioning, checking and explaining."
+- text: "<p>Ask yourself: What thinking disappeared? Can you still explain and defend what you sent?</p>"
+- text: "<p><strong>What it looks like from your chair</strong></p>"
+- cards, 2 columns: "What feels different?" / "\"This doesn't sound like them.\" \"This could describe any organization.\" \"It keeps repeating the same point.\" \"Where did that detail come from?\"" and "Patterns you may recognize" / "Repeated \"not X, but Y\" phrasing. Everything packaged into tidy threes. Inflated vocabulary: \"delve,\" \"tapestry,\" \"pivotal.\" Chatbot leftovers: \"Certainly! Here's…\""
+- callout (rule), title "Enough to ask": "These are conversation cues, not proof. Ask: \"How did you use AI on this?\""
+
+D. "Data Safety":
+- Delete the text block that begins "It already happened. In 2024, researchers extracted".
+- Directly after the block containing "\"Is this safe?\" is not a question that has an answer", add a text block "<p><strong>Where does your sensitive data live right now?</strong></p>" and a 3-column cards block: "DOCUMENTS" / "BCPs, contracts, draft correspondence. SharePoint? A shared drive? A laptop?"; "EMAIL" / "Who else can read it, including the vendor?"; "PEOPLE" / "Payroll and personnel files. State system, or a vendor?"
+
+E. "Shadow AI":
+- Directly before the SURVEILLANCE / SUNLIGHT cards block, add a callout (quote), title "Governing before educating": "\"When the Governor's 2023 AI executive order came out, the energy went into governing AI — policies, procedures, guardrails. Almost none went into educating people on responsible use. That was a miss.\" — Assistant chief, state department. Public panel, state technology conference, August 2026."
+- Directly after the final rule callout (the one beginning "Enable, train, make the path known"), add a text block: "<p>Questions, ideas, or tool requests: AI@dot.ca.gov</p>"
+
+F. "What You Know Now":
+- Rename the section to "Create Your Change Message".
+- Replace its form fields with these five multiline fields (keep the rest of the form's settings), then set formName "Change message", collectResponses true, responsesOpen true:
+  fieldKey "forces", label "FORCES", heading "The external pressure"
+  fieldKey "current_practices", label "CURRENT PRACTICES", heading "How we do it today"
+  fieldKey "consequences", label "CONSEQUENCES", heading "What that costs now"
+  fieldKey "stronger_path", label "A STRONGER PATH", heading "What we saw"
+  fieldKey "impact", label "IMPACT", heading "What is different in 90 days"
+
+G. "Two Sentences": in its text block, replace "Rewrite rows 1 and 2 as speech." with "Rewrite your Forces and Current Practices sentences as speech." Change nothing else.
+
+H. "Talk It Out":
+- In its text block, replace "Tomorrow: Day 6, Succession Planning and Leadership Legacy. Same room. Bring the two sentences you wrote today." with "Tomorrow: Day 6 — Leading for Lasting Impact. Same room."
+- In its form, set helpText on the WHAT CLICKED field to "<p>An insight, technique, risk, or reward that stuck.</p>" and on the WHO NEEDS TO HEAR IT field to "<p>A peer CEA, your boss, someone else who was not in this room. What would you tell them first?</p>". Keep the field keys unchanged.
+
+STEP 3: CREATE THESE NEW LIBRARY SECTIONS (defaultLevel 4, showNotesField true)
+
+I. "LLM Peer Review" — badge INDIVIDUAL, goal "Two sets of eyes are better than one.", sectionType "exercise":
+- ordered steps: "Draft" / "One tool writes it."; "Critique" / "A different chat reads it."; "Revise" / "Back to the first chat."
+- prompt, label "Chat A · Draft": "Draft a [what you need].\n\n[Paste or describe your material.]"
+- prompt, label "Chat B · Critique": "You are a skeptical reviewer. Below is a draft. What is wrong, unsupported, or missing? Critique only. Do not rewrite it.\n\n[PASTE THE DRAFT FROM CHAT A]"
+- prompt, label "Back to Chat A · Revise": "Here's what Chat B said. Is this critique useful? Tell me which points you accept and which you reject, and why. Then revise the draft.\n\n[PASTE CHAT B'S CRITIQUE]"
+- callout (insight): "Different models catch different errors and carry different biases. Using them to check each other is a structural safeguard, not just a best practice."
+
+J. "Power Follow-Ups" — badge REFERENCE, sectionType "reference":
+- cards, 3 columns: "SIMPLIFY" / "\"ELI12\" (Explain like I'm 12)"; "FLIP" / "\"Make the case against this.\""; "FORMAT" / "\"Turn this into a table.\""; "SOURCE" / "\"Where did that come from?\""; "CUT" / "\"What would you remove?\""
+- callout (insight), title "Key Principle": "The first response is raw material, not a final product. Every follow-up is an editing decision."
+
+K. "Cognitive Growth" — badge INDIVIDUAL, goal "What will you reinforce?", sectionType "exercise":
+- text: "<p>Five ways to ask AI to deepen your understanding while you do real work. Add the subject and any approved context in the chat.</p>"
+- five prompt blocks:
+  label "Explain it", content "Explain it using something I know.\n\nSubject: [what you are trying to understand]\nSomething I know well: [an area you already understand]"
+  label "Connect it", content "Connect it to what I've learned.\n\nSubject: [what you are trying to understand]\nWhat I've learned so far: [paste the ideas or material]"
+  label "Another way", content "Show me another way to look at this.\n\n[Paste or describe the work]"
+  label "Challenge it", content "Here's my reasoning. Challenge it.\n\n[Your reasoning]"
+  label "Apply it", content "Show me how this applies to my work.\n\nMy task: [describe it]\nConstraints: [what it has to work within]"
+- callout (rule): "Use an approved tool with material permitted in that tool. Important facts still need an authoritative source or a knowledgeable person."
+- text: "<p><strong>What leaders reinforce</strong></p>"
+- cards, 2 columns: "ASK FOR THE REASONING" / "\"Walk me through how you reached that recommendation.\""; "MAKE LEARNING VISIBLE" / "\"What do you understand better after working through this?\""; "REWARD THE CATCH" / "\"Good catch. What helped you spot that?\""; "MODEL IT YOURSELF" / "\"Here's how I used AI to challenge my own thinking.\""
+- form: cardLayout true, buttonLabel "Copy", copyStyle "labeled", formName "Next week", collectResponses false. One multiline field: fieldKey "next_week", label "NEXT WEEK", heading "Which of these will your team see you do next week?", helpText "<p>Pick one behavior and name the situation where you will use it.</p>"
+
+L. "Red / Yellow / Green" — badge GROUP, goal "Define data safety — for yourself.", sectionType "exercise":
+- cards, 3 columns: "GREEN · RELATIVELY SAFE" / "Normal business data in an approved system."; "YELLOW · IT DEPENDS" / "Sensitive or contextual. Needs safeguards."; "RED · RISKY" / "Should not be shared casually in any system."
+- text: "<p>Say it out loud. Twice per scenario: model improvement ON, then OFF. No answer key. The point is hearing the room disagree.</p>"
+- form: cardLayout true, buttonLabel "Copy my calls", copyStyle "labeled", formName "Red / Yellow / Green", collectResponses false. Seven multiline fields, each with placeholder "ON: red, yellow or green. OFF: red, yellow or green. Why?" except the last:
+  fieldKey "scenario_1", label "SCENARIO 1", heading "You paste a draft public-facing press release into an LLM to make it clearer."
+  fieldKey "scenario_2", label "SCENARIO 2", heading "You paste a contractor's name, contact details, and specific contract terms into an LLM to help draft a follow-up email."
+  fieldKey "scenario_3", label "SCENARIO 3", heading "You paste an email thread with the Legislature's staff about a pending bill into an LLM to help draft a response."
+  fieldKey "scenario_4", label "SCENARIO 4", heading "You paste public comments from a project hearing, naming specific residents and parcels, into an LLM to find patterns."
+  fieldKey "scenario_5", label "SCENARIO 5", heading "You attach meeting notes that include a personnel discussion to pull out action items."
+  fieldKey "scenario_6", label "SCENARIO 6", heading "You attach a district's quarterly delivery summary (projects, status, dollar figures) to draft an update for the Director."
+  fieldKey "what_changes_the_call", label "WHAT CHANGES THE CALL", heading "What would move a Yellow to Green for you?" (no placeholder)
+- callout (insight): "The governance question is not \"is AI safe?\" It's \"what's the data, what are the settings, and what does my organization allow?\""
+
+STEP 4: SET THE NEW COHORT'S LEVEL 4 ORDER, CODES AND VISIBILITY
+Use PUT /admin/cohorts/:id/sections (raw array) for the new cohort. Keep every Level 1, 2 and 3 row exactly as duplicated. Level 4 visible rows, in this order (codeActive true, displayName null):
+Code SEE: 1 Three Ways to Put AI to Work, 2 Consider the Work, 3 Anatomy of Working Software, 4 Build Your Mini-PRD, 5 The Tools You Have
+Code SHAPE: 6 AI, ML, and LLMs, 7 Many Ways In, 8 Draft with Instructions and Role, 9 built-in riceco-framework, 10 Context, 11 Create Your Context, 12 new Power Follow-Ups (J), 13 Real Work, 14 Where It Earns Its Place
+Code WRONG: 15 Human in the Loop, 16 Pattern Matching and Hallucination, 17 What AI Is / Is Not, 18 new LLM Peer Review (I), 19 Cognitive Erosion, 20 new Cognitive Growth (K)
+Code BALANCE: 21 What Else Is Possible, 22 Data Safety, 23 new Red / Yellow / Green (L)
+Code LEAD: 24 Shadow AI, 25 The Change Message Framework, 26 Create Your Change Message, 27 Two Sentences, 28 Talk It Out
+After those, keep these Level 4 rows but set visible false: built-in llm-peer-review, built-in power-follow-ups, built-in red-yellow-green, "Three Concepts That Ride Along", and every Level 4 row that was already hidden.
+
+STEP 5: VERIFY AND REPORT
+After APPLY, read the new cohort back and print the Level 4 list (order, title, code, visible). Confirm the original T4DAY5 cohort's section list is unchanged from before the run. Do not touch participants, notes, unlocks, or responses in either cohort.

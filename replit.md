@@ -131,6 +131,11 @@ object). All others use the documented OpenAPI shapes.
   (default cohort, LLM tools, safari library, feedback categories, settings)
 - Run via the configured workflow `artifacts/api-server: API Server`
   (do **not** run `pnpm dev` at the workspace root)
+- `[API_BASE=https://host] [APPLY=1] node scripts/caltrans-day5-v2.mjs` — builds
+  the Caltrans Day 5 v2 cohort (T4DAY5V2) by duplicating T4DAY5 via the admin
+  API and revising the copy only (8 section edits, 4 new library sections,
+  Level 4 layout). Dry run by default; idempotent; refuses to edit a library
+  section attached to any other cohort; verifies the original is unchanged.
 - `node scripts/restore-generic-sections.mjs <export.json>` — restore emptied
   library sections from a full JSON export via the admin API (dry run by
   default; `APPLY=1` writes, `KEEP_LIVE_LEVEL=1` leaves defaultLevel alone,

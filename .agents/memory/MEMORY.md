@@ -11,3 +11,4 @@
 - [DB schema change workflow](db-schema-change-workflow.md) — after editing lib/db schema: `tsc -b lib/db` (stale composite types) + apply DDL via psql (drizzle push prompts interactively and silently no-ops non-TTY).
 - [Orval Params collision](orval-operationid-naming.md) — endpoints with path+query params break codegen (TS2308 in lib/api-zod); add explicit re-export in lib/api-zod/src/index.ts.
 - [zod v4 partial() keeps defaults](zod-partial-defaults.md) — never derive an update schema via createSchema.partial() when the create schema has .default(); absent fields get reset (wiped prod content once).
+- [jsonb key order](jsonb-key-order.md) — Postgres jsonb reorders object keys: never compare stored blocks with JSON.stringify, never rely on object key order for display.
