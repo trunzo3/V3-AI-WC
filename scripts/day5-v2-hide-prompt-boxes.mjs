@@ -10,8 +10,12 @@
 // ---------------------------------------------------------------------------
 const B = (process.env.API_BASE ?? "http://localhost:80").replace(/\/$/, "") + "/api";
 const APPLY = process.env.APPLY === "1";
-const CODE = "T4DAY5V2";
-const ORIGINAL_CODE = "T4DAY5";
+// Cohort codes. Defaults match dev; on the published app the v2 copy was
+// renamed to T4DAY5 and the original to AI-LEADER, so override via env:
+//   TARGET_CODE=T4DAY5 ORIGINAL_CODE=AI-LEADER
+const CODE = (process.env.TARGET_CODE ?? "T4DAY5V2").toUpperCase();
+const ORIGINAL_CODE = (process.env.ORIGINAL_CODE ?? "T4DAY5").toUpperCase();
+if (CODE === ORIGINAL_CODE) throw new Error("TARGET_CODE and ORIGINAL_CODE must differ");
 
 // section title -> formName, expected collectResponses, desired showPromptBox
 const FORMS = [
