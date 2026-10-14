@@ -1537,6 +1537,22 @@ export function SectionsTab({ cohortId }: Props) {
                                     data-testid={`input-generic-block-form-name-${idx}`}
                                   />
                                 </div>
+                                <div className="flex items-start gap-2">
+                                  <Checkbox
+                                    id={`form-show-prompt-box-${idx}`}
+                                    checked={block.showPromptBox ?? true}
+                                    onCheckedChange={(v) =>
+                                      updateBlock(idx, { showPromptBox: v === true })
+                                    }
+                                    data-testid={`checkbox-form-show-prompt-box-${idx}`}
+                                  />
+                                  <Label
+                                    htmlFor={`form-show-prompt-box-${idx}`}
+                                    className="text-xs font-normal leading-snug"
+                                  >
+                                    Show prompt box and Copy button — when off, the Submit button (if collecting) sits directly under the fields
+                                  </Label>
+                                </div>
                                 <div className="flex items-center gap-2">
                                   <Switch
                                     checked={block.collectResponses ?? false}

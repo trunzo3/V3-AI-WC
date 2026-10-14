@@ -1,0 +1,36 @@
+Add a per-form setting that hides the "Your prompt" box and its Copy button, then turn it off on nine forms in the v2 cohort only.
+
+PART 1: THE SETTING (app code)
+- Add an optional field to the form block type in lib/db/src/schema/generic-sections.ts: showPromptBox?: boolean. Default true. Missing = true, so every existing form keeps today's behavior. Do not reuse the legacy `preview` flag.
+- Accept it in the generic-section zod validation in artifacts/api-server/src/routes/admin.ts.
+- Participant view (artifacts/workshop/src/components/workshop/SectionRenderer.tsx): when showPromptBox is false, do not render the navy "Your prompt" box or the Copy button. If the form has collectResponses true, render the Submit button directly below the fields instead, with the same behavior as today: same assembled text and identifiers sent, "Submitted" + checkmark then "Resubmit", and the disabled "Submissions closed" state when responsesOpen is false. If collectResponses is false, render nothing below the fields. Fields still auto-save as notes exactly as now.
+- Admin section editor (artifacts/workshop/src/components/admin/tabs/SectionsTab.tsx): add a checkbox on each form block, "Show prompt box and Copy button", checked by default, data-testid "checkbox-form-show-prompt-box-<blockIndex>". Unchecking saves showPromptBox: false. Checking it again saves true.
+- Workbook PDF: no change in what prints. Fields and the submitted text still print as they do now.
+- Document the setting in replit.md under the form block options.
+- Run typecheck and test on dev: a form with the box hidden and Submit on, a form with the box hidden and Submit off, and an existing form with no setting (must look exactly as before).
+
+PART 2: TURN IT OFF IN THE V2 COHORT ONLY
+Write scripts/day5-v2-hide-prompt-boxes.mjs using the same pattern and safety rules as scripts/caltrans-day5-v2.mjs: admin API only, dry run by default, APPLY=1 to write, API_BASE for the published app, find sections through the v2 cohort's own Level 4 rows (cohort code T4DAY5V2), and stop with an error if any section it would edit is attached to any cohort other than T4DAY5V2. Change ONLY the showPromptBox flag on the named form block; send every other block and setting back unchanged. Safe to re-run.
+
+Set showPromptBox: false on these forms (section title → form's formName):
+1. Consider the Work → "Consider the Work"
+2. Build Your Mini-PRD → "Mini-PRD"
+3. Two Sentences → "Two sentences"
+4. Talk It Out → "What clicked"
+5. Draft with Instructions and Role → "Role notes"
+6. Real Work → "Real work"
+7. Cognitive Growth → "Next week"
+8. Red / Yellow / Green → "Red / Yellow / Green"
+9. Shadow AI → "Bring it home"
+
+Leave these unchanged (prompt box and Copy stay on):
+- Create Your Context → "Portable context"
+- Create Your Change Message → "Change message"
+
+Do not change collectResponses on any form. Confirm in the dry run that collectResponses is true on forms 1–4 and on "Change message", and false on forms 5–9. If any form doesn't match, report it and stop.
+
+ORDER
+1. Build Part 1 and test it on dev. Run Part 2 against dev with APPLY=1 and confirm the nine forms look right in the dev v2 cohort.
+2. Run Part 2 as a dry run against the published app and show me the plan.
+3. Stop and tell me to publish. Do not apply to the published app until I say "Published."
+4. After I say "Published," run Part 2 with APPLY=1 against the published app. Read the eleven forms back and report showPromptBox and collectResponses for each, and confirm cohort 1370 (T4DAY5) is unchanged.

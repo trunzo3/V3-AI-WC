@@ -287,6 +287,15 @@ Sections come from two sources:
    with " · " as a bold line (`response-identifiers-<id>`) under the
    form · section · time line; card Copy and Copy all never include it.
    The workbook still prints identifier fields with the rest of the form.
+   **`showPromptBox`** (default true; missing = true, distinct from the
+   legacy `preview` flag): when false the navy "Your prompt" box and its
+   Copy button are not rendered. If `collectResponses` is on, the Submit
+   button renders directly under the fields (`form-submit-row-<section>-
+   <block>`, same assembled text/identifiers, same Submitted/Resubmit/
+   "Submissions closed" states); otherwise nothing renders below the
+   fields. Fields still auto-save as notes; the workbook prints unchanged.
+   Editor checkbox "Show prompt box and Copy button"
+   (`checkbox-form-show-prompt-box-<blockIndex>`).
    **Board view** (`pages/admin/board.tsx`, wouter route
    `/admin/board/:cohortId/:sectionId/:blockIndex`): projector-style
    full-screen wall of one form's submissions, opened in a new tab via the

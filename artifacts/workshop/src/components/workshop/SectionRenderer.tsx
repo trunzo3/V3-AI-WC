@@ -449,6 +449,7 @@ function FormBlock({
   cardLayout = false,
   collectResponses = false,
   responsesOpen = true,
+  showPromptBox = true,
 }: {
   sectionId: string;
   blockIndex: number;
@@ -459,6 +460,7 @@ function FormBlock({
   cardLayout?: boolean;
   collectResponses?: boolean;
   responsesOpen?: boolean;
+  showPromptBox?: boolean;
 }) {
   // Live values, keyed by fieldKey. State (not a ref) so the assembled
   // preview re-renders as the participant types.
@@ -567,30 +569,51 @@ function FormBlock({
           </div>
         );
       })}
-      <div
-        className="bg-primary rounded-lg p-6 text-white"
-        data-testid="generic-prompt-block"
-      >
-        <span className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded mb-4">
-          Your prompt
-        </span>
-        <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono min-h-[1.5rem]">
-          {assembled ||
-            "Fill in the fields above and your prompt will assemble here."}
-        </pre>
-        <div className="flex flex-wrap items-center gap-3">
-          <CopyButton text={assembled} label={buttonLabel || "Copy"} />
-          {collectResponses && (
+      {showPromptBox ? (
+        <div
+          className="bg-primary rounded-lg p-6 text-white"
+          data-testid="generic-prompt-block"
+        >
+          <span className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded mb-4">
+            Your prompt
+          </span>
+          <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono min-h-[1.5rem]">
+            {assembled ||
+              "Fill in the fields above and your prompt will assemble here."}
+          </pre>
+          <div className="flex flex-wrap items-center gap-3">
+            <CopyButton text={assembled} label={buttonLabel || "Copy"} />
+            {collectResponses && (
+              <SubmitResponseButton
+                sectionId={sectionId}
+                blockIndex={blockIndex}
+                text={assembled}
+                identifiers={identifiers}
+                open={responsesOpen}
+              />
+            )}
+          </div>
+        </div>
+      ) : (
+        // Prompt box hidden: same submission (text + identifiers), just the
+        // button on its own under the fields. Nothing at all when the form
+        // doesn't collect responses.
+        collectResponses && (
+          <div
+            className="flex flex-wrap items-center gap-3"
+            data-testid={`form-submit-row-${sectionId}-${blockIndex}`}
+          >
             <SubmitResponseButton
               sectionId={sectionId}
               blockIndex={blockIndex}
               text={assembled}
               identifiers={identifiers}
               open={responsesOpen}
+              standalone
             />
-          )}
-        </div>
-      </div>
+          </div>
+        )
+      )}
     </div>
   );
 }
@@ -605,12 +628,16 @@ function SubmitResponseButton({
   text,
   identifiers,
   open,
+  standalone = false,
 }: {
   sectionId: string;
   blockIndex: number;
   text: string;
   identifiers: Record<string, string>;
   open: boolean;
+  // true when rendered on the page surface (prompt box hidden) rather than
+  // inside the navy prompt box.
+  standalone?: boolean;
 }) {
   const { toast } = useToast();
   const submit = useSubmitFormResponse();
@@ -659,7 +686,12 @@ function SubmitResponseButton({
       type="button"
       onClick={handleSubmit}
       disabled={!open || submit.isPending}
-      className="inline-flex items-center gap-1.5 bg-white/10 text-white border border-white/30 px-4 py-2 rounded text-xs font-bold hover:bg-white/20 transition-colors mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+      className={cn(
+        "inline-flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+        standalone
+          ? "bg-primary text-white hover:bg-primary/90"
+          : "bg-white/10 text-white border border-white/30 hover:bg-white/20 mt-4",
+      )}
       data-testid={`submit-response-${sectionId}-${blockIndex}`}
     >
       {justSubmitted && <Check className="w-3.5 h-3.5" />}
@@ -814,6 +846,7 @@ function GenericSectionView({
                 cardLayout={block.cardLayout ?? false}
                 collectResponses={block.collectResponses ?? false}
                 responsesOpen={block.responsesOpen ?? true}
+                showPromptBox={block.showPromptBox ?? true}
               />
             );
           case "download":

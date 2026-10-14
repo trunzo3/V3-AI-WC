@@ -269,6 +269,12 @@ export const ListSectionsResponse = zod.object({
                   .describe(
                     "For form blocks - when false, submissions are closed. Default true.",
                   ),
+                showPromptBox: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    'For form blocks - when false, the \"Your prompt\" box and its Copy button are hidden; the Submit button (if collectResponses) renders directly below the fields. Missing = true.\n',
+                  ),
                 template: zod
                   .string()
                   .optional()
@@ -988,6 +994,12 @@ export const AdminListGenericSectionsResponse = zod.object({
               .describe(
                 "For form blocks - when false, submissions are closed. Default true.",
               ),
+            showPromptBox: zod
+              .boolean()
+              .optional()
+              .describe(
+                'For form blocks - when false, the \"Your prompt\" box and its Copy button are hidden; the Submit button (if collectResponses) renders directly below the fields. Missing = true.\n',
+              ),
             template: zod
               .string()
               .optional()
@@ -1191,6 +1203,12 @@ export const AdminCreateGenericSectionBody = zod.object({
             .optional()
             .describe(
               "For form blocks - when false, submissions are closed. Default true.",
+            ),
+          showPromptBox: zod
+            .boolean()
+            .optional()
+            .describe(
+              'For form blocks - when false, the \"Your prompt\" box and its Copy button are hidden; the Submit button (if collectResponses) renders directly below the fields. Missing = true.\n',
             ),
           template: zod
             .string()
@@ -1421,6 +1439,12 @@ export const AdminUpdateGenericSectionBody = zod.object({
             .describe(
               "For form blocks - when false, submissions are closed. Default true.",
             ),
+          showPromptBox: zod
+            .boolean()
+            .optional()
+            .describe(
+              'For form blocks - when false, the \"Your prompt\" box and its Copy button are hidden; the Submit button (if collectResponses) renders directly below the fields. Missing = true.\n',
+            ),
           template: zod
             .string()
             .optional()
@@ -1630,6 +1654,12 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             .optional()
             .describe(
               "For form blocks - when false, submissions are closed. Default true.",
+            ),
+          showPromptBox: zod
+            .boolean()
+            .optional()
+            .describe(
+              'For form blocks - when false, the \"Your prompt\" box and its Copy button are hidden; the Submit button (if collectResponses) renders directly below the fields. Missing = true.\n',
             ),
           template: zod
             .string()

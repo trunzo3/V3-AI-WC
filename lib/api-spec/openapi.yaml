@@ -1315,6 +1315,12 @@ components:
         responsesOpen:
           type: boolean
           description: For form blocks - when false, submissions are closed. Default true.
+        showPromptBox:
+          type: boolean
+          description: >
+            For form blocks - when false, the "Your prompt" box and its Copy
+            button are hidden; the Submit button (if collectResponses) renders
+            directly below the fields. Missing = true.
         template:
           type: string
           description: >

@@ -1007,6 +1007,7 @@ const contentBlockSchema = z
       formName: z.string().optional(),
       collectResponses: z.boolean().optional(),
       responsesOpen: z.boolean().optional(),
+      showPromptBox: z.boolean().optional(),
     }),
     z.object({
       type: z.literal("download"),
