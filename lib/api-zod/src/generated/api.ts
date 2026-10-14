@@ -273,7 +273,13 @@ export const ListSectionsResponse = zod.object({
                   .boolean()
                   .optional()
                   .describe(
-                    'For form blocks - when false, the \"Your prompt\" box and its Copy button are hidden; the Submit button (if collectResponses) renders directly below the fields. Missing = true.\n',
+                    'For form blocks - when false, the dark \"Your prompt\" box with the assembled text is hidden; the Copy\/Submit action row renders with the fields instead. Missing = true.\n',
+                  ),
+                showCopyButton: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "For form blocks - whether the Copy button renders. Missing = same as the effective showPromptBox value.\n",
                   ),
                 template: zod
                   .string()
@@ -1011,7 +1017,13 @@ export const AdminListGenericSectionsResponse = zod.object({
               .boolean()
               .optional()
               .describe(
-                'For form blocks - when false, the \"Your prompt\" box and its Copy button are hidden; the Submit button (if collectResponses) renders directly below the fields. Missing = true.\n',
+                'For form blocks - when false, the dark \"Your prompt\" box with the assembled text is hidden; the Copy\/Submit action row renders with the fields instead. Missing = true.\n',
+              ),
+            showCopyButton: zod
+              .boolean()
+              .optional()
+              .describe(
+                "For form blocks - whether the Copy button renders. Missing = same as the effective showPromptBox value.\n",
               ),
             template: zod
               .string()
@@ -1221,7 +1233,13 @@ export const AdminCreateGenericSectionBody = zod.object({
             .boolean()
             .optional()
             .describe(
-              'For form blocks - when false, the \"Your prompt\" box and its Copy button are hidden; the Submit button (if collectResponses) renders directly below the fields. Missing = true.\n',
+              'For form blocks - when false, the dark \"Your prompt\" box with the assembled text is hidden; the Copy\/Submit action row renders with the fields instead. Missing = true.\n',
+            ),
+          showCopyButton: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - whether the Copy button renders. Missing = same as the effective showPromptBox value.\n",
             ),
           template: zod
             .string()
@@ -1456,7 +1474,13 @@ export const AdminUpdateGenericSectionBody = zod.object({
             .boolean()
             .optional()
             .describe(
-              'For form blocks - when false, the \"Your prompt\" box and its Copy button are hidden; the Submit button (if collectResponses) renders directly below the fields. Missing = true.\n',
+              'For form blocks - when false, the dark \"Your prompt\" box with the assembled text is hidden; the Copy\/Submit action row renders with the fields instead. Missing = true.\n',
+            ),
+          showCopyButton: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - whether the Copy button renders. Missing = same as the effective showPromptBox value.\n",
             ),
           template: zod
             .string()
@@ -1672,7 +1696,13 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             .boolean()
             .optional()
             .describe(
-              'For form blocks - when false, the \"Your prompt\" box and its Copy button are hidden; the Submit button (if collectResponses) renders directly below the fields. Missing = true.\n',
+              'For form blocks - when false, the dark \"Your prompt\" box with the assembled text is hidden; the Copy\/Submit action row renders with the fields instead. Missing = true.\n',
+            ),
+          showCopyButton: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form blocks - whether the Copy button renders. Missing = same as the effective showPromptBox value.\n",
             ),
           template: zod
             .string()

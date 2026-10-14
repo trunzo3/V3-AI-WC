@@ -71,10 +71,13 @@ export type GenericContentBlock =
       responsesOpen?: boolean;
       // Legacy flag: form blocks now always render the live preview box.
       preview?: boolean;
-      // When false, the navy "Your prompt" box and its Copy button are not
-      // rendered; the Submit button (if collectResponses) sits directly under
-      // the fields. Missing = true (today's behavior).
+      // When false, the navy "Your prompt" box (assembled text) is not
+      // rendered; the action row (Copy / Submit) sits with the fields.
+      // Missing = true.
       showPromptBox?: boolean;
+      // Whether the Copy button renders. Missing = falls back to the
+      // effective showPromptBox value, so older forms look unchanged.
+      showCopyButton?: boolean;
       // Optional assembly template. `{fieldKey}` placeholders (single braces)
       // are replaced live with that field's current value; empty fields
       // resolve to "" (no raw braces shown). Blank template falls back to the

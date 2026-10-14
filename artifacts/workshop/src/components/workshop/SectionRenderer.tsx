@@ -453,6 +453,7 @@ function FormBlock({
   collectResponses = false,
   responsesOpen = true,
   showPromptBox = true,
+  showCopyButton,
 }: {
   sectionId: string;
   blockIndex: number;
@@ -464,6 +465,8 @@ function FormBlock({
   collectResponses?: boolean;
   responsesOpen?: boolean;
   showPromptBox?: boolean;
+  // Missing = follows showPromptBox.
+  showCopyButton?: boolean;
 }) {
   // Live values, keyed by fieldKey. State (not a ref) so the assembled
   // preview re-renders as the participant types.
@@ -517,30 +520,37 @@ function FormBlock({
     return out;
   }, [fields, values]);
 
-  // With the prompt box hidden, a collecting form's Submit row lives with
-  // the fields: inside the last field's card (card layout) or directly under
-  // the last field (stacked layout).
+  const copyOn = showCopyButton ?? showPromptBox;
+
+  // With the prompt box hidden, the action row (Copy and/or Submit) lives
+  // with the fields: inside the last field's card (card layout) or directly
+  // under the last field (stacked layout). Nothing when neither applies.
   const renderedFields = fields.filter((f) => Boolean(f.fieldKey));
   const lastFieldKey = renderedFields[renderedFields.length - 1]?.fieldKey;
   const inlineSubmit =
-    !showPromptBox && collectResponses ? (
+    !showPromptBox && (collectResponses || copyOn) ? (
       <div
         className="flex flex-wrap items-center justify-end gap-3"
         data-testid={`form-submit-row-${sectionId}-${blockIndex}`}
       >
         {renderedFields.length > 1 && (
           <span className="text-xs text-muted-foreground mr-auto">
-            Sends all your answers above.
+            {collectResponses
+              ? "Sends all your answers above."
+              : "Copies all your answers above."}
           </span>
         )}
-        <SubmitResponseButton
-          sectionId={sectionId}
-          blockIndex={blockIndex}
-          text={assembled}
-          identifiers={identifiers}
-          open={responsesOpen}
-          standalone
-        />
+        {copyOn && <CopyButton text={assembled} label={buttonLabel || "Copy"} />}
+        {collectResponses && (
+          <SubmitResponseButton
+            sectionId={sectionId}
+            blockIndex={blockIndex}
+            text={assembled}
+            identifiers={identifiers}
+            open={responsesOpen}
+            standalone
+          />
+        )}
       </div>
     ) : null;
 
@@ -618,7 +628,7 @@ function FormBlock({
               "Fill in the fields above and your prompt will assemble here."}
           </pre>
           <div className="flex flex-wrap items-center gap-3">
-            <CopyButton text={assembled} label={buttonLabel || "Copy"} />
+            {copyOn && <CopyButton text={assembled} label={buttonLabel || "Copy"} />}
             {collectResponses && (
               <SubmitResponseButton
                 sectionId={sectionId}
@@ -898,6 +908,7 @@ function GenericSectionView({
                 collectResponses={block.collectResponses ?? false}
                 responsesOpen={block.responsesOpen ?? true}
                 showPromptBox={block.showPromptBox ?? true}
+                showCopyButton={block.showCopyButton}
               />
             );
           case "download":

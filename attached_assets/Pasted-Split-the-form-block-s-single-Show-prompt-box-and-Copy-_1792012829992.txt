@@ -1,0 +1,18 @@
+Split the form block's single "Show prompt box and Copy button" setting into two independent settings. Code only: no changes to any section content or data.
+
+SETTINGS
+- Keep showPromptBox?: boolean (default true) — controls only the dark "Your prompt" box with the assembled text.
+- Add showCopyButton?: boolean. When it is not set, it falls back to the form's showPromptBox value, so every existing form looks exactly as it does today (box shown = Copy shown; box hidden = no Copy). Add it to the type in lib/db/src/schema/generic-sections.ts, the zod validation in admin.ts, the OpenAPI spec if blocks are described there, and regenerate the client.
+
+PARTICIPANT VIEW (SectionRenderer.tsx)
+- Box shown, Copy on: as today (Copy and Submit inside the dark box).
+- Box shown, Copy off: dark box with the assembled text, no Copy button; Submit stays in the box if the form collects responses.
+- Box hidden, Copy on: no dark box and no "Your prompt" label. Render one action row in the same place the Submit row goes now (inside the last field's card under a thin divider with card layout; directly under the last field without it). The row holds the Copy button (copies the same assembled text the box would show, using the form's buttonLabel or "Copy"), then Submit with its status if the form collects responses. Muted text on the left when the form has more than one field: "Sends all your answers above." if it collects responses, otherwise "Copies all your answers above."
+- Box hidden, Copy off: as today (Submit row only if collecting, otherwise nothing).
+- Identifier fields stay excluded from copied and submitted text in every case.
+
+ADMIN EDITOR (SectionsTab.tsx)
+- Replace the single checkbox with two, in the Layout & responses area:
+  "Show prompt box — the dark 'Your prompt' box with the assembled text" (data-testid checkbox-form-show-prompt-box-<blockIndex>)
+  "Show Copy button" (data-testid checkbox-form-show-copy-button-<blockIndex>)
+- The Copy checkbox shows the effective value (its own

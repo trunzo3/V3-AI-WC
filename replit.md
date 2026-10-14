@@ -310,16 +310,23 @@ Sections come from two sources:
    form · section · time line; card Copy and Copy all never include it.
    The workbook still prints identifier fields with the rest of the form.
    **`showPromptBox`** (default true; missing = true, distinct from the
-   legacy `preview` flag): when false the navy "Your prompt" box and its
-   Copy button are not rendered. If `collectResponses` is on, the Submit
-   row (`form-submit-row-<section>-<block>`, same assembled text/
-   identifiers and the same button states) renders with the fields: card
-   layout → inside the LAST field's card under its text box behind a thin
-   divider, with muted "Sends all your answers above." on the left when the
-   form has more than one field; stacked layout → directly under the last
-   field. Otherwise nothing renders below the fields. Fields still auto-save as notes; the workbook prints unchanged.
-   Editor checkbox "Show prompt box and Copy button"
-   (`checkbox-form-show-prompt-box-<blockIndex>`).
+   legacy `preview` flag) controls only the navy "Your prompt" box with the
+   assembled text. **`showCopyButton`** (missing = follows the effective
+   `showPromptBox`, so older forms look unchanged) controls the Copy button.
+   Box shown: Copy (if on) and Submit (if collecting) sit inside the box.
+   Box hidden: one action row (`form-submit-row-<section>-<block>`) renders
+   with the fields — card layout → inside the LAST field's card under its
+   text box behind a thin divider; stacked layout → directly under the last
+   field — holding Copy (if on; same assembled text, `buttonLabel` or
+   "Copy") then Submit + status (if collecting). With more than one field
+   the row shows muted text on the left: "Sends all your answers above." if
+   collecting, else "Copies all your answers above." Box hidden, Copy off,
+   not collecting → nothing below the fields. Identifier fields are excluded
+   from copied and submitted text in every case. Fields still auto-save as
+   notes; the workbook prints unchanged. Editor checkboxes "Show prompt box"
+   (`checkbox-form-show-prompt-box-<blockIndex>`) and "Show Copy button"
+   (`checkbox-form-show-copy-button-<blockIndex>`, displays the effective
+   value and writes an explicit `showCopyButton` when toggled).
    **Board view** (`pages/admin/board.tsx`, wouter route
    `/admin/board/:cohortId/:sectionId/:blockIndex`): projector-style
    full-screen wall of one form's submissions, opened in a new tab via the

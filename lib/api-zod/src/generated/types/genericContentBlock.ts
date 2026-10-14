@@ -64,9 +64,12 @@ export interface GenericContentBlock {
   collectResponses?: boolean;
   /** For form blocks - when false, submissions are closed. Default true. */
   responsesOpen?: boolean;
-  /** For form blocks - when false, the "Your prompt" box and its Copy button are hidden; the Submit button (if collectResponses) renders directly below the fields. Missing = true.
+  /** For form blocks - when false, the dark "Your prompt" box with the assembled text is hidden; the Copy/Submit action row renders with the fields instead. Missing = true.
    */
   showPromptBox?: boolean;
+  /** For form blocks - whether the Copy button renders. Missing = same as the effective showPromptBox value.
+   */
+  showCopyButton?: boolean;
   /** For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.
    */
   template?: string;
