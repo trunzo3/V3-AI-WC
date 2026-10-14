@@ -257,6 +257,19 @@ paths:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /responses/mine:
+    get:
+      operationId: listMyFormSubmissions
+      tags: [responses]
+      summary: The participant's own form submissions (section, block, last submitted time)
+      responses:
+        "200":
+          description: Submissions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MyFormSubmissionsResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /workflow-map:
     get:
       operationId: getWorkflowMap
@@ -1489,6 +1502,22 @@ components:
       required: [response]
       properties:
         response: { $ref: "#/components/schemas/FormResponseRecord" }
+
+    MyFormSubmission:
+      type: object
+      required: [sectionId, blockIndex, updatedAt]
+      properties:
+        sectionId: { type: string }
+        blockIndex: { type: integer }
+        updatedAt: { type: string, format: date-time }
+
+    MyFormSubmissionsResponse:
+      type: object
+      required: [submissions]
+      properties:
+        submissions:
+          type: array
+          items: { $ref: "#/components/schemas/MyFormSubmission" }
 
     AdminFormResponse:
       allOf:

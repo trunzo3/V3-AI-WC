@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Section,
   GenericContentBlock,
@@ -9,6 +9,9 @@ import {
   getNotes,
   getGetNotesQueryKey,
   useSubmitFormResponse,
+  useListMyFormSubmissions,
+  getListMyFormSubmissionsQueryKey,
+  type MyFormSubmissionsResponse,
 } from "@workspace/api-client-react";
 import { Lock, ExternalLink, Download, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -514,22 +517,52 @@ function FormBlock({
     return out;
   }, [fields, values]);
 
+  // With the prompt box hidden, a collecting form's Submit row lives with
+  // the fields: inside the last field's card (card layout) or directly under
+  // the last field (stacked layout).
+  const renderedFields = fields.filter((f) => Boolean(f.fieldKey));
+  const lastFieldKey = renderedFields[renderedFields.length - 1]?.fieldKey;
+  const inlineSubmit =
+    !showPromptBox && collectResponses ? (
+      <div
+        className="flex flex-wrap items-center justify-end gap-3"
+        data-testid={`form-submit-row-${sectionId}-${blockIndex}`}
+      >
+        {renderedFields.length > 1 && (
+          <span className="text-xs text-muted-foreground mr-auto">
+            Sends all your answers above.
+          </span>
+        )}
+        <SubmitResponseButton
+          sectionId={sectionId}
+          blockIndex={blockIndex}
+          text={assembled}
+          identifiers={identifiers}
+          open={responsesOpen}
+          standalone
+        />
+      </div>
+    ) : null;
+
   return (
     <div className={cn("mb-6", cardLayout ? "space-y-4" : "space-y-5")}>
       {fields.map((f) => {
         if (!f.fieldKey) return null;
+        const isLast = f.fieldKey === lastFieldKey;
         if (!cardLayout) {
           return (
-            <NotesField
-              key={f.fieldKey}
-              sectionId={sectionId}
-              fieldKey={f.fieldKey}
-              label={f.label ?? ""}
-              placeholder={f.placeholder}
-              helpText={f.helpText}
-              multiline={f.multiline ?? true}
-              onValueChange={handleValueChange}
-            />
+            <div key={f.fieldKey} className={isLast && inlineSubmit ? "space-y-3" : undefined}>
+              <NotesField
+                sectionId={sectionId}
+                fieldKey={f.fieldKey}
+                label={f.label ?? ""}
+                placeholder={f.placeholder}
+                helpText={f.helpText}
+                multiline={f.multiline ?? true}
+                onValueChange={handleValueChange}
+              />
+              {isLast && inlineSubmit}
+            </div>
           );
         }
         // Card layout: one bordered card per field, matching the hardcoded
@@ -566,10 +599,13 @@ function FormBlock({
               multiline={f.multiline ?? true}
               onValueChange={handleValueChange}
             />
+            {isLast && inlineSubmit && (
+              <div className="border-t pt-3 mt-3">{inlineSubmit}</div>
+            )}
           </div>
         );
       })}
-      {showPromptBox ? (
+      {showPromptBox && (
         <div
           className="bg-primary rounded-lg p-6 text-white"
           data-testid="generic-prompt-block"
@@ -594,34 +630,24 @@ function FormBlock({
             )}
           </div>
         </div>
-      ) : (
-        // Prompt box hidden: same submission (text + identifiers), just the
-        // button on its own under the fields. Nothing at all when the form
-        // doesn't collect responses.
-        collectResponses && (
-          <div
-            className="flex flex-wrap items-center gap-3"
-            data-testid={`form-submit-row-${sectionId}-${blockIndex}`}
-          >
-            <SubmitResponseButton
-              sectionId={sectionId}
-              blockIndex={blockIndex}
-              text={assembled}
-              identifiers={identifiers}
-              open={responsesOpen}
-              standalone
-            />
-          </div>
-        )
       )}
     </div>
   );
 }
 
-// Sends the assembled text to the facilitator. Shows "Submitted" with a
-// checkmark after success; the label flips to "Resubmit" so the participant
-// can send an updated version. Disabled with "Submissions closed" when the
-// admin has closed the form.
+// Sends the assembled text to the facilitator. Before the first submission
+// the button reads "Submit"; afterwards a green "✓ Submitted <time>" status
+// sits beside it and the button reads "Update submission" (same request,
+// refreshes the time). The participant's existing submissions come from
+// GET /responses/mine so the state survives a reload. Disabled with
+// "Submissions closed" when the admin has closed the form.
+const formatSubmittedAt = (iso: string | null | undefined) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+};
+
 function SubmitResponseButton({
   sectionId,
   blockIndex,
@@ -640,9 +666,17 @@ function SubmitResponseButton({
   standalone?: boolean;
 }) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const submit = useSubmitFormResponse();
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [justSubmitted, setJustSubmitted] = useState(false);
+  const mineKey = getListMyFormSubmissionsQueryKey();
+  const { data: mine } = useListMyFormSubmissions({
+    query: { queryKey: mineKey, staleTime: 60_000 },
+  });
+  const existing = mine?.submissions.find(
+    (r) => r.sectionId === sectionId && r.blockIndex === blockIndex,
+  );
+  const submittedAt = existing?.updatedAt ?? null;
+  const hasSubmitted = Boolean(existing);
 
   const handleSubmit = () => {
     if (!open || submit.isPending) return;
@@ -656,10 +690,15 @@ function SubmitResponseButton({
         },
       },
       {
-        onSuccess: () => {
-          setHasSubmitted(true);
-          setJustSubmitted(true);
-          setTimeout(() => setJustSubmitted(false), 2000);
+        onSuccess: (res) => {
+          const saved = res.response;
+          // Update the cached list in place so the status flips immediately.
+          queryClient.setQueryData(mineKey, (prev: MyFormSubmissionsResponse | undefined) => {
+            const rest = (prev?.submissions ?? []).filter(
+              (r) => !(r.sectionId === sectionId && r.blockIndex === blockIndex),
+            );
+            return { submissions: [...rest, { sectionId, blockIndex, updatedAt: saved.updatedAt }] };
+          });
         },
         onError: (err) => {
           const msg =
@@ -673,30 +712,42 @@ function SubmitResponseButton({
 
   const label = !open
     ? "Submissions closed"
-    : justSubmitted
-      ? "Submitted"
-      : submit.isPending
-        ? "Submitting…"
-        : hasSubmitted
-          ? "Resubmit"
-          : "Submit";
+    : submit.isPending
+      ? "Submitting…"
+      : hasSubmitted
+        ? "Update submission"
+        : "Submit";
+  const time = formatSubmittedAt(submittedAt);
 
   return (
-    <button
-      type="button"
-      onClick={handleSubmit}
-      disabled={!open || submit.isPending}
-      className={cn(
-        "inline-flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-        standalone
-          ? "bg-primary text-white hover:bg-primary/90"
-          : "bg-white/10 text-white border border-white/30 hover:bg-white/20 mt-4",
+    <span className={cn("inline-flex flex-wrap items-center gap-3", !standalone && "mt-4")}>
+      {hasSubmitted && (
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 text-xs font-semibold",
+            standalone ? "text-green-700" : "text-green-300",
+          )}
+          data-testid={`submitted-status-${sectionId}-${blockIndex}`}
+        >
+          <Check className="w-3.5 h-3.5" />
+          Submitted{time ? ` ${time}` : ""}
+        </span>
       )}
-      data-testid={`submit-response-${sectionId}-${blockIndex}`}
-    >
-      {justSubmitted && <Check className="w-3.5 h-3.5" />}
-      {label}
-    </button>
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={!open || submit.isPending}
+        className={cn(
+          "inline-flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+          standalone
+            ? "bg-primary text-white hover:bg-primary/90"
+            : "bg-white/10 text-white border border-white/30 hover:bg-white/20",
+        )}
+        data-testid={`submit-response-${sectionId}-${blockIndex}`}
+      >
+        {label}
+      </button>
+    </span>
   );
 }
 

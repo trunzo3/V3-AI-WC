@@ -447,6 +447,19 @@ export const SubmitFormResponseResponse = zod.object({
 });
 
 /**
+ * @summary The participant's own form submissions (section, block, last submitted time)
+ */
+export const ListMyFormSubmissionsResponse = zod.object({
+  submissions: zod.array(
+    zod.object({
+      sectionId: zod.string(),
+      blockIndex: zod.number(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
  * @summary Get the current participant's workflow map document
  */
 export const GetWorkflowMapResponse = zod.object({

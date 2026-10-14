@@ -52,6 +52,22 @@ export async function findCollectingFormBlock(
 
 // POST /api/responses — participant submits (or resubmits) the assembled
 // text of one collecting form block. Upserts on (participant, section, block).
+// The participant's own submissions (one row per form block), so the client
+// can show "Submitted <time>" after a reload without a schema change.
+router.get("/responses/mine", requireParticipant, async (req, res) => {
+  const { participantId } = getParticipantContext(req);
+  const rows = await db
+    .select({
+      sectionId: formResponsesTable.sectionId,
+      blockIndex: formResponsesTable.blockIndex,
+      updatedAt: formResponsesTable.updatedAt,
+    })
+    .from(formResponsesTable)
+    .where(eq(formResponsesTable.participantId, participantId));
+  res.set("Cache-Control", "no-store");
+  res.json({ submissions: rows });
+});
+
 router.post("/responses", requireParticipant, async (req, res) => {
   const parsed = submitSchema.safeParse(req.body);
   if (!parsed.success) {

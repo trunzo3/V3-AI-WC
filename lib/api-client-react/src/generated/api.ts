@@ -87,6 +87,7 @@ import type {
   LoginRequest,
   LoginResponse,
   MeResponse,
+  MyFormSubmissionsResponse,
   NotFoundResponse,
   NoteResponse,
   NoteUpsertRequest,
@@ -1118,6 +1119,81 @@ export const useSubmitFormResponse = <
 > => {
   return useMutation(getSubmitFormResponseMutationOptions(options));
 };
+
+/**
+ * @summary The participant's own form submissions (section, block, last submitted time)
+ */
+export const getListMyFormSubmissionsUrl = () => {
+  return `/api/responses/mine`;
+};
+
+export const listMyFormSubmissions = async (
+  options?: RequestInit,
+): Promise<MyFormSubmissionsResponse> => {
+  return customFetch<MyFormSubmissionsResponse>(getListMyFormSubmissionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListMyFormSubmissionsQueryKey = () => {
+  return [`/api/responses/mine`] as const;
+};
+
+export const getListMyFormSubmissionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMyFormSubmissions>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMyFormSubmissions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListMyFormSubmissionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listMyFormSubmissions>>
+  > = ({ signal }) => listMyFormSubmissions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMyFormSubmissions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMyFormSubmissionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMyFormSubmissions>>
+>;
+export type ListMyFormSubmissionsQueryError = ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary The participant's own form submissions (section, block, last submitted time)
+ */
+
+export function useListMyFormSubmissions<
+  TData = Awaited<ReturnType<typeof listMyFormSubmissions>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMyFormSubmissions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMyFormSubmissionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get the current participant's workflow map document

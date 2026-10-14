@@ -270,9 +270,15 @@ Sections come from two sources:
    `POST /api/responses` (`{sectionId, blockIndex, responseText}`;
    `blockIndex` = position in `contentBlocks`) — stored in `form_responses`
    (unique per participant+section+block; resubmit updates the row). The
-   button shows "Submitted" + checkmark then "Resubmit". `responsesOpen`
-   (default true) false → disabled "Submissions closed" and the API returns
-   403. The route rejects non-form / non-collecting blocks (400) and locked
+   button reads "Submit" → "Submitting…" (disabled) → after success a green
+   "✓ Submitted h:mm" status (`submitted-status-<section>-<block>`,
+   participant's local time from the row's `updatedAt`) sits beside the
+   button, which now reads "Update submission" (same request, refreshes the
+   time). Prior submissions are loaded from `GET /api/responses/mine`
+   (`listMyFormSubmissions`: sectionId, blockIndex, updatedAt) so the state
+   survives a reload. `responsesOpen` (default true) false → disabled
+   "Submissions closed" (the ✓ Submitted status still shows if they had
+   submitted) and the API returns 403. The route rejects non-form / non-collecting blocks (400) and locked
    sections (404, via `lib/section-access.ts`). `formName` labels the form
    in the admin **Responses** tab (COHORT group, `tabs/ResponsesTab.tsx`):
    `GET /api/admin/cohorts/:cohortId/responses?sectionId=&blockIndex=`,
@@ -295,10 +301,12 @@ Sections come from two sources:
    **`showPromptBox`** (default true; missing = true, distinct from the
    legacy `preview` flag): when false the navy "Your prompt" box and its
    Copy button are not rendered. If `collectResponses` is on, the Submit
-   button renders directly under the fields (`form-submit-row-<section>-
-   <block>`, same assembled text/identifiers, same Submitted/Resubmit/
-   "Submissions closed" states); otherwise nothing renders below the
-   fields. Fields still auto-save as notes; the workbook prints unchanged.
+   row (`form-submit-row-<section>-<block>`, same assembled text/
+   identifiers and the same button states) renders with the fields: card
+   layout → inside the LAST field's card under its text box behind a thin
+   divider, with muted "Sends all your answers above." on the left when the
+   form has more than one field; stacked layout → directly under the last
+   field. Otherwise nothing renders below the fields. Fields still auto-save as notes; the workbook prints unchanged.
    Editor checkbox "Show prompt box and Copy button"
    (`checkbox-form-show-prompt-box-<blockIndex>`).
    **Board view** (`pages/admin/board.tsx`, wouter route

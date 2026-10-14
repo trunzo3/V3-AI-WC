@@ -114,6 +114,8 @@ export * from "./llmToolsResponse";
 export * from "./loginRequest";
 export * from "./loginResponse";
 export * from "./meResponse";
+export * from "./myFormSubmission";
+export * from "./myFormSubmissionsResponse";
 export * from "./note";
 export * from "./noteRecord";
 export * from "./noteResponse";

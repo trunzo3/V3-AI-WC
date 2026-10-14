@@ -1,0 +1,23 @@
+Two display changes to the form Submit button. Code only: no changes to section content, responses data, the Responses tab, or the workbook PDF.
+
+1. NEW SUBMIT WORDING (every form with collectResponses true, whether the prompt box is shown or hidden)
+- Not yet submitted: button reads "Submit".
+- While sending: button reads "Submitting…" and is disabled.
+- After a successful submit: show a small green status "✓ Submitted" followed by the time of the most recent submission (e.g. "✓ Submitted 1:42 PM", participant's local time) next to the button, and change the button text to "Update submission". Pressing it again works exactly like today's Resubmit and refreshes the time.
+- If the participant already submitted earlier (e.g. after a page reload), show the same "✓ Submitted" status and "Update submission" button. If the stored submission time is available, show it; if not, show "✓ Submitted" without a time. Do not add a schema change just for this.
+- Submissions closed (responsesOpen false): keep the disabled "Submissions closed" button. If they had already submitted, still show "✓ Submitted" (with time if available) next to it.
+- Keep the existing error handling.
+- Replace the old "Submitted" + checkmark → "Resubmit" behavior everywhere.
+
+2. BUTTON INSIDE THE CARD (only forms with showPromptBox false)
+- Card layout on: render the Submit row inside the LAST field's card, directly under its text box, separated by a thin divider. If the form has more than one field, show muted text to the left of the button: "Sends all your answers above."
+- Card layout off: render the Submit row directly under the last field, aligned with the fields.
+- Forms that don't collect responses: render nothing below the fields (unchanged).
+- Forms with the prompt box shown: keep Copy and Submit inside the dark prompt box as now, with the new wording from part 1.
+
+TEST ON DEV
+- A one-field form with the box hidden (like Consider the Work): button inside the card, all states (Submit, Submitting…, ✓ Submitted + time, Update submission, Submissions closed).
+- A multi-field form with the box hidden and identifier fields (like Build Your Mini-PRD): button inside the last card, "Sends all your answers above." shown, identifiers still sent and still excluded from the text.
+- A form with the box shown (like Create Your Change Message): Copy and Submit still in the dark box, new wording.
+- Reload the page after submitting and confirm the "✓ Submitted" state comes back.
+Update replit.md where it describes the Submit button. Then tell me it's ready to publish.

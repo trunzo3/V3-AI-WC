@@ -344,6 +344,16 @@ export interface FormResponseSubmitResponse {
   response: FormResponseRecord;
 }
 
+export interface MyFormSubmission {
+  sectionId: string;
+  blockIndex: number;
+  updatedAt: string;
+}
+
+export interface MyFormSubmissionsResponse {
+  submissions: MyFormSubmission[];
+}
+
 export type AdminFormResponse = FormResponseRecord & {
   participantName: string;
   sectionTitle: string;
