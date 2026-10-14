@@ -136,6 +136,11 @@ object). All others use the documented OpenAPI shapes.
   API and revising the copy only (8 section edits, 4 new library sections,
   Level 4 layout). Dry run by default; idempotent; refuses to edit a library
   section attached to any other cohort; verifies the original is unchanged.
+- `[API_BASE=…] [APPLY=1] [TARGET_CODE=T4DAY5 ORIGINAL_CODE=AI-LEADER] node scripts/day5-v2-hide-prompt-boxes.mjs`
+  — sets `showPromptBox: false` on nine named forms in the Day 5 v2 cohort
+  (default codes T4DAY5V2 / T4DAY5; on production the v2 copy is cohort 1963
+  code T4DAY5 and the original is 1370 code AI-LEADER). Dry run by default,
+  same safety rules as caltrans-day5-v2.mjs.
 - `node scripts/restore-generic-sections.mjs <export.json>` — restore emptied
   library sections from a full JSON export via the admin API (dry run by
   default; `APPLY=1` writes, `KEEP_LIVE_LEVEL=1` leaves defaultLevel alone,

@@ -94,7 +94,13 @@ for (const [title, formName, expectCollect, desired] of FORMS) {
   const row = matches[0];
   const g = generics.get(gid(row.sectionId));
   const idxs = g.contentBlocks.map((b, i) => (b.type === "form" && (b.formName ?? "") === formName ? i : -1)).filter((i) => i >= 0);
-  if (idxs.length !== 1) { problems.push(`"${title}": expected one form block named "${formName}", found ${idxs.length}`); continue; }
+  if (idxs.length === 0) {
+    // The form was removed from this cohort's copy (happened on production
+    // for "Role notes"); nothing to change, so report and move on.
+    console.log(`  ${row.sectionId} "${title}": no form named "${formName}" in this section — skipped`);
+    continue;
+  }
+  if (idxs.length > 1) { problems.push(`"${title}": expected one form block named "${formName}", found ${idxs.length}`); continue; }
   const bi = idxs[0];
   const block = g.contentBlocks[bi];
   const collect = block.collectResponses ?? false;
