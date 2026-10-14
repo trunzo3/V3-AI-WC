@@ -8,15 +8,24 @@ import { ALL_SECTIONS } from "./sections";
 import { buildSectionIdToCodeMap } from "../section-codes-config";
 
 /**
+ * Built-ins that belong in a cohort's starting set. Level 4 holds library
+ * (generic_) sections only, so the Level 4 built-ins are never inserted into a
+ * cohort — their component code, workbook content and catalog entries stay
+ * available for cohorts that already carry them.
+ */
+export const STARTING_SET_SECTIONS: ReadonlyArray<(typeof ALL_SECTIONS)[number]> =
+  ALL_SECTIONS.filter((s) => s.level !== 4);
+
+/**
  * Build the default cohort_sections rows for a freshly-created cohort by
- * mapping ALL_SECTIONS through SECTION_CODE_CONFIG. Sort order is grouped by
- * level: ascending sort_order within each level group.
+ * mapping STARTING_SET_SECTIONS through SECTION_CODE_CONFIG. Sort order is
+ * grouped by level: ascending sort_order within each level group.
  */
 export function buildDefaultCohortSectionRows(
   cohortId: number,
 ): InsertCohortSection[] {
   const codeMap = buildSectionIdToCodeMap();
-  return ALL_SECTIONS.map((s) => ({
+  return STARTING_SET_SECTIONS.map((s) => ({
     cohortId,
     sectionId: s.id,
     level: s.level,
@@ -56,9 +65,11 @@ export async function resetCohortSectionsToDefaults(
 }
 
 /**
- * Additive-only sync: for each section in ALL_SECTIONS that does NOT already
- * exist in the cohort's cohort_sections, insert it at the end of its level.
- * Never deletes, reorders, or modifies existing rows.
+ * Additive-only sync: for each section in the starting set that does NOT
+ * already exist in the cohort's cohort_sections, insert it at the end of its
+ * level. Never deletes, reorders, or modifies existing rows. NOT run by the
+ * startup seed any more — existing cohorts are never added to automatically;
+ * kept only for explicit, manual use.
  */
 export async function addMissingSectionsForCohort(
   cohortId: number,
@@ -71,7 +82,7 @@ export async function addMissingSectionsForCohort(
 
   if (existingIds.size === 0) {
     await seedCohortSections(cohortId);
-    return ALL_SECTIONS.length;
+    return STARTING_SET_SECTIONS.length;
   }
 
   const allRows = await db
@@ -88,7 +99,7 @@ export async function addMissingSectionsForCohort(
 
   const codeMap = buildSectionIdToCodeMap();
   const toInsert: InsertCohortSection[] = [];
-  for (const s of ALL_SECTIONS) {
+  for (const s of STARTING_SET_SECTIONS) {
     if (existingIds.has(s.id)) continue;
     maxSort[s.level] = (maxSort[s.level] ?? 0) + 1;
     toInsert.push({

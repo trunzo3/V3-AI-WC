@@ -20,7 +20,7 @@ import {
 } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { logger } from "./lib/logger";
-import { seedCohortSections, addMissingSectionsForCohort } from "./lib/cohort-sections";
+import { seedCohortSections } from "./lib/cohort-sections";
 import {
   ensureSeededGenericSections,
   BASE_COHORT_CODES,
@@ -88,7 +88,7 @@ async function ensureSeedCohorts(): Promise<void> {
     // starts can run this seed in several instances at once). onConflictDoNothing
     // makes a losing racer a no-op instead of throwing on the cohort_code unique
     // index; the re-select below then resolves the existing row either way.
-    await db
+    const inserted = await db
       .insert(cohortsTable)
       .values({
         name: setup.name,
@@ -97,7 +97,11 @@ async function ensureSeedCohorts(): Promise<void> {
         facilitatorMessage: DEFAULT_FACILITATOR_MESSAGE,
         tierAccess: setup.tierAccess,
       })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning({ id: cohortsTable.id });
+    // Only a cohort this boot actually created gets its starting set; an
+    // existing cohort's sections are never touched by the seed.
+    if (inserted[0]) await seedCohortSections(inserted[0].id);
     const [existing] = await db
       .select({ id: cohortsTable.id })
       .from(cohortsTable)
@@ -134,24 +138,6 @@ async function backfillTierAccess(): Promise<void> {
   if (updated > 0) {
     logger.info({ updated }, "Backfilled tier_access on existing cohorts.");
   }
-}
-
-/**
- * For every cohort, add any sections from ALL_SECTIONS that don't already exist
- * in cohort_sections. Never deletes, reorders, or modifies existing rows — this
- * preserves admin-configured display names, codes, ordering, and visibility.
- */
-async function addMissingSectionsAllCohorts(): Promise<void> {
-  const cohorts = await db.select({ id: cohortsTable.id }).from(cohortsTable);
-  let totalAdded = 0;
-  for (const c of cohorts) {
-    const added = await addMissingSectionsForCohort(c.id);
-    totalAdded += added;
-  }
-  logger.info(
-    { cohortCount: cohorts.length, totalAdded },
-    "Additive sync: inserted missing sections for all cohorts.",
-  );
 }
 
 async function ensureLlmTools(): Promise<void> {
@@ -226,7 +212,9 @@ export async function runSeed(): Promise<void> {
   logger.info("Running seed...");
   await ensureSeedCohorts();
   await backfillTierAccess();
-  await addMissingSectionsAllCohorts();
+  // Deliberately no section sync for existing cohorts: the app never adds
+  // sections to an existing cohort on its own. Only a brand-new cohort gets
+  // its starting set (seedCohortSections, at creation time).
   await ensureSeededGenericSections();
   await ensureLlmTools();
   await ensureSafariLibrary();

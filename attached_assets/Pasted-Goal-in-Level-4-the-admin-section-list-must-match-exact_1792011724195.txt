@@ -1,0 +1,25 @@
+Goal: in Level 4, the admin section list must match exactly what participants see, and the app must never add sections to an existing cohort on its own. Two parts: a code change, then a one-time cleanup across ALL cohorts. Level 4 only for the cleanup.
+
+PART 1: CODE CHANGES
+1. Stop the startup seed from adding sections to existing cohorts. Remove addMissingSectionsAllCohorts() from runSeed() in artifacts/api-server/src/seed.ts (and from the seed CLI path). A brand-new cohort with zero sections still gets its starting set when it is created (seedCohortSections); existing cohorts are never added to automatically. Leave the seeded Level 3 module logic (ensureSeededGenericSections and its tombstones) as it is.
+2. Level 4 built-ins are no longer part of any starting set. In the code that builds a new cohort's default sections (seedCohortSections, resetCohortSectionsToDefaults, and anything else that inserts from ALL_SECTIONS), skip every built-in whose level is 4 (advocating-adoption, addressing-resistance, navigating-risk, cognitive-erosion, team-prompt-libraries, reporting-ai-failures, status-quo-bias, county-change-framework, county-change-message). Do not delete their component code, workbook content, or catalog entries; just never insert them into a cohort again.
+3. Update replit.md to describe the new rules: no automatic additions to existing cohorts; Level 4 holds library sections only.
+
+PART 2: ONE-TIME CLEANUP SCRIPT (all cohorts, Level 4 only)
+Write scripts/level4-cleanup.mjs. Admin API only, dry run by default, APPLY=1 to write, API_BASE for the published app. Safe to re-run. Never touch Level 1, 2 or 3 rows. Never delete library sections, participants, notes, unlocks or responses.
+
+For every cohort:
+a. RICECO: if Level 4 has a row with sectionId "riceco-framework", convert it with the existing endpoint POST /api/admin/cohorts/:cohortId/sections/riceco-framework/make-editable. It must keep its position, code and visibility. Do this before step c.
+b. After conversions, re-read the cohort's rows.
+c. Remove from Level 4: every row whose sectionId does not start with "generic_" (any remaining built-in), and every row with visible = false (built-in or library).
+d. Save with PUT /api/admin/cohorts/:cohortId/sections (raw array): all Level 1–3 rows exactly as they are, plus the remaining Level 4 rows in their current order with sortOrder renumbered 0..n-1 and no other changes.
+e. After saving, every Level 4 row must be visible = true and start with "generic_". If not, stop with an error.
+
+Dry-run report, per cohort: name and code; Level 4 rows to convert (RICECO); Level 4 rows to remove (title, sectionId, visible); final Level 4 list in order. Also list, for information only, any hidden rows in Levels 1–3 (do not change them).
+
+ORDER
+1. Build Part 1, typecheck, and test on dev: restart the dev server and confirm no rows are added to any existing cohort; create a new test cohort and confirm it gets no Level 4 built-ins.
+2. Run Part 2 on dev with APPLY=1, restart the dev server, and confirm nothing came back.
+3. Run Part 2 as a dry run against the published app and show me the full report.
+4. Stop and tell me to publish. Part 1 must be live before the cleanup, or the old startup seed will add the built-ins back. Do not apply to the published app until I say "Published."
+5. After I say "Published," run Part 2 with APPLY=1 against the published app, then read every cohort back and report its final Level 4 list and confirm no Level 4 row is hidden or built-in.

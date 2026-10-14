@@ -165,9 +165,20 @@ Required env vars (managed via Replit Secrets):
   appear for participants.
 - The default cohort is seeded with code `WORKSHOP`. Lookups are
   case-insensitive (`lower(cohort_code) = lower(input)`).
-- Creating a new cohort auto-seeds `cohort_sections` from
-  `artifacts/api-server/src/lib/sections.ts` (`ALL_SECTIONS` +
-  `SECTION_CODE_CONFIG`).
+- Creating a new cohort auto-seeds `cohort_sections` from the **starting
+  set** (`STARTING_SET_SECTIONS` in `lib/cohort-sections.ts` = `ALL_SECTIONS`
+  minus every Level 4 built-in, + `SECTION_CODE_CONFIG`). **Level 4 holds
+  library (`generic_`) sections only**: the Level 4 built-ins
+  (advocating-adoption, addressing-resistance, navigating-risk,
+  cognitive-erosion, team-prompt-libraries, reporting-ai-failures,
+  status-quo-bias, county-change-framework, county-change-message) keep
+  their component code, workbook content and catalog entries but are never
+  inserted into a cohort again. **The app never adds sections to an
+  existing cohort on its own** — the startup seed no longer syncs
+  `cohort_sections` (only seeded Level 3 modules, see below).
+  `scripts/level4-cleanup.mjs` (admin API, dry run / `APPLY=1`, `API_BASE`)
+  is the one-time cleanup that converted RICECO rows and removed built-in /
+  hidden rows from Level 4 in every cohort.
 
 ### Workbook PDF export
 
@@ -345,15 +356,13 @@ Sections come from two sources:
    library files) as one download button each and renders nothing when the
    section has no files.
 
-Running the seed (`pnpm --filter @workspace/api-server run seed`) performs an
-**additive-only** sync: it inserts any sections from `ALL_SECTIONS` that are
-missing from each cohort's `cohort_sections`, but never deletes, reorders, or
-modifies existing rows. This preserves admin-configured display names, codes,
-ordering, and visibility. If a cohort has zero sections (empty), the seed falls
-back to `seedCohortSections` which inserts the full canonical set with default
-sort orders. The destructive `resetCohortSectionsToDefaults` function still
-exists for the admin "reset sections" action but is no longer called by the
-seed script.
+Running the seed (`pnpm --filter @workspace/api-server run seed`, also on
+every server start) **never adds built-in sections to an existing cohort**.
+Only a cohort the seed itself creates (the base cohorts, first boot) or an
+admin-created cohort gets the starting set via `seedCohortSections`; the
+former additive sync (`addMissingSectionsAllCohorts`) was removed. The
+destructive `resetCohortSectionsToDefaults` function still exists but is not
+called by the seed; like the starting set it skips Level 4 built-ins.
 
 A participant sees a section when ANY of these are true:
 - The cohort's tier (level) is unlocked by default in `cohorts.tier_access`, or
