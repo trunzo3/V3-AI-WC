@@ -78,6 +78,9 @@ export type GenericContentBlock =
       // Whether the Copy button renders. Missing = falls back to the
       // effective showPromptBox value, so older forms look unchanged.
       showCopyButton?: boolean;
+      // Gold label on the assembled-text box. Missing = "Your prompt";
+      // "" = no label at all; any other text is shown as typed.
+      boxLabel?: string;
       // Optional assembly template. `{fieldKey}` placeholders (single braces)
       // are replaced live with that field's current value; empty fields
       // resolve to "" (no raw braces shown). Blank template falls back to the

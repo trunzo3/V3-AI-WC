@@ -454,6 +454,7 @@ function FormBlock({
   responsesOpen = true,
   showPromptBox = true,
   showCopyButton,
+  boxLabel,
 }: {
   sectionId: string;
   blockIndex: number;
@@ -467,6 +468,8 @@ function FormBlock({
   showPromptBox?: boolean;
   // Missing = follows showPromptBox.
   showCopyButton?: boolean;
+  // undefined = "Your prompt"; "" = no label.
+  boxLabel?: string;
 }) {
   // Live values, keyed by fieldKey. State (not a ref) so the assembled
   // preview re-renders as the participant types.
@@ -620,12 +623,19 @@ function FormBlock({
           className="bg-primary rounded-lg p-6 text-white"
           data-testid="generic-prompt-block"
         >
-          <span className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded mb-4">
-            Your prompt
-          </span>
+          {(boxLabel === undefined || boxLabel.length > 0) && (
+            <span
+              className="inline-block bg-accent text-primary text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded mb-4"
+              data-testid={`form-box-label-${sectionId}-${blockIndex}`}
+            >
+              {boxLabel ?? "Your prompt"}
+            </span>
+          )}
           <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono min-h-[1.5rem]">
             {assembled ||
-              "Fill in the fields above and your prompt will assemble here."}
+              (boxLabel === undefined
+                ? "Fill in the fields above and your prompt will assemble here."
+                : "Fill in the fields above and your answers will appear here.")}
           </pre>
           <div className="flex flex-wrap items-center gap-3">
             {copyOn && <CopyButton text={assembled} label={buttonLabel || "Copy"} />}
@@ -909,6 +919,7 @@ function GenericSectionView({
                 responsesOpen={block.responsesOpen ?? true}
                 showPromptBox={block.showPromptBox ?? true}
                 showCopyButton={block.showCopyButton}
+                boxLabel={block.boxLabel}
               />
             );
           case "download":

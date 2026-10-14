@@ -1553,6 +1553,18 @@ export function SectionsTab({ cohortId }: Props) {
                                     Show prompt box — the dark 'Your prompt' box with the assembled text
                                   </Label>
                                 </div>
+                                {(block.showPromptBox ?? true) && (
+                                  <div>
+                                    <Label className="text-xs">Box label (leave blank for no label)</Label>
+                                    <Input
+                                      value={block.boxLabel ?? "Your prompt"}
+                                      onChange={(e) =>
+                                        updateBlock(idx, { boxLabel: e.target.value })
+                                      }
+                                      data-testid={`input-form-box-label-${idx}`}
+                                    />
+                                  </div>
+                                )}
                                 <div className="flex items-start gap-2">
                                   <Checkbox
                                     id={`form-show-copy-button-${idx}`}

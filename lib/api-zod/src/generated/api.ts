@@ -281,6 +281,12 @@ export const ListSectionsResponse = zod.object({
                   .describe(
                     "For form blocks - whether the Copy button renders. Missing = same as the effective showPromptBox value.\n",
                   ),
+                boxLabel: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    'For form blocks - gold label on the assembled-text box. Missing = \"Your prompt\"; empty string = no label; other text shown as typed.\n',
+                  ),
                 template: zod
                   .string()
                   .optional()
@@ -1025,6 +1031,12 @@ export const AdminListGenericSectionsResponse = zod.object({
               .describe(
                 "For form blocks - whether the Copy button renders. Missing = same as the effective showPromptBox value.\n",
               ),
+            boxLabel: zod
+              .string()
+              .optional()
+              .describe(
+                'For form blocks - gold label on the assembled-text box. Missing = \"Your prompt\"; empty string = no label; other text shown as typed.\n',
+              ),
             template: zod
               .string()
               .optional()
@@ -1240,6 +1252,12 @@ export const AdminCreateGenericSectionBody = zod.object({
             .optional()
             .describe(
               "For form blocks - whether the Copy button renders. Missing = same as the effective showPromptBox value.\n",
+            ),
+          boxLabel: zod
+            .string()
+            .optional()
+            .describe(
+              'For form blocks - gold label on the assembled-text box. Missing = \"Your prompt\"; empty string = no label; other text shown as typed.\n',
             ),
           template: zod
             .string()
@@ -1482,6 +1500,12 @@ export const AdminUpdateGenericSectionBody = zod.object({
             .describe(
               "For form blocks - whether the Copy button renders. Missing = same as the effective showPromptBox value.\n",
             ),
+          boxLabel: zod
+            .string()
+            .optional()
+            .describe(
+              'For form blocks - gold label on the assembled-text box. Missing = \"Your prompt\"; empty string = no label; other text shown as typed.\n',
+            ),
           template: zod
             .string()
             .optional()
@@ -1703,6 +1727,12 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             .optional()
             .describe(
               "For form blocks - whether the Copy button renders. Missing = same as the effective showPromptBox value.\n",
+            ),
+          boxLabel: zod
+            .string()
+            .optional()
+            .describe(
+              'For form blocks - gold label on the assembled-text box. Missing = \"Your prompt\"; empty string = no label; other text shown as typed.\n',
             ),
           template: zod
             .string()

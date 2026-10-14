@@ -1,0 +1,24 @@
+Add a per-form "Box label" setting that controls the gold label on the dark assembled-text box. Code only: no changes to section content or data.
+
+SETTING
+- Add boxLabel?: string to the form block type (lib/db/src/schema/generic-sections.ts), the zod validation in admin.ts, and the OpenAPI spec if blocks are described there; regenerate the client.
+- Not set (undefined) = "Your prompt", so every existing form looks exactly as it does now.
+- Set to any text = that text is shown in the gold label, as typed (keep the current uppercase styling).
+- Set to an empty string = no gold label at all; the box, assembled text, Copy and Submit all still show as normal.
+
+PARTICIPANT VIEW (SectionRenderer.tsx)
+- Use boxLabel for the gold label as described above. Nothing else about the box changes: it still fills in live from the fields, and Copy and Submit stay inside it according to the existing showPromptBox / showCopyButton / collectResponses settings.
+- Placeholder text inside the empty box: if boxLabel is not set, keep "Fill in the fields above and your prompt will assemble here." If boxLabel is set (including empty), use "Fill in the fields above and your answers will appear here."
+
+ADMIN EDITOR (SectionsTab.tsx)
+- In the Layout & responses area, directly under the "Show prompt box" checkbox, add a text input labeled "Box label (leave blank for no label)", data-testid "input-form-box-label-<blockIndex>". It shows the effective value: the stored boxLabel, or "Your prompt" when unset. Saving writes boxLabel exactly as typed, including an empty string when cleared. Hide or disable the input when "Show prompt box" is unchecked.
+
+WORKBOOK PDF
+- If the workbook prints the assembled box or its label anywhere, apply the same rule. Otherwise no change.
+
+TEST ON DEV
+- An existing form with no boxLabel stored: still shows "Your prompt" and the original placeholder.
+- boxLabel "Your change message": label shows that text.
+- boxLabel cleared to empty: no label pill, box, text, Copy and Submit still work.
+- Reload the editor and confirm the field shows the saved value, including blank.
+Update replit.md where it describes the form block options. Then tell me it's ready to publish.

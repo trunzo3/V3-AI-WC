@@ -70,6 +70,9 @@ export interface GenericContentBlock {
   /** For form blocks - whether the Copy button renders. Missing = same as the effective showPromptBox value.
    */
   showCopyButton?: boolean;
+  /** For form blocks - gold label on the assembled-text box. Missing = "Your prompt"; empty string = no label; other text shown as typed.
+   */
+  boxLabel?: string;
   /** For form blocks: optional assembly template. Single-brace `{fieldKey}` placeholders are replaced live with that field's current value as the participant types; an empty field resolves to nothing (no raw braces are shown). If blank, answers assemble using `copyStyle` (labeled lines or joined text) as before.
    */
   template?: string;

@@ -313,6 +313,15 @@ Sections come from two sources:
    legacy `preview` flag) controls only the navy "Your prompt" box with the
    assembled text. **`showCopyButton`** (missing = follows the effective
    `showPromptBox`, so older forms look unchanged) controls the Copy button.
+   **`boxLabel`** (string) sets the gold label on the box: missing =
+   "Your prompt" (and the original "…your prompt will assemble here."
+   placeholder); any text = shown as typed in the uppercase pill
+   (`form-box-label-<section>-<block>`); empty string = no pill at all.
+   When set (including empty) the empty-box placeholder reads "Fill in the
+   fields above and your answers will appear here." The workbook never
+   prints the box or its label. Editor input "Box label (leave blank for no
+   label)" (`input-form-box-label-<blockIndex>`, shows the effective value,
+   hidden while "Show prompt box" is unchecked, saves exactly as typed).
    Box shown: Copy (if on) and Submit (if collecting) sit inside the box.
    Box hidden: one action row (`form-submit-row-<section>-<block>`) renders
    with the fields — card layout → inside the LAST field's card under its

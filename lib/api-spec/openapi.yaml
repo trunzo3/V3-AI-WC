@@ -1339,6 +1339,11 @@ components:
           description: >
             For form blocks - whether the Copy button renders. Missing = same
             as the effective showPromptBox value.
+        boxLabel:
+          type: string
+          description: >
+            For form blocks - gold label on the assembled-text box. Missing =
+            "Your prompt"; empty string = no label; other text shown as typed.
         template:
           type: string
           description: >
