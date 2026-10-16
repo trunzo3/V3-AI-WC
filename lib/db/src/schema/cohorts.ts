@@ -33,6 +33,9 @@ export const cohortsTable = pgTable(
       .notNull()
       .default(DEFAULT_TIER_ACCESS),
     workbookEnabled: boolean("workbook_enabled").notNull().default(true),
+    // Participant-facing self-assessment (/levels) and "Talk with Anthony"
+    // links. False hides them for this cohort only.
+    showCoachingLinks: boolean("show_coaching_links").notNull().default(true),
     settings: jsonb("settings")
       .$type<Record<string, unknown>>()
       .notNull()

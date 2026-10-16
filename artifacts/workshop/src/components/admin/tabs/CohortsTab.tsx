@@ -42,6 +42,7 @@ interface FormState {
   tier3: boolean;
   tier4: boolean;
   workbookEnabled: boolean;
+  showCoachingLinks: boolean;
   levelNames: Record<string, string>;
 }
 
@@ -63,6 +64,7 @@ const EMPTY_FORM: FormState = {
   tier3: false,
   tier4: false,
   workbookEnabled: true,
+  showCoachingLinks: true,
   levelNames: {},
 };
 
@@ -78,6 +80,7 @@ function fromCohort(c: AdminCohort): FormState {
     tier3: !!c.tierAccess?.["3"],
     tier4: !!c.tierAccess?.["4"],
     workbookEnabled: (c as any).workbookEnabled ?? true,
+    showCoachingLinks: (c as any).showCoachingLinks ?? true,
     levelNames: c.levelNames ?? {},
   };
 }
@@ -208,6 +211,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
         "4": form.tier4,
       },
       workbookEnabled: form.workbookEnabled,
+      showCoachingLinks: form.showCoachingLinks,
       levelNames: form.levelNames,
     };
     if (!payload.name || !payload.cohortCode) {
@@ -374,6 +378,16 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                     data-testid="switch-workbook-enabled"
                   />
                   Download Workbook enabled
+                </label>
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-sm">
+                  <Switch
+                    checked={form.showCoachingLinks}
+                    onCheckedChange={(v) => setForm({ ...form, showCoachingLinks: v })}
+                    data-testid="switch-show-coaching-links"
+                  />
+                  Show self-assessment and "Talk with Anthony" links
                 </label>
               </div>
             </div>

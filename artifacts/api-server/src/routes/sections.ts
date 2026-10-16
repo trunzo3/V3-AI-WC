@@ -57,7 +57,7 @@ router.get("/sections", requireParticipant, async (req, res) => {
     .where(eq(cohortsTable.id, cohortId))
     .limit(1);
   if (!cohort) {
-    res.status(404).json({ error: "Cohort not found." });
+    res.status(404).json({ error: "Program not found." });
     return;
   }
 

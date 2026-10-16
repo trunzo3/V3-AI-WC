@@ -158,11 +158,19 @@ Required env vars (managed via Replit Secrets):
 
 ### Cohort model
 
+- Participants see the word 'Program'; admin screens, code, and the database use 'cohort'. Do not rename cohort in code or admin.
 - A **cohort** owns its participants, section visibility/codes, content
-  variants, safari tab assignments, facilitator message, and a
+  variants, safari tab assignments, facilitator message, a
   `workbook_enabled` boolean (default `true`) that controls whether the
-  "Download Workbook" controls (sidebar button + home-screen text link)
-  appear for participants.
+  sidebar "Download Workbook" button appears for participants (the home
+  page no longer has a workbook link), and a `show_coaching_links` boolean
+  (default `true`, admin switch `switch-show-coaching-links` "Show
+  self-assessment and "Talk with Anthony" links", copied on duplicate,
+  exposed on `/api/auth/me` as `cohort.showCoachingLinks`). When false the
+  home page hides the Self-Assessment and Talk with Anthony cards (whole
+  grid), the top bar hides `topnav-talk-anthony`, and `/levels` redirects
+  home. Participant-facing wording uses "Program"/"Workshop code" (workbook
+  cover label, login and workbook/sections error messages).
 - The default cohort is seeded with code `WORKSHOP`. Lookups are
   case-insensitive (`lower(cohort_code) = lower(input)`).
 - Creating a new cohort auto-seeds `cohort_sections` from the **starting

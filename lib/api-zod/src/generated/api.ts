@@ -94,6 +94,12 @@ export const GetCurrentParticipantResponse = zod.object({
         'Map of tier level to default-unlocked boolean, e.g. {\"1\": true, \"2\": false}',
       ),
     audienceType: zod.string(),
+    showCoachingLinks: zod
+      .boolean()
+      .optional()
+      .describe(
+        'When false, the self-assessment and \"Talk with Anthony\" links are hidden for this cohort\'s participants. Default true.',
+      ),
     levelNames: zod
       .record(zod.string(), zod.string())
       .optional()

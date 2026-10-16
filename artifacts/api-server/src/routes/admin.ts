@@ -101,6 +101,7 @@ const createCohortSchema = z.object({
     .transform((v) => sanitizeRichHtmlNullable(v ?? null)),
   tierAccess: tierAccessSchema.optional(),
   workbookEnabled: z.boolean().optional(),
+  showCoachingLinks: z.boolean().optional(),
   levelNames: levelNamesSchema.optional(),
 });
 
@@ -134,6 +135,7 @@ router.post("/admin/cohorts", requireAdmin, async (req, res) => {
         homeMessage: data.homeMessage ?? null,
         tierAccess: data.tierAccess ?? DEFAULT_TIER_ACCESS,
         workbookEnabled: data.workbookEnabled ?? true,
+        showCoachingLinks: data.showCoachingLinks ?? true,
         settings: data.levelNames ? { levelNames: data.levelNames } : {},
       })
       .returning();
@@ -184,6 +186,7 @@ const updateCohortSchema = z.object({
     .transform((v) => sanitizeRichHtmlNullable(v ?? null)),
   tierAccess: tierAccessSchema.optional(),
   workbookEnabled: z.boolean().optional(),
+  showCoachingLinks: z.boolean().optional(),
   settings: z.record(z.string(), z.unknown()).optional(),
   levelNames: levelNamesSchema.optional(),
 });
@@ -484,6 +487,7 @@ router.post("/admin/cohorts/:id/duplicate", requireAdmin, async (req, res) => {
           homeMessage: source.homeMessage,
           tierAccess: source.tierAccess,
           workbookEnabled: source.workbookEnabled,
+          showCoachingLinks: source.showCoachingLinks,
           settings: source.settings,
         })
         .returning();

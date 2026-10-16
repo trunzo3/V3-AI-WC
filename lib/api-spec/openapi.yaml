@@ -1191,6 +1191,9 @@ components:
           additionalProperties: { type: boolean }
           description: 'Map of tier level to default-unlocked boolean, e.g. {"1": true, "2": false}'
         audienceType: { type: string }
+        showCoachingLinks:
+          type: boolean
+          description: When false, the self-assessment and "Talk with Anthony" links are hidden for this cohort's participants. Default true.
         levelNames:
           type: object
           additionalProperties: { type: string }

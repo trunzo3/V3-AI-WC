@@ -4,6 +4,7 @@ import {
   useUpsertFeedback,
   useListFeedbackCategories,
   useGetAppSettings,
+  useGetCurrentParticipant,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,8 @@ export function TopNav({ onLogoClick }: TopNavProps) {
   const categories = catsResp?.categories ?? [];
 
   const { data: settings } = useGetAppSettings();
+  const { data: meResp } = useGetCurrentParticipant();
+  const showCoachingLinks = meResp?.cohort?.showCoachingLinks ?? true;
   const settingsMap = settings as Record<string, string> | undefined;
   const talkUrl =
     settingsMap?.["talk_with_anthony_url"] || "https://talkwithanthony.com";
@@ -183,15 +186,17 @@ export function TopNav({ onLogoClick }: TopNavProps) {
             </DialogContent>
           </Dialog>
 
-          <a
-            href={talkUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden lg:block text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            data-testid="topnav-talk-anthony"
-          >
-            Talk with Anthony
-          </a>
+          {showCoachingLinks && (
+            <a
+              href={talkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden lg:block text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              data-testid="topnav-talk-anthony"
+            >
+              Talk with Anthony
+            </a>
+          )}
         </div>
       </div>
     </header>

@@ -728,7 +728,7 @@ function buildHtml(opts: {
       <div class="cover-rule"></div>
       <div class="cover-meta">
         <div class="cover-meta-row"><span class="cover-meta-label">Participant</span><span class="cover-meta-value">${escapeHtml(participantName || participantEmail)}</span></div>
-        ${cohortName ? `<div class="cover-meta-row"><span class="cover-meta-label">Cohort</span><span class="cover-meta-value">${escapeHtml(cohortName)}</span></div>` : ""}
+        ${cohortName ? `<div class="cover-meta-row"><span class="cover-meta-label">Program</span><span class="cover-meta-value">${escapeHtml(cohortName)}</span></div>` : ""}
         <div class="cover-meta-row"><span class="cover-meta-label">Generated</span><span class="cover-meta-value">${escapeHtml(generatedDate)}</span></div>
       </div>
     </section>
@@ -1212,11 +1212,11 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     .where(eq(cohortsTable.id, cohortId))
     .limit(1);
   if (!cohort) {
-    res.status(404).json({ error: "Cohort not found." });
+    res.status(404).json({ error: "Program not found." });
     return;
   }
   if (!cohort.workbookEnabled) {
-    res.status(403).json({ error: "Workbook download is not enabled for this cohort." });
+    res.status(403).json({ error: "Workbook download is not enabled for this program." });
     return;
   }
 

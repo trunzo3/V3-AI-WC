@@ -70,7 +70,7 @@ router.post("/auth/login", async (req, res) => {
       )
       .limit(1);
     if (!cohort) {
-      res.status(404).json({ error: "Cohort code not recognized." });
+      res.status(404).json({ error: "Workshop code not recognized." });
       return;
     }
   }
@@ -112,7 +112,7 @@ router.post("/auth/login", async (req, res) => {
       .where(eq(cohortsTable.id, existing.cohortId))
       .limit(1);
     if (!cohort) {
-      res.status(500).json({ error: "Participant cohort no longer exists." });
+      res.status(500).json({ error: "This program no longer exists." });
       return;
     }
   }
@@ -189,6 +189,7 @@ router.get("/auth/me", async (req, res) => {
     | "tierAccess"
     | "audienceType"
     | "workbookEnabled"
+    | "showCoachingLinks"
   > & { levelNames: Record<string, string> } | null = row.cohort
     ? {
         id: row.cohort.id,
@@ -198,6 +199,7 @@ router.get("/auth/me", async (req, res) => {
         tierAccess: row.cohort.tierAccess,
         audienceType: row.cohort.audienceType,
         workbookEnabled: row.cohort.workbookEnabled,
+        showCoachingLinks: row.cohort.showCoachingLinks,
         levelNames: getCohortLevelNames(row.cohort.settings),
       }
     : null;

@@ -4,6 +4,7 @@ import {
   useUpsertFeedback,
   useListFeedbackCategories,
   useGetAppSettings,
+  useGetCurrentParticipant,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -97,12 +98,18 @@ export default function LevelsPage() {
     (settings as Record<string, string> | undefined)?.["feedback_intro"]?.trim() ||
     "Tell us what you're working on, what you're stuck on, or what you'd like to go deeper on.";
   const { toast } = useToast();
+  // Cohorts with coaching links hidden don't get the self-assessment either.
+  const { data: meResp } = useGetCurrentParticipant();
+  const coachingHidden = meResp?.cohort?.showCoachingLinks === false;
 
   useEffect(() => {
     if (!session) setLocation("/");
   }, [session, setLocation]);
+  useEffect(() => {
+    if (coachingHidden) setLocation("/");
+  }, [coachingHidden, setLocation]);
 
-  if (!session) return null;
+  if (!session || coachingHidden) return null;
 
   const submitFeedback = () => {
     if (!feedbackText.trim()) return;

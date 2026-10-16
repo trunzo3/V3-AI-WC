@@ -70,6 +70,8 @@ export interface Cohort {
   /** Map of tier level to default-unlocked boolean, e.g. {"1": true, "2": false} */
   tierAccess: CohortTierAccess;
   audienceType: string;
+  /** When false, the self-assessment and "Talk with Anthony" links are hidden for this cohort's participants. Default true. */
+  showCoachingLinks?: boolean;
   /** Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults. */
   levelNames?: CohortLevelNames;
 }
