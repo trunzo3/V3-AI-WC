@@ -171,6 +171,15 @@ Required env vars (managed via Replit Secrets):
   grid), the top bar hides `topnav-talk-anthony`, and `/levels` redirects
   home. Participant-facing wording uses "Program"/"Workshop code" (workbook
   cover label, login and workbook/sections error messages).
+- Workbook cover/footer text lives in `cohorts.settings` next to `levelNames`
+  (no columns): `workbookTitle` (default: cohort name), `workbookSubtitle`
+  (default: open levels' names joined with " · "; none → no subtitle),
+  `workbookBrand` (default: "IQmeetEQ Workshop Companion"). Values are
+  trimmed; blank = default; exactly `-` = show nothing. The admin form always
+  sends all three (empty string clears) because the update endpoint merges
+  `settings` rather than replacing it. The PDF is two Puppeteer renders
+  merged with pdf-lib: a zero-margin, footer-less full-bleed cover, then the
+  body with the footer ("brand — name" / "Page X of Y", cover excluded).
 - The default cohort is seeded with code `WORKSHOP`. Lookups are
   case-insensitive (`lower(cohort_code) = lower(input)`).
 - Creating a new cohort auto-seeds `cohort_sections` from the **starting

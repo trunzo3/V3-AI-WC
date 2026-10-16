@@ -203,15 +203,20 @@ router.put("/admin/cohorts/:id", requireAdmin, async (req, res) => {
     return;
   }
   const { levelNames, ...rest } = parsed.data;
-  let settingsPatch: Record<string, unknown> | undefined = rest.settings;
-  if (levelNames !== undefined) {
-    // Merge into the existing settings blob so other keys survive.
+  let settingsPatch: Record<string, unknown> | undefined;
+  if (levelNames !== undefined || rest.settings !== undefined) {
+    // Merge into the existing settings blob so other keys survive. Callers
+    // that want to clear a key must send it explicitly (e.g. as "").
     const [current] = await db
       .select({ settings: cohortsTable.settings })
       .from(cohortsTable)
       .where(eq(cohortsTable.id, id))
       .limit(1);
-    settingsPatch = { ...(current?.settings ?? {}), ...(rest.settings ?? {}), levelNames };
+    settingsPatch = {
+      ...(current?.settings ?? {}),
+      ...(rest.settings ?? {}),
+      ...(levelNames !== undefined ? { levelNames } : {}),
+    };
   }
   const [updated] = await db
     .update(cohortsTable)

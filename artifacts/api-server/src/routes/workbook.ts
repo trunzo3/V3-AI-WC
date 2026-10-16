@@ -3,6 +3,7 @@ import { Router, type IRouter } from "express";
 import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { execSync } from "node:child_process";
 import puppeteer, { type Browser } from "puppeteer-core";
+import { PDFDocument } from "pdf-lib";
 import {
   db,
   cohortsTable,
@@ -700,11 +701,7 @@ function renderYourNotesBlock(freeformContent: string | null): string {
 }
 
 function buildHtml(opts: {
-  participantName: string;
-  participantEmail: string;
-  cohortName: string;
   levelNames: Record<string, string>;
-  generatedDate: string;
   closingQuote: string;
   closingSubtext: string | null;
   sectionsByLevel: Map<number, Array<{
@@ -716,23 +713,9 @@ function buildHtml(opts: {
     formResponses: Map<number, string>;
   }>>;
 }): string {
-  const { participantName, participantEmail, cohortName, levelNames, generatedDate, closingQuote, closingSubtext, sectionsByLevel } = opts;
+  const { levelNames, closingQuote, closingSubtext, sectionsByLevel } = opts;
 
   const levels = Array.from(sectionsByLevel.keys()).sort((a, b) => a - b);
-
-  // Cover page
-  const coverHtml = `
-    <section class="page cover">
-      <div class="cover-eyebrow">IQmeetEQ Workshop Companion</div>
-      <h1 class="cover-title">Your Workbook</h1>
-      <div class="cover-rule"></div>
-      <div class="cover-meta">
-        <div class="cover-meta-row"><span class="cover-meta-label">Participant</span><span class="cover-meta-value">${escapeHtml(participantName || participantEmail)}</span></div>
-        ${cohortName ? `<div class="cover-meta-row"><span class="cover-meta-label">Program</span><span class="cover-meta-value">${escapeHtml(cohortName)}</span></div>` : ""}
-        <div class="cover-meta-row"><span class="cover-meta-label">Generated</span><span class="cover-meta-value">${escapeHtml(generatedDate)}</span></div>
-      </div>
-    </section>
-  `;
 
   // TOC
   const tocItems: string[] = [];
@@ -827,50 +810,6 @@ function buildHtml(opts: {
   .page { padding: 56px 56px 72px 56px; page-break-before: always; }
   .page:first-child { page-break-before: auto; }
   .level-break, .section-break { page-break-before: always; }
-
-  /* Cover */
-  .cover {
-    background: ${NAVY};
-    color: #fff;
-    min-height: 9in;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 96px 72px;
-  }
-  .cover h1, .cover * { color: #fff; }
-  .cover-eyebrow {
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    font-size: 11pt;
-    color: ${GOLD};
-    margin-bottom: 24px;
-  }
-  .cover-title {
-    font-size: 56pt;
-    line-height: 1.05;
-    margin-bottom: 32px;
-  }
-  .cover-rule {
-    width: 96px;
-    height: 4px;
-    background: ${GOLD};
-    margin-bottom: 40px;
-  }
-  .cover-meta { font-size: 12pt; }
-  .cover-meta-row { display: flex; gap: 24px; margin-bottom: 12px; }
-  .cover-meta-label {
-    color: ${GOLD};
-    text-transform: uppercase;
-    font-weight: 700;
-    font-size: 9pt;
-    letter-spacing: 1.5px;
-    width: 110px;
-    padding-top: 4px;
-  }
-  .cover-meta-value { color: #fff; font-size: 14pt; }
 
   /* Page header */
   .page-header { margin-bottom: 32px; padding-bottom: 16px; border-bottom: 2px solid ${GOLD}; }
@@ -1181,18 +1120,136 @@ function buildHtml(opts: {
 </style>
 </head>
 <body>
-${coverHtml}
 ${tocHtml}
 ${levelHtml}
 </body>
 </html>`;
 }
 
-function buildFooterTemplate(participantName: string): string {
-  const safeName = escapeHtml(participantName || "");
+export const DEFAULT_WORKBOOK_BRAND = "IQmeetEQ Workshop Companion";
+
+/**
+ * Resolve a cohort workbook text setting: trimmed; "" → the default;
+ * exactly "-" → null (show nothing).
+ */
+export function resolveWorkbookText(raw: unknown, fallback: string | null): string | null {
+  const v = typeof raw === "string" ? raw.trim() : "";
+  if (v === "-") return null;
+  if (v === "") return fallback;
+  return v;
+}
+
+/** Default subtitle: names of the open levels, in level order, joined by " · ". */
+export function defaultWorkbookSubtitle(
+  tierAccess: Record<string, boolean> | null | undefined,
+  levelNames: Record<string, string>,
+): string | null {
+  const names = [1, 2, 3, 4]
+    .filter((n) => !!tierAccess?.[String(n)])
+    .map((n) => levelNames[String(n)]?.trim() || LEVEL_LABELS[n] || `Level ${n}`);
+  return names.length ? names.join(" · ") : null;
+}
+
+function coverTitleSize(title: string): string {
+  // Step the size down for long titles so they wrap to ≤ 3 lines on Letter.
+  const len = title.length;
+  if (len <= 28) return "56pt";
+  if (len <= 48) return "44pt";
+  if (len <= 72) return "36pt";
+  if (len <= 100) return "30pt";
+  return "24pt";
+}
+
+function buildCoverHtml(opts: {
+  title: string;
+  subtitle: string | null;
+  brand: string | null;
+  participantLabel: string;
+  generatedDate: string;
+}): string {
+  const { title, subtitle, brand, participantLabel, generatedDate } = opts;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>IQmeetEQ Workbook</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: ${NAVY}; }
+  @page { size: Letter; margin: 0; }
+  body {
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    color: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .cover {
+    width: 8.5in;
+    height: 11in;
+    background: ${NAVY};
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 96px 72px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover-eyebrow {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-size: 11pt;
+    color: ${GOLD};
+    margin-bottom: 24px;
+  }
+  .cover-title {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-weight: 400;
+    line-height: 1.08;
+    margin: 0 0 32px;
+    overflow-wrap: anywhere;
+  }
+  .cover-rule { width: 96px; height: 4px; background: ${GOLD}; margin-bottom: 36px; }
+  .cover-subtitle { font-size: 16pt; line-height: 1.35; color: rgba(255,255,255,0.92); margin-bottom: 36px; }
+  .cover-meta { font-size: 13pt; line-height: 1.6; color: rgba(255,255,255,0.85); }
+  .cover-brand {
+    position: absolute;
+    left: 72px;
+    right: 72px;
+    bottom: 72px;
+    font-size: 9pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.7);
+  }
+</style>
+</head>
+<body>
+  <section class="cover">
+    <div class="cover-eyebrow">Workbook</div>
+    <h1 class="cover-title" style="font-size: ${coverTitleSize(title)};">${escapeHtml(title)}</h1>
+    <div class="cover-rule"></div>
+    ${subtitle ? `<div class="cover-subtitle">${escapeHtml(subtitle)}</div>` : ""}
+    <div class="cover-meta">
+      <div>${escapeHtml(participantLabel)}</div>
+      <div>${escapeHtml(generatedDate)}</div>
+    </div>
+    ${brand ? `<div class="cover-brand">${escapeHtml(brand)}</div>` : ""}
+  </section>
+</body>
+</html>`;
+}
+
+function buildFooterTemplate(brand: string | null, participantName: string): string {
+  // Left side: brand — name. A hidden brand ("-") leaves only the name; a
+  // missing name leaves only the brand.
+  const parts = [brand, participantName.trim() || null].filter((x): x is string => !!x);
+  const left = escapeHtml(parts.join(" — "));
   return `
     <div style="font-family: 'DM Sans', sans-serif; font-size: 8pt; color: ${MUTED}; width: 100%; padding: 0 56px; display: flex; justify-content: space-between; align-items: center;">
-      <span>IQmeetEQ Workshop Companion${safeName ? " — " + safeName : ""}</span>
+      <span>${left}</span>
       <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
     </div>`;
 }
@@ -1456,12 +1513,25 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     sectionsByLevel.set(a.section.level, arr);
   }
 
-  const html = buildHtml({
-    participantName: participant.name || "",
-    participantEmail: participant.email,
-    cohortName: cohort.name || "",
-    levelNames: getCohortLevelNames(cohort.settings),
+  const cohortLevelNames = getCohortLevelNames(cohort.settings);
+  const cohortSettings = (cohort.settings ?? {}) as Record<string, unknown>;
+  const workbookTitle =
+    resolveWorkbookText(cohortSettings.workbookTitle, cohort.name?.trim() || null) || "Workbook";
+  const workbookSubtitle = resolveWorkbookText(
+    cohortSettings.workbookSubtitle,
+    defaultWorkbookSubtitle(cohort.tierAccess as Record<string, boolean> | null, cohortLevelNames),
+  );
+  const workbookBrand = resolveWorkbookText(cohortSettings.workbookBrand, DEFAULT_WORKBOOK_BRAND);
+
+  const coverDoc = buildCoverHtml({
+    title: workbookTitle,
+    subtitle: workbookSubtitle,
+    brand: workbookBrand,
+    participantLabel: participant.name?.trim() || participant.email,
     generatedDate: formatDate(new Date()),
+  });
+  const html = buildHtml({
+    levelNames: cohortLevelNames,
     closingQuote,
     closingSubtext,
     sectionsByLevel,
@@ -1482,16 +1552,38 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
       ],
     });
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0", timeout: 30000 });
 
-    const pdf = await page.pdf({
+    // Cover: its own render with zero margins and no header/footer so the
+    // navy background is full-bleed and it carries no page number.
+    await page.setContent(coverDoc, { waitUntil: "networkidle0", timeout: 30000 });
+    const coverPdf = await page.pdf({
+      format: "Letter",
+      printBackground: true,
+      displayHeaderFooter: false,
+      margin: { top: "0", bottom: "0", left: "0", right: "0" },
+      pageRanges: "1",
+    });
+
+    // Body: the existing margins + footer. Page numbers naturally start at 1
+    // and the total excludes the cover because the cover isn't in this doc.
+    await page.setContent(html, { waitUntil: "networkidle0", timeout: 30000 });
+    const bodyPdf = await page.pdf({
       format: "Letter",
       printBackground: true,
       displayHeaderFooter: true,
       headerTemplate: buildHeaderTemplate(),
-      footerTemplate: buildFooterTemplate(participant.name || ""),
+      footerTemplate: buildFooterTemplate(workbookBrand, participant.name || ""),
       margin: { top: "0.5in", bottom: "0.6in", left: "0in", right: "0in" },
     });
+
+    const merged = await PDFDocument.create();
+    merged.setTitle("IQmeetEQ Workbook");
+    for (const src of [coverPdf, bodyPdf]) {
+      const doc = await PDFDocument.load(src);
+      const pages = await merged.copyPages(doc, doc.getPageIndices());
+      for (const pg of pages) merged.addPage(pg);
+    }
+    const pdf = await merged.save();
 
     const safeNameSlug =
       (participant.name || participant.email)

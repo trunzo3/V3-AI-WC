@@ -44,7 +44,12 @@ interface FormState {
   workbookEnabled: boolean;
   showCoachingLinks: boolean;
   levelNames: Record<string, string>;
+  workbookTitle: string;
+  workbookSubtitle: string;
+  workbookBrand: string;
 }
+
+const DEFAULT_WORKBOOK_BRAND = "IQmeetEQ Workshop Companion";
 
 const DEFAULT_LEVEL_NAMES: Record<number, string> = {
   1: "Level 1 — Core Workshop",
@@ -66,7 +71,22 @@ const EMPTY_FORM: FormState = {
   workbookEnabled: true,
   showCoachingLinks: true,
   levelNames: {},
+  workbookTitle: "",
+  workbookSubtitle: "",
+  workbookBrand: "",
 };
+
+function settingString(settings: unknown, key: string): string {
+  const v = (settings as Record<string, unknown> | null | undefined)?.[key];
+  return typeof v === "string" ? v : "";
+}
+
+function defaultWorkbookSubtitle(form: FormState): string {
+  const names = ([1, 2, 3, 4] as const)
+    .filter((n) => form[`tier${n}` as const])
+    .map((n) => form.levelNames[String(n)]?.trim() || DEFAULT_LEVEL_NAMES[n]);
+  return names.length ? names.join(" · ") : "(no subtitle)";
+}
 
 function fromCohort(c: AdminCohort): FormState {
   return {
@@ -82,6 +102,9 @@ function fromCohort(c: AdminCohort): FormState {
     workbookEnabled: (c as any).workbookEnabled ?? true,
     showCoachingLinks: (c as any).showCoachingLinks ?? true,
     levelNames: c.levelNames ?? {},
+    workbookTitle: settingString((c as any).settings, "workbookTitle"),
+    workbookSubtitle: settingString((c as any).settings, "workbookSubtitle"),
+    workbookBrand: settingString((c as any).settings, "workbookBrand"),
   };
 }
 
@@ -213,6 +236,14 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
       workbookEnabled: form.workbookEnabled,
       showCoachingLinks: form.showCoachingLinks,
       levelNames: form.levelNames,
+      // Always send all three (an empty string clears a previously saved
+      // value) — the server merges `settings`, so omitting a key would keep
+      // the old value.
+      settings: {
+        workbookTitle: form.workbookTitle,
+        workbookSubtitle: form.workbookSubtitle,
+        workbookBrand: form.workbookBrand,
+      },
     };
     if (!payload.name || !payload.cohortCode) {
       toast({ title: "Name and cohort code are required", variant: "destructive" });
@@ -369,6 +400,44 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                     </div>
                   ))}
                 </div>
+              </div>
+              <div>
+                <Label className="block mb-1">Workbook</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Cover page and footer text for this cohort's workbook PDF.
+                </p>
+                <div className="grid gap-2">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Workbook title</Label>
+                    <Input
+                      value={form.workbookTitle}
+                      placeholder={form.name.trim() || "Cohort name"}
+                      onChange={(e) => setForm({ ...form, workbookTitle: e.target.value })}
+                      data-testid="input-workbook-title"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Workbook subtitle</Label>
+                    <Input
+                      value={form.workbookSubtitle}
+                      placeholder={defaultWorkbookSubtitle(form)}
+                      onChange={(e) => setForm({ ...form, workbookSubtitle: e.target.value })}
+                      data-testid="input-workbook-subtitle"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Workbook brand text</Label>
+                    <Input
+                      value={form.workbookBrand}
+                      placeholder={DEFAULT_WORKBOOK_BRAND}
+                      onChange={(e) => setForm({ ...form, workbookBrand: e.target.value })}
+                      data-testid="input-workbook-brand"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2" data-testid="text-workbook-help">
+                  Leave a box blank to use the gray default. Type a single dash (-) to show nothing.
+                </p>
               </div>
               <div>
                 <label className="flex items-center gap-2 text-sm">
