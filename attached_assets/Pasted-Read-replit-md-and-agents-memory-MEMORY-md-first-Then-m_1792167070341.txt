@@ -1,0 +1,42 @@
+Read replit.md and .agents/memory/MEMORY.md first. Then make the four changes below. Before writing any code, show me a short plan listing every file you will change, and wait for my approval.
+
+SAFETY RULES
+- Additive changes only. Do not rename, remove, or restructure any existing database column, table, API route, or code identifier.
+- Do not change any existing cohort's sections, content, or settings. Existing cohorts must look and behave exactly as they do today unless I change the new setting myself.
+- Do not rename "cohort" in code, the database, API routes, or the admin screens. The admin screens keep saying "cohort." Only the participant-facing text listed in change 3 changes.
+- Follow .agents/memory/db-schema-change-workflow.md for the new column.
+- Create a checkpoint before you start.
+
+CHANGE 1 — Per-cohort setting to hide the self-assessment and "Talk with Anthony"
+- Add a boolean column to the cohorts table: show_coaching_links, NOT NULL, default true.
+- In Admin → Cohorts, add a checkbox to the cohort create/edit form, next to the existing "workbook enabled" checkbox, labeled: Show self-assessment and "Talk with Anthony" links
+- Include the field in the admin create, update, and duplicate endpoints, and in the participant /me (or equivalent) response so the participant app can read it.
+- When show_coaching_links is false for the participant's cohort:
+  - On the home page (pages/home.tsx), hide both cards: the "Self-Assessment / Where Are You on the Path?" card (data-testid="button-levels") and the "One-on-One / Talk with Anthony" card (data-testid="link-talk-anthony"). If both are hidden, the grid that holds them should not leave an empty gap.
+  - In the top bar (components/workshop/TopNav.tsx), hide the "Talk with Anthony" link (data-testid="topnav-talk-anthony").
+  - If a participant opens /levels directly, send them to the home page instead of showing the self-assessment.
+  - Hide any other participant-facing "Talk with Anthony" link or button you find. List each one in your plan.
+- When show_coaching_links is true, everything behaves exactly as it does now.
+
+CHANGE 2 — Remove the workbook download link from the home page
+- In pages/home.tsx, remove the "Download your workbook" button (data-testid="home-download-workbook") for all cohorts.
+- Do not change the sidebar's "Download Workbook" button (data-testid="sidebar-download-workbook"). It stays exactly as it is, still controlled by the existing workbook enabled setting.
+
+CHANGE 3 — Participant-facing wording: "Program" instead of "cohort"
+- Workbook PDF cover (api-server/src/routes/workbook.ts): change the cover label "Cohort" to "Program". The value (the cohort's name) stays the same.
+- Login error in api-server/src/routes/auth.ts: change "Cohort code not recognized." to "Workshop code not recognized."
+- Login error in api-server/src/routes/auth.ts: change "Participant cohort no longer exists." to "This program no longer exists."
+- Search the participant-facing app (everything outside the admin screens) and the workbook PDF for any other visible text containing "cohort". List what you find in your plan and change it to "program" only after I approve. Do not change admin screens.
+
+CHANGE 4 — Note in replit.md
+- Add one line to replit.md: "Participants see the word 'Program'; admin screens, code, and the database use 'cohort'. Do not rename cohort in code or admin."
+
+TESTING (in development, not production)
+- Create a throwaway test cohort. Turn show_coaching_links off and confirm: both home cards are gone, the top bar link is gone, /levels sends you home, and the sidebar "Download Workbook" button still works.
+- Turn it back on and confirm everything returns.
+- Confirm an existing cohort (such as T4DAY5) is unchanged and its new setting reads true.
+- Download a workbook and confirm the cover says "Program".
+- Try logging in with a wrong code and confirm the message reads "Workshop code not recognized."
+- Delete the throwaway test cohort when done.
+
+When finished, tell me every file you changed and the result of each test.
