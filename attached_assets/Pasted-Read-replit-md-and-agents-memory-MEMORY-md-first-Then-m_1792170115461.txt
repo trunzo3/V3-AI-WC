@@ -1,0 +1,48 @@
+Read replit.md and .agents/memory/MEMORY.md first. Then make the changes below. Before writing any code, show me a short plan listing every file you will change and how you will build the cover page, and wait for my approval.
+
+SAFETY RULES
+- Additive changes only. Do not rename, remove, or restructure any existing database column, table, API route, or code identifier.
+- No database migration. Store the three new values inside the existing cohorts.settings JSON, next to levelNames, using the same save/merge path levelNames already uses (so other settings keys survive). The cohort Duplicate action already copies settings; confirm the new keys come along.
+- Do not change any existing cohort's sections, content, or settings. A cohort with none of the new values set must produce a workbook that differs only in the cover and footer layout described below.
+- Do not change the participant app's header or branding. This work is the workbook PDF and the admin cohort form only.
+- If you need a new package and the package firewall blocks it, stop and tell me instead of working around it.
+- Create a checkpoint before you start.
+
+CHANGE 1 — Three new boxes in Admin → Cohorts → Edit cohort
+Add a "Workbook" group below "Level names", built the same way as the Level names boxes: gray placeholder text shows the default; anything typed replaces it; an empty box means "use the default."
+- Workbook title — settings key workbookTitle. Placeholder: the cohort's name as currently typed in the form.
+- Workbook subtitle — settings key workbookSubtitle. Placeholder: the names of the levels switched on under "Open levels", using each level's custom name if set, otherwise its default name, joined with " · " in level order. If no levels are switched on, the placeholder reads: (no subtitle)
+- Workbook brand text — settings key workbookBrand. Placeholder: IQmeetEQ Workshop Companion
+Under the group, add this help line: Leave a box blank to use the gray default. Type a single dash (-) to show nothing.
+Rule for all three: trim the value; if it is exactly "-", treat it as "show nothing"; if it is empty, use the default.
+
+CHANGE 2 — Workbook cover redesign (api-server/src/routes/workbook.ts)
+- The cover must be a full-bleed navy page: no white band at the top, no cream band at the bottom, and no footer or page number on it. Today the 0.5in/0.6in page margins and the footer template apply to the cover too; fix that. One reliable approach: render the cover as its own PDF with zero margins and no header/footer, render the rest with the current margins and footer, and merge them. Choose the approach you think is most reliable and explain it in your plan.
+- Cover layout, top to bottom, left-aligned as today:
+  - Small gold eyebrow: Workbook
+  - Big title: the workbook title (workbookTitle, or the cohort name if blank). No "Program" or "Cohort" label. Shrink the font size for longer titles so a long title wraps to at most three lines and never runs off the page.
+  - Gold rule (as today)
+  - Subtitle in smaller text: workbookSubtitle, or the default described in Change 1. If "-" or no default, omit the line.
+  - Participant name (or email if no name), with no label
+  - The generated date, e.g. "October 16, 2026", with no label
+  - Brand text in small text near the bottom of the page: workbookBrand, or "IQmeetEQ Workshop Companion" if blank. If "-", omit it.
+- Remove the "Your Workbook" heading and the Participant / Program / Generated labels.
+
+CHANGE 3 — Footer on every page after the cover
+- Left: brand text, then " — ", then the participant name. If the brand is "-", show only the participant name. If there is no participant name, show only the brand.
+- Right: "Page X of Y", where page 1 is the first page after the cover and Y excludes the cover.
+- Keep the current footer font, size, and color.
+
+CHANGE 4 — replit.md
+- Add a short note documenting the three settings keys, their defaults, and the "-" rule.
+
+TESTING (in development, not production)
+- Create a throwaway test cohort with Level 4 open and a custom Level 4 name. Add a participant and download the workbook with all three boxes blank. Confirm: navy cover fills the page edge to edge with no footer; title = cohort name; subtitle = the Level 4 name; brand line = IQmeetEQ Workshop Companion; footer starts at "Page 1 of Y" on the page after the cover.
+- Set title to "Leading the Organization Program", subtitle to "Day 5 · Leading Strategic AI Usage", brand to "UC Davis Continuing and Professional Education". Download again and confirm each appears where described, including the footer.
+- Set brand and subtitle to "-". Download again and confirm the brand line and subtitle are gone and the footer shows only the participant name and page number.
+- Test a very long title (over 90 characters) and confirm it stays on the page.
+- Duplicate the test cohort and confirm the three values copied over.
+- Confirm an existing cohort with no new values still downloads correctly.
+- Delete the throwaway cohorts when done.
+
+When finished, tell me every file you changed and the result of each test. Attach or describe the cover of each test workbook.
