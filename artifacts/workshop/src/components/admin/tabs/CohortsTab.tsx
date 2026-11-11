@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Copy } from "lucide-react";
+import { CohortGroupsEditor } from "@/components/admin/CohortGroupsEditor";
 
 const COHORT_KEY = "workshop-admin-cohort-id";
 
@@ -37,13 +38,10 @@ interface FormState {
   audienceType: string;
   facilitatorMessage: string;
   homeMessage: string;
-  tier1: boolean;
-  tier2: boolean;
-  tier3: boolean;
-  tier4: boolean;
   workbookEnabled: boolean;
   showCoachingLinks: boolean;
-  levelNames: Record<string, string>;
+  /** Create only: starting groups + sections, or nothing at all. */
+  startWith: "starting" | "empty";
   workbookTitle: string;
   workbookSubtitle: string;
   workbookBrand: string;
@@ -51,12 +49,8 @@ interface FormState {
 
 const DEFAULT_WORKBOOK_BRAND = "IQmeetEQ Workshop Companion";
 
-const DEFAULT_LEVEL_NAMES: Record<number, string> = {
-  1: "Level 1 — Core Workshop",
-  2: "Level 2 — Applied Mastery",
-  3: "Level 3 — AI Builder",
-  4: "AI Change Leadership",
-};
+/** Starting groups a new "Starting sections" cohort receives (all locked). */
+const STARTING_GROUP_NAMES = ["Core Workshop", "Applied Mastery", "AI Builder"];
 
 const EMPTY_FORM: FormState = {
   name: "",
@@ -64,13 +58,9 @@ const EMPTY_FORM: FormState = {
   audienceType: "general",
   facilitatorMessage: "",
   homeMessage: "",
-  tier1: true,
-  tier2: false,
-  tier3: false,
-  tier4: false,
   workbookEnabled: true,
   showCoachingLinks: true,
-  levelNames: {},
+  startWith: "starting",
   workbookTitle: "",
   workbookSubtitle: "",
   workbookBrand: "",
@@ -81,10 +71,9 @@ function settingString(settings: unknown, key: string): string {
   return typeof v === "string" ? v : "";
 }
 
-function defaultWorkbookSubtitle(form: FormState): string {
-  const names = ([1, 2, 3, 4] as const)
-    .filter((n) => form[`tier${n}` as const])
-    .map((n) => form.levelNames[String(n)]?.trim() || DEFAULT_LEVEL_NAMES[n]);
+/** Default workbook subtitle = names of the cohort's open groups, in order. */
+function defaultWorkbookSubtitle(cohort: AdminCohort | null): string {
+  const names = (cohort?.groups ?? []).filter((g) => g.isOpen).map((g) => g.name.trim()).filter(Boolean);
   return names.length ? names.join(" · ") : "(no subtitle)";
 }
 
@@ -95,13 +84,9 @@ function fromCohort(c: AdminCohort): FormState {
     audienceType: c.audienceType ?? "general",
     facilitatorMessage: c.facilitatorMessage ?? "",
     homeMessage: c.homeMessage ?? "",
-    tier1: !!c.tierAccess?.["1"],
-    tier2: !!c.tierAccess?.["2"],
-    tier3: !!c.tierAccess?.["3"],
-    tier4: !!c.tierAccess?.["4"],
     workbookEnabled: (c as any).workbookEnabled ?? true,
     showCoachingLinks: (c as any).showCoachingLinks ?? true,
-    levelNames: c.levelNames ?? {},
+    startWith: "starting",
     workbookTitle: settingString((c as any).settings, "workbookTitle"),
     workbookSubtitle: settingString((c as any).settings, "workbookSubtitle"),
     workbookBrand: settingString((c as any).settings, "workbookBrand"),
@@ -227,15 +212,8 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
       audienceType: form.audienceType.trim() || "general",
       facilitatorMessage: form.facilitatorMessage,
       homeMessage: form.homeMessage,
-      tierAccess: {
-        "1": form.tier1,
-        "2": form.tier2,
-        "3": form.tier3,
-        "4": form.tier4,
-      },
       workbookEnabled: form.workbookEnabled,
       showCoachingLinks: form.showCoachingLinks,
-      levelNames: form.levelNames,
       // Always send all three (an empty string clears a previously saved
       // value) — the server merges `settings`, so omitting a key would keep
       // the old value.
@@ -267,7 +245,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
       );
     } else {
       createMut.mutate(
-        { data: payload },
+        { data: { ...payload, startWith: form.startWith } },
         {
           onSuccess: (res) => {
             toast({ title: "Cohort created" });
@@ -285,9 +263,11 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
     }
   };
 
-  const tierLabel = (tier: Record<string, boolean>) => {
-    const on = (["1", "2", "3", "4"] as const).filter((k) => tier?.[k]);
-    return on.length ? on.map((k) => `L${k}`).join(", ") : "None";
+  const groupsLabel = (c: AdminCohort) => {
+    const groups = c.groups ?? [];
+    if (groups.length === 0) return "No groups";
+    const open = groups.filter((g) => g.isOpen).map((g) => g.name);
+    return `${groups.length} group${groups.length === 1 ? "" : "s"} · open: ${open.length ? open.join(", ") : "none"}`;
   };
 
   return (
@@ -358,49 +338,44 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                   testId="input-cohort-home-message"
                 />
               </div>
-              <div>
-                <Label className="block mb-2">Open levels</Label>
-                <div className="flex gap-4">
-                  {([1, 2, 3, 4] as const).map((n) => {
-                    const k = `tier${n}` as const;
-                    return (
-                      <label key={n} className="flex items-center gap-2 text-sm">
-                        <Switch
-                          checked={form[k]}
-                          onCheckedChange={(v) => setForm({ ...form, [k]: v })}
-                          data-testid={`switch-tier-${n}`}
+              {editing ? (
+                <div>
+                  <Label className="block mb-1">Groups</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Section groups shown as headings in the participant sidebar and
+                    workbook, in this order. Changes here save immediately.
+                  </p>
+                  <CohortGroupsEditor cohortId={editing.id} />
+                </div>
+              ) : (
+                <div>
+                  <Label className="block mb-1">Start with</Label>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {(
+                      [
+                        { v: "starting", title: "Starting sections", desc: `Groups ${STARTING_GROUP_NAMES.join(", ")} (all locked) with the standard starting sections and modules.` },
+                        { v: "empty", title: "Empty", desc: "No groups and no sections. Add groups and sections afterwards." },
+                      ] as const
+                    ).map((o) => (
+                      <label
+                        key={o.v}
+                        className={`rounded-md border p-3 cursor-pointer text-sm ${form.startWith === o.v ? "border-primary ring-1 ring-primary" : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name="startWith"
+                          className="mr-2"
+                          checked={form.startWith === o.v}
+                          onChange={() => setForm({ ...form, startWith: o.v })}
+                          data-testid={`radio-start-with-${o.v}`}
                         />
-                        Level {n}
+                        <span className="font-medium">{o.title}</span>
+                        <p className="text-xs text-muted-foreground mt-1">{o.desc}</p>
                       </label>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <Label className="block mb-1">Level names</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Shown as the group headings in the participant sidebar and
-                  workbook. Leave blank to use the default.
-                </p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {([1, 2, 3, 4] as const).map((n) => (
-                    <div key={n}>
-                      <Label className="text-xs text-muted-foreground">Level {n}</Label>
-                      <Input
-                        value={form.levelNames[String(n)] ?? ""}
-                        placeholder={DEFAULT_LEVEL_NAMES[n]}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            levelNames: { ...form.levelNames, [String(n)]: e.target.value },
-                          })
-                        }
-                        data-testid={`input-level-name-${n}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              )}
               <div>
                 <Label className="block mb-1">Workbook</Label>
                 <p className="text-xs text-muted-foreground mb-2">
@@ -420,7 +395,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                     <Label className="text-xs text-muted-foreground">Workbook subtitle</Label>
                     <Input
                       value={form.workbookSubtitle}
-                      placeholder={defaultWorkbookSubtitle(form)}
+                      placeholder={defaultWorkbookSubtitle(editing)}
                       onChange={(e) => setForm({ ...form, workbookSubtitle: e.target.value })}
                       data-testid="input-workbook-subtitle"
                     />
@@ -506,7 +481,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    Open levels: {tierLabel(c.tierAccess ?? {})}
+                    {groupsLabel(c)}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -567,8 +542,8 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
           <DialogHeader>
             <DialogTitle>Duplicate "{dupSource?.name}"</DialogTitle>
             <DialogDescription>
-              Copies all sections (levels, order, visibility, unlock codes),
-              level names, messages, workbook and open-level settings. Library
+              Copies all groups (names, order, open/locked) and sections
+              (order, visibility, unlock codes), messages and workbook settings. Library
               sections are cloned so edits in one cohort never affect the
               other. Participants, notes, unlocks, and responses are not
               copied.

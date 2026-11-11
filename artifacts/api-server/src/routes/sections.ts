@@ -17,6 +17,7 @@ import {
 } from "../lib/sections";
 import { requireParticipant, getParticipantContext } from "../middlewares/auth";
 import { isSectionUnlocked } from "../lib/section-access";
+import { getCohortGroups, groupIdForRow, groupOrderIndex } from "../lib/cohort-groups";
 
 const router: IRouter = Router();
 
@@ -33,7 +34,9 @@ interface SectionResponse {
   id: string;
   title: string;
   description: string;
+  /** Legacy level (frozen); kept for older clients. */
   level: number;
+  groupId: number;
   sortOrder: number;
   type: string;
   unlocked: boolean;
@@ -101,7 +104,9 @@ router.get("/sections", requireParticipant, async (req, res) => {
     );
   const sectionsWithNotes = new Set(noteRows.map((n) => n.sectionId));
 
-  const tierAccess = cohort.tierAccess ?? {};
+  const groups = await getCohortGroups(cohort);
+  const groupById = new Map(groups.map((g) => [g.id, g] as const));
+  const orderIdx = groupOrderIndex(groups);
 
   const sections: SectionResponse[] = [];
   for (const cs of cohortSections) {
@@ -134,10 +139,13 @@ router.get("/sections", requireParticipant, async (req, res) => {
       type = hard.type;
     }
 
+    const gid = groupIdForRow(cohort, cs);
+    const group = gid == null ? undefined : groupById.get(gid);
+    if (!group) continue; // row without a group — never shown
+
     // Single unlock rule shared with the participant file routes.
     const unlocked = isSectionUnlocked({
-      tierAccess,
-      level: cs.level,
+      groupOpen: group.isOpen,
       codeActive: cs.codeActive,
       explicitlyUnlocked: unlockedIds.has(cs.sectionId),
     });
@@ -147,6 +155,7 @@ router.get("/sections", requireParticipant, async (req, res) => {
       title,
       description,
       level: cs.level,
+      groupId: group.id,
       sortOrder: cs.sortOrder,
       type,
       unlocked,
@@ -158,11 +167,16 @@ router.get("/sections", requireParticipant, async (req, res) => {
   }
 
   sections.sort((a, b) =>
-    a.level === b.level ? a.sortOrder - b.sortOrder : a.level - b.level,
+    a.groupId === b.groupId
+      ? a.sortOrder - b.sortOrder
+      : (orderIdx.get(a.groupId) ?? 0) - (orderIdx.get(b.groupId) ?? 0),
   );
 
   res.set("Cache-Control", "no-store");
-  res.json({ sections });
+  res.json({
+    sections,
+    groups: groups.map((g) => ({ id: g.id, name: g.name, sortOrder: g.sortOrder, isOpen: g.isOpen })),
+  });
 });
 
 const unlockSchema = z.object({ code: z.string().trim().min(1) });

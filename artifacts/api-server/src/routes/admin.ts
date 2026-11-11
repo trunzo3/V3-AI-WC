@@ -26,6 +26,19 @@ import {
 } from "@workspace/db";
 import { requireAdmin } from "../middlewares/auth";
 import { seedCohortSections } from "../lib/cohort-sections";
+import {
+  getCohortGroups,
+  isCohortConverted,
+  createStartingGroups,
+  LEGACY_TIER_ACCESS_ALL_LOCKED,
+  topicIdForLegacyLevel,
+} from "../lib/cohort-groups";
+
+/** Topic for library sections created without one: the "AI Builder" topic. */
+async function defaultTopicId(): Promise<number | null> {
+  return topicIdForLegacyLevel(3);
+}
+import { cohortGroupsTable, libraryTopicsTable } from "@workspace/db";
 import { attachSeededGenericSectionsToCohort } from "../lib/seeded-generic-sections";
 import { baseSectionId, getHardcodedSection, parseGenericSectionId } from "../lib/sections";
 import { getBuiltinConversion, getBuiltinGoal } from "../lib/builtin-conversions";
@@ -103,6 +116,9 @@ const createCohortSchema = z.object({
   workbookEnabled: z.boolean().optional(),
   showCoachingLinks: z.boolean().optional(),
   levelNames: levelNamesSchema.optional(),
+  // "starting" = starting groups (all locked) + starting sections;
+  // "empty" = no groups and no sections.
+  startWith: z.enum(["starting", "empty"]).default("starting"),
 });
 
 router.get("/admin/cohorts", requireAdmin, async (_req, res) => {
@@ -110,8 +126,13 @@ router.get("/admin/cohorts", requireAdmin, async (_req, res) => {
     .select()
     .from(cohortsTable)
     .orderBy(desc(cohortsTable.createdAt));
+  const cohorts = [];
+  for (const c of rows) {
+    const groups = (await getCohortGroups(c)).map((g) => ({ id: g.id, name: g.name, sortOrder: g.sortOrder, isOpen: g.isOpen, legacyLevel: g.legacyLevel }));
+    cohorts.push({ ...withLevelNames(c), groups, groupsConverted: isCohortConverted(c) });
+  }
   res.set("Cache-Control", "no-store");
-  res.json({ cohorts: rows.map(withLevelNames) });
+  res.json({ cohorts });
 });
 
 router.post("/admin/cohorts", requireAdmin, async (req, res) => {
@@ -133,15 +154,20 @@ router.post("/admin/cohorts", requireAdmin, async (req, res) => {
         facilitatorMessage:
           data.facilitatorMessage ?? DEFAULT_FACILITATOR_MESSAGE,
         homeMessage: data.homeMessage ?? null,
-        tierAccess: data.tierAccess ?? DEFAULT_TIER_ACCESS,
+        // Legacy column (frozen): new cohorts start with nothing open.
+        tierAccess: data.tierAccess ?? LEGACY_TIER_ACCESS_ALL_LOCKED,
         workbookEnabled: data.workbookEnabled ?? true,
         showCoachingLinks: data.showCoachingLinks ?? true,
         settings: data.levelNames ? { levelNames: data.levelNames } : {},
       })
       .returning();
     if (!created) throw new Error("Failed to create cohort.");
-    await seedCohortSections(created.id);
-    await attachSeededGenericSectionsToCohort(created.id);
+    if (data.startWith === "empty") {
+      await createStartingGroups(created.id, []);
+    } else {
+      const groupByLevel = await seedCohortSections(created.id);
+      await attachSeededGenericSectionsToCohort(created.id, groupByLevel);
+    }
     res.set("Cache-Control", "no-store");
     res.status(201).json({ cohort: withLevelNames(created) });
   } catch (err) {
@@ -356,6 +382,7 @@ router.post(
             showNotesField: conversion.showNotesField,
             badgeLabel: null,
             defaultLevel: row.level,
+            topicId: await topicIdForLegacyLevel(row.level),
             contentBlocks: blocks,
           })
           .returning({ id: genericSectionsTable.id });
@@ -498,6 +525,31 @@ router.post("/admin/cohorts/:id/duplicate", requireAdmin, async (req, res) => {
         .returning();
       if (!cohort) throw new Error("Failed to create cohort.");
 
+      // Groups: copy every group row (name, order, open state) and remember
+      // the id mapping for the section rows below. An unconverted source
+      // (conversion failed on it) cannot be duplicated safely.
+      if (!isCohortConverted(source)) {
+        throw new Error("Source cohort has not been converted to groups yet.");
+      }
+      const sourceGroups = await tx
+        .select()
+        .from(cohortGroupsTable)
+        .where(eq(cohortGroupsTable.cohortId, source.id))
+        .orderBy(asc(cohortGroupsTable.sortOrder), asc(cohortGroupsTable.id));
+      const groupRemap = new Map<number, number>();
+      for (const g of sourceGroups) {
+        const [ng] = await tx
+          .insert(cohortGroupsTable)
+          .values({ cohortId: cohort.id, name: g.name, sortOrder: g.sortOrder, isOpen: g.isOpen, legacyLevel: g.legacyLevel })
+          .returning({ id: cohortGroupsTable.id });
+        if (!ng) throw new Error("Failed to copy group.");
+        groupRemap.set(g.id, ng.id);
+      }
+      await tx
+        .update(cohortsTable)
+        .set({ groupsConvertedAt: new Date() })
+        .where(eq(cohortsTable.id, cohort.id));
+
       const rows = await tx
         .select()
         .from(cohortSectionsTable)
@@ -548,6 +600,7 @@ router.post("/admin/cohorts/:id/duplicate", requireAdmin, async (req, res) => {
             showNotesField: g.showNotesField,
             badgeLabel: g.badgeLabel,
             defaultLevel: g.defaultLevel,
+            topicId: g.topicId,
             archived: g.archived,
           })
           .returning({ id: genericSectionsTable.id });
@@ -601,6 +654,7 @@ router.post("/admin/cohorts/:id/duplicate", requireAdmin, async (req, res) => {
           cohortId: cohort.id,
           sectionId,
           level: r.level,
+          groupId: r.groupId == null ? null : (groupRemap.get(r.groupId) ?? null),
           sortOrder: r.sortOrder,
           displayName: r.displayName,
           visible: r.visible,
@@ -696,13 +750,29 @@ router.get(
       res.status(400).json({ error: "Invalid cohort id." });
       return;
     }
-    const rows = await db
+    const [cohort] = await db
+      .select()
+      .from(cohortsTable)
+      .where(eq(cohortsTable.id, cohortId))
+      .limit(1);
+    if (!cohort) {
+      res.status(404).json({ error: "Cohort not found." });
+      return;
+    }
+    const groups = await getCohortGroups(cohort);
+    const orderIdx = new Map(groups.map((g, i) => [g.id, i]));
+    const converted = isCohortConverted(cohort);
+    const rawRows = await db
       .select()
       .from(cohortSectionsTable)
-      .where(eq(cohortSectionsTable.cohortId, cohortId))
-      .orderBy(
-        asc(cohortSectionsTable.level),
-        asc(cohortSectionsTable.sortOrder),
+      .where(eq(cohortSectionsTable.cohortId, cohortId));
+    const rows = rawRows
+      .map((r) => ({ ...r, groupId: converted ? r.groupId : -r.level }))
+      .sort(
+        (a, b) =>
+          (orderIdx.get(a.groupId ?? 0) ?? 999) - (orderIdx.get(b.groupId ?? 0) ?? 999) ||
+          a.sortOrder - b.sortOrder ||
+          a.id - b.id,
       );
 
     const genericIds = rows
@@ -740,13 +810,17 @@ router.get(
     });
 
     res.set("Cache-Control", "no-store");
-    res.json({ sections });
+    res.json({
+      sections,
+      groups: groups.map((g) => ({ id: g.id, name: g.name, sortOrder: g.sortOrder, isOpen: g.isOpen, legacyLevel: g.legacyLevel })),
+      groupsConverted: converted,
+    });
   },
 );
 
 const sectionRowSchema = z.object({
   sectionId: z.string().trim().min(1),
-  level: z.number().int().min(1).max(4),
+  groupId: z.number().int(),
   sortOrder: z.number().int().min(0),
   displayName: z.string().nullish(),
   visible: z.boolean(),
@@ -769,6 +843,28 @@ router.put(
       res.status(400).json({ error: "Invalid sections payload." });
       return;
     }
+    const [cohort] = await db
+      .select()
+      .from(cohortsTable)
+      .where(eq(cohortsTable.id, cohortId))
+      .limit(1);
+    if (!cohort) {
+      res.status(404).json({ error: "Cohort not found." });
+      return;
+    }
+    if (!isCohortConverted(cohort)) {
+      res.status(409).json({ error: "This cohort has not been converted to groups yet; sections cannot be edited until the conversion succeeds." });
+      return;
+    }
+    const groupRows = await db
+      .select({ id: cohortGroupsTable.id, legacyLevel: cohortGroupsTable.legacyLevel })
+      .from(cohortGroupsTable)
+      .where(eq(cohortGroupsTable.cohortId, cohortId));
+    const legacyLevelByGroup = new Map(groupRows.map((g) => [g.id, g.legacyLevel] as const));
+    if (parsed.data.some((row) => !legacyLevelByGroup.has(row.groupId))) {
+      res.status(400).json({ error: "A section references a group that does not belong to this cohort." });
+      return;
+    }
     await db.transaction(async (tx) => {
       await tx
         .delete(cohortSectionsTable)
@@ -778,7 +874,9 @@ router.put(
           parsed.data.map((row) => ({
             cohortId,
             sectionId: row.sectionId,
-            level: row.level,
+            // Frozen legacy column, still written for older builds.
+            level: legacyLevelByGroup.get(row.groupId) ?? 1,
+            groupId: row.groupId,
             sortOrder: row.sortOrder,
             displayName: row.displayName ?? null,
             visible: row.visible,
@@ -857,6 +955,317 @@ router.post(
     res.json({ success: true, inserted: inserted.length });
   },
 );
+
+// ----- Cohort groups ------------------------------------------------------
+// Groups replace the fixed levels. Editing is refused (409) while a cohort is
+// still unconverted; participants keep seeing the legacy-derived view.
+
+async function loadConvertedCohort(cohortId: number) {
+  const [cohort] = await db
+    .select()
+    .from(cohortsTable)
+    .where(eq(cohortsTable.id, cohortId))
+    .limit(1);
+  return cohort ?? null;
+}
+
+function groupOut(g: typeof cohortGroupsTable.$inferSelect, sectionCount: number) {
+  return { id: g.id, name: g.name, sortOrder: g.sortOrder, isOpen: g.isOpen, legacyLevel: g.legacyLevel, sectionCount };
+}
+
+async function listGroupsWithCounts(cohortId: number) {
+  const groups = await db
+    .select()
+    .from(cohortGroupsTable)
+    .where(eq(cohortGroupsTable.cohortId, cohortId))
+    .orderBy(asc(cohortGroupsTable.sortOrder), asc(cohortGroupsTable.id));
+  const counts = await db
+    .select({ groupId: cohortSectionsTable.groupId, n: sql<number>`count(*)::int` })
+    .from(cohortSectionsTable)
+    .where(eq(cohortSectionsTable.cohortId, cohortId))
+    .groupBy(cohortSectionsTable.groupId);
+  const countBy = new Map(counts.map((c) => [c.groupId, c.n] as const));
+  return groups.map((g) => groupOut(g, countBy.get(g.id) ?? 0));
+}
+
+router.get("/admin/cohorts/:cohortId/groups", requireAdmin, async (req, res) => {
+  const cohortId = Number(req.params.cohortId);
+  if (!Number.isInteger(cohortId)) {
+    res.status(400).json({ error: "Invalid cohort id." });
+    return;
+  }
+  const cohort = await loadConvertedCohort(cohortId);
+  if (!cohort) {
+    res.status(404).json({ error: "Cohort not found." });
+    return;
+  }
+  res.set("Cache-Control", "no-store");
+  if (!isCohortConverted(cohort)) {
+    // Read-only view of the legacy-derived groups (section counts included).
+    const virtual = await getCohortGroups(cohort);
+    const rows = await db
+      .select({ level: cohortSectionsTable.level, n: sql<number>`count(*)::int` })
+      .from(cohortSectionsTable)
+      .where(eq(cohortSectionsTable.cohortId, cohortId))
+      .groupBy(cohortSectionsTable.level);
+    const countBy = new Map(rows.map((r) => [r.level, r.n] as const));
+    res.json({
+      groups: virtual.map((g) => ({ ...g, sectionCount: countBy.get(g.legacyLevel ?? 0) ?? 0 })),
+      groupsConverted: false,
+    });
+    return;
+  }
+  res.json({ groups: await listGroupsWithCounts(cohortId), groupsConverted: true });
+});
+
+const groupCreateSchema = z.object({ name: z.string().trim().min(1).max(80) });
+const groupUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(80).optional(),
+  isOpen: z.boolean().optional(),
+});
+const groupReorderSchema = z.object({ groupIds: z.array(z.number().int()) });
+
+router.post("/admin/cohorts/:cohortId/groups", requireAdmin, async (req, res) => {
+  const cohortId = Number(req.params.cohortId);
+  if (!Number.isInteger(cohortId)) {
+    res.status(400).json({ error: "Invalid cohort id." });
+    return;
+  }
+  const parsed = groupCreateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Group name required." });
+    return;
+  }
+  const cohort = await loadConvertedCohort(cohortId);
+  if (!cohort) {
+    res.status(404).json({ error: "Cohort not found." });
+    return;
+  }
+  if (!isCohortConverted(cohort)) {
+    res.status(409).json({ error: "This cohort has not been converted to groups yet." });
+    return;
+  }
+  const [{ maxSort }] = await db
+    .select({ maxSort: sql<number>`coalesce(max(${cohortGroupsTable.sortOrder}), 0)::int` })
+    .from(cohortGroupsTable)
+    .where(eq(cohortGroupsTable.cohortId, cohortId));
+  // Admin-created groups always start LOCKED.
+  const [created] = await db
+    .insert(cohortGroupsTable)
+    .values({ cohortId, name: parsed.data.name, sortOrder: maxSort + 1, isOpen: false, legacyLevel: null })
+    .returning();
+  if (!created) throw new Error("Failed to create group.");
+  res.set("Cache-Control", "no-store");
+  res.status(201).json({ group: groupOut(created, 0) });
+});
+
+router.put("/admin/cohorts/:cohortId/groups/reorder", requireAdmin, async (req, res) => {
+  const cohortId = Number(req.params.cohortId);
+  if (!Number.isInteger(cohortId)) {
+    res.status(400).json({ error: "Invalid cohort id." });
+    return;
+  }
+  const parsed = groupReorderSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid payload." });
+    return;
+  }
+  const existing = await db
+    .select({ id: cohortGroupsTable.id })
+    .from(cohortGroupsTable)
+    .where(eq(cohortGroupsTable.cohortId, cohortId));
+  const ids = new Set(existing.map((g) => g.id));
+  const given = parsed.data.groupIds;
+  if (given.length !== ids.size || given.some((id) => !ids.has(id)) || new Set(given).size !== given.length) {
+    res.status(400).json({ error: "groupIds must list every group of this cohort exactly once." });
+    return;
+  }
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < given.length; i++) {
+      await tx
+        .update(cohortGroupsTable)
+        .set({ sortOrder: i + 1 })
+        .where(and(eq(cohortGroupsTable.id, given[i]!), eq(cohortGroupsTable.cohortId, cohortId)));
+    }
+  });
+  res.set("Cache-Control", "no-store");
+  res.json({ groups: await listGroupsWithCounts(cohortId) });
+});
+
+router.put("/admin/cohorts/:cohortId/groups/:groupId", requireAdmin, async (req, res) => {
+  const cohortId = Number(req.params.cohortId);
+  const groupId = Number(req.params.groupId);
+  if (!Number.isInteger(cohortId) || !Number.isInteger(groupId)) {
+    res.status(400).json({ error: "Invalid id." });
+    return;
+  }
+  const parsed = groupUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid payload." });
+    return;
+  }
+  const [updated] = await db
+    .update(cohortGroupsTable)
+    .set({
+      ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+      ...(parsed.data.isOpen !== undefined ? { isOpen: parsed.data.isOpen } : {}),
+    })
+    .where(and(eq(cohortGroupsTable.id, groupId), eq(cohortGroupsTable.cohortId, cohortId)))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Group not found." });
+    return;
+  }
+  const [{ n }] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(cohortSectionsTable)
+    .where(eq(cohortSectionsTable.groupId, groupId));
+  res.set("Cache-Control", "no-store");
+  res.json({ group: groupOut(updated, n) });
+});
+
+router.delete("/admin/cohorts/:cohortId/groups/:groupId", requireAdmin, async (req, res) => {
+  const cohortId = Number(req.params.cohortId);
+  const groupId = Number(req.params.groupId);
+  if (!Number.isInteger(cohortId) || !Number.isInteger(groupId)) {
+    res.status(400).json({ error: "Invalid id." });
+    return;
+  }
+  // Hidden rows count too: the group must be truly empty.
+  const [{ n }] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(cohortSectionsTable)
+    .where(eq(cohortSectionsTable.groupId, groupId));
+  if (n > 0) {
+    res.status(409).json({ error: `This group still has ${n} section(s) (including hidden ones). Remove them first.` });
+    return;
+  }
+  const deleted = await db
+    .delete(cohortGroupsTable)
+    .where(and(eq(cohortGroupsTable.id, groupId), eq(cohortGroupsTable.cohortId, cohortId)))
+    .returning({ id: cohortGroupsTable.id });
+  if (deleted.length === 0) {
+    res.status(404).json({ error: "Group not found." });
+    return;
+  }
+  res.set("Cache-Control", "no-store");
+  res.json({ success: true });
+});
+
+// ----- Library topics -----------------------------------------------------
+
+async function listTopicsWithCounts() {
+  const topics = await db
+    .select()
+    .from(libraryTopicsTable)
+    .orderBy(asc(libraryTopicsTable.sortOrder), asc(libraryTopicsTable.id));
+  const counts = await db
+    .select({ topicId: genericSectionsTable.topicId, n: sql<number>`count(*)::int` })
+    .from(genericSectionsTable)
+    .groupBy(genericSectionsTable.topicId);
+  const countBy = new Map(counts.map((c) => [c.topicId, c.n] as const));
+  return topics.map((t) => ({ id: t.id, name: t.name, sortOrder: t.sortOrder, legacyLevel: t.legacyLevel, sectionCount: countBy.get(t.id) ?? 0 }));
+}
+
+router.get("/admin/topics", requireAdmin, async (_req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.json({ topics: await listTopicsWithCounts() });
+});
+
+const topicCreateSchema = z.object({ name: z.string().trim().min(1).max(80) });
+const topicUpdateSchema = z.object({ name: z.string().trim().min(1).max(80).optional() });
+const topicReorderSchema = z.object({ topicIds: z.array(z.number().int()) });
+
+router.post("/admin/topics", requireAdmin, async (req, res) => {
+  const parsed = topicCreateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Topic name required." });
+    return;
+  }
+  const [{ maxSort }] = await db
+    .select({ maxSort: sql<number>`coalesce(max(${libraryTopicsTable.sortOrder}), 0)::int` })
+    .from(libraryTopicsTable);
+  const [created] = await db
+    .insert(libraryTopicsTable)
+    .values({ name: parsed.data.name, sortOrder: maxSort + 1 })
+    .returning();
+  if (!created) throw new Error("Failed to create topic.");
+  res.set("Cache-Control", "no-store");
+  res.status(201).json({ topic: { id: created.id, name: created.name, sortOrder: created.sortOrder, legacyLevel: created.legacyLevel, sectionCount: 0 } });
+});
+
+router.put("/admin/topics/reorder", requireAdmin, async (req, res) => {
+  const parsed = topicReorderSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid payload." });
+    return;
+  }
+  const existing = await db.select({ id: libraryTopicsTable.id }).from(libraryTopicsTable);
+  const ids = new Set(existing.map((t) => t.id));
+  const given = parsed.data.topicIds;
+  if (given.length !== ids.size || given.some((id) => !ids.has(id)) || new Set(given).size !== given.length) {
+    res.status(400).json({ error: "topicIds must list every topic exactly once." });
+    return;
+  }
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < given.length; i++) {
+      await tx.update(libraryTopicsTable).set({ sortOrder: i + 1 }).where(eq(libraryTopicsTable.id, given[i]!));
+    }
+  });
+  res.set("Cache-Control", "no-store");
+  res.json({ topics: await listTopicsWithCounts() });
+});
+
+router.put("/admin/topics/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid id." });
+    return;
+  }
+  const parsed = topicUpdateSchema.safeParse(req.body);
+  if (!parsed.success || parsed.data.name === undefined) {
+    res.status(400).json({ error: "Topic name required." });
+    return;
+  }
+  const [updated] = await db
+    .update(libraryTopicsTable)
+    .set({ name: parsed.data.name })
+    .where(eq(libraryTopicsTable.id, id))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Topic not found." });
+    return;
+  }
+  const [{ n }] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(genericSectionsTable)
+    .where(eq(genericSectionsTable.topicId, id));
+  res.set("Cache-Control", "no-store");
+  res.json({ topic: { id: updated.id, name: updated.name, sortOrder: updated.sortOrder, legacyLevel: updated.legacyLevel, sectionCount: n } });
+});
+
+router.delete("/admin/topics/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid id." });
+    return;
+  }
+  const [{ n }] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(genericSectionsTable)
+    .where(eq(genericSectionsTable.topicId, id));
+  if (n > 0) {
+    res.status(409).json({ error: `This topic still has ${n} library section(s). Move them to another topic first.` });
+    return;
+  }
+  const deleted = await db.delete(libraryTopicsTable).where(eq(libraryTopicsTable.id, id)).returning({ id: libraryTopicsTable.id });
+  if (deleted.length === 0) {
+    res.status(404).json({ error: "Topic not found." });
+    return;
+  }
+  res.set("Cache-Control", "no-store");
+  res.json({ success: true });
+});
 
 // ----- Content variants ---------------------------------------------------
 
@@ -1119,7 +1528,8 @@ const genericCreateSchema = z.object({
   sectionType: z.enum(["exercise", "reference"]).default("exercise"),
   showNotesField: z.boolean().default(true),
   badgeLabel: z.string().trim().nullish(),
-  defaultLevel: z.number().int().min(1).max(4).nullish(),
+  defaultLevel: z.number().int().nullish(),
+  topicId: z.number().int().nullish(),
   archived: z.boolean().nullish(),
 });
 
@@ -1153,6 +1563,7 @@ router.post("/admin/generic-sections", requireAdmin, async (req, res) => {
       showNotesField: parsed.data.showNotesField,
       badgeLabel: parsed.data.badgeLabel ?? null,
       defaultLevel: parsed.data.defaultLevel ?? 3,
+      topicId: parsed.data.topicId ?? (await defaultTopicId()),
       archived: parsed.data.archived ?? false,
     })
     .returning();
@@ -1170,13 +1581,16 @@ router.get(
         sectionId: cohortSectionsTable.sectionId,
         cohortId: cohortSectionsTable.cohortId,
         level: cohortSectionsTable.level,
+        groupId: cohortSectionsTable.groupId,
         cohortName: cohortsTable.name,
+        groupName: cohortGroupsTable.name,
       })
       .from(cohortSectionsTable)
       .innerJoin(
         cohortsTable,
         eq(cohortSectionsTable.cohortId, cohortsTable.id),
-      );
+      )
+      .leftJoin(cohortGroupsTable, eq(cohortSectionsTable.groupId, cohortGroupsTable.id));
     const usage = rows.flatMap((r) => {
       const m = /^generic_(\d+)$/.exec(r.sectionId);
       if (!m) return [];
@@ -1186,6 +1600,8 @@ router.get(
           cohortId: r.cohortId,
           cohortName: r.cohortName,
           level: r.level,
+          groupId: r.groupId,
+          groupName: r.groupName ?? `Level ${r.level}`,
         },
       ];
     });
@@ -1206,7 +1622,8 @@ const genericUpdateSchema = z
     sectionType: z.enum(["exercise", "reference"]),
     showNotesField: z.boolean(),
     badgeLabel: z.string().trim().nullish(),
-    defaultLevel: z.number().int().min(1).max(4).nullish(),
+    defaultLevel: z.number().int().nullish(),
+    topicId: z.number().int().nullish(),
     archived: z.boolean().nullish(),
   })
   .partial();
@@ -1231,12 +1648,20 @@ router.put("/admin/generic-sections/:id", requireAdmin, async (req, res) => {
   }
   // defaultLevel / archived are NOT NULL columns; strip explicit nulls so a
   // partial payload can't blank them.
-  const { defaultLevel, archived, ...rest } = parsed.data;
+  const { defaultLevel, topicId, archived, ...rest } = parsed.data;
+  if (topicId != null) {
+    const [t] = await db.select({ id: libraryTopicsTable.id }).from(libraryTopicsTable).where(eq(libraryTopicsTable.id, topicId)).limit(1);
+    if (!t) {
+      res.status(400).json({ error: "Unknown topic." });
+      return;
+    }
+  }
   const [updated] = await db
     .update(genericSectionsTable)
     .set({
       ...rest,
       ...(defaultLevel != null ? { defaultLevel } : {}),
+      ...(topicId != null ? { topicId } : {}),
       ...(archived != null ? { archived } : {}),
       updatedAt: new Date(),
     })

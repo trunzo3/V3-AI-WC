@@ -18,5 +18,8 @@ export interface AdminGenericSectionUsage {
   genericId: number;
   cohortId: number;
   cohortName: string;
+  /** @deprecated */
   level: number;
+  groupId?: number | null;
+  groupName: string;
 }

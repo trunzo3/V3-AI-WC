@@ -1,4 +1,4 @@
-import { getCohortLevelNames } from "../lib/cohort-level-names";
+import { getCohortGroups, groupIdForRow, groupOrderIndex, type GroupView } from "../lib/cohort-groups";
 import { Router, type IRouter } from "express";
 import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { execSync } from "node:child_process";
@@ -33,13 +33,6 @@ const GOLD = "#C8963E";
 const CREAM = "#FDFBF7";
 const MUTED = "#6B7280";
 const BORDER = "#E5E7EB";
-
-const LEVEL_LABELS: Record<number, string> = {
-  1: "Level 1 — Core Workshop",
-  2: "Level 2 — Applied Mastery",
-  3: "Level 3 — AI Builder",
-  4: "AI Change Leadership",
-};
 
 // Skipped sections (no participant input expected).
 const SKIPPED_SECTION_IDS = new Set<string>([]);
@@ -102,7 +95,7 @@ interface SectionLite {
   id: string;
   title: string;
   description: string;
-  level: number;
+  groupId: number;
   sortOrder: number;
   type: string;
   unlocked: boolean;
@@ -701,10 +694,10 @@ function renderYourNotesBlock(freeformContent: string | null): string {
 }
 
 function buildHtml(opts: {
-  levelNames: Record<string, string>;
+  groups: GroupView[];
   closingQuote: string;
   closingSubtext: string | null;
-  sectionsByLevel: Map<number, Array<{
+  sectionsByGroup: Map<number, Array<{
     section: SectionLite;
     structuredNotes: RenderedNote[];
     freeformNote: string | null;
@@ -713,15 +706,16 @@ function buildHtml(opts: {
     formResponses: Map<number, string>;
   }>>;
 }): string {
-  const { levelNames, closingQuote, closingSubtext, sectionsByLevel } = opts;
+  const { groups, closingQuote, closingSubtext, sectionsByGroup } = opts;
 
-  const levels = Array.from(sectionsByLevel.keys()).sort((a, b) => a - b);
+  // Groups in cohort order; empty groups are skipped (today's behaviour).
+  const levels = groups.filter((g) => (sectionsByGroup.get(g.id) ?? []).length > 0);
 
   // TOC
   const tocItems: string[] = [];
-  for (const level of levels) {
-    tocItems.push(`<div class="toc-level">${escapeHtml(levelNames[String(level)] ?? LEVEL_LABELS[level] ?? `Level ${level}`)}</div>`);
-    const items = sectionsByLevel.get(level) ?? [];
+  for (const group of levels) {
+    tocItems.push(`<div class="toc-level">${escapeHtml(group.name)}</div>`);
+    const items = sectionsByGroup.get(group.id) ?? [];
     for (const it of items) {
       tocItems.push(`<div class="toc-item"><span class="toc-title">${escapeHtml(it.section.title)}</span><span class="toc-dots"></span></div>`);
     }
@@ -736,10 +730,10 @@ function buildHtml(opts: {
     </section>
   `;
 
-  // Section pages, grouped by level. Page break BETWEEN levels.
+  // Section pages, grouped by group. Page break BETWEEN groups.
   const levelHtml = levels
-    .map((level, levelIdx) => {
-      const items = sectionsByLevel.get(level) ?? [];
+    .map((group, levelIdx) => {
+      const items = sectionsByGroup.get(group.id) ?? [];
       const sectionsHtml = items
         .map((it, idx) => {
           const { section, structuredNotes, freeformNote, workflowMapHtml } = it;
@@ -1139,14 +1133,9 @@ export function resolveWorkbookText(raw: unknown, fallback: string | null): stri
   return v;
 }
 
-/** Default subtitle: names of the open levels, in level order, joined by " · ". */
-export function defaultWorkbookSubtitle(
-  tierAccess: Record<string, boolean> | null | undefined,
-  levelNames: Record<string, string>,
-): string | null {
-  const names = [1, 2, 3, 4]
-    .filter((n) => !!tierAccess?.[String(n)])
-    .map((n) => levelNames[String(n)]?.trim() || LEVEL_LABELS[n] || `Level ${n}`);
+/** Default subtitle: names of the open groups, in group order, joined by " · ". */
+export function defaultWorkbookSubtitle(groups: GroupView[]): string | null {
+  const names = groups.filter((g) => g.isOpen).map((g) => g.name.trim()).filter(Boolean);
   return names.length ? names.join(" · ") : null;
 }
 
@@ -1385,7 +1374,9 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
   const closingQuote = closingByKey.get("closing_quote")?.trim() || FALLBACK_CLOSING_QUOTE;
   const closingSubtext = closingByKey.get("closing_subtext")?.trim() || FALLBACK_CLOSING_SUBTEXT;
 
-  const tierAccess = cohort.tierAccess ?? {};
+  const groups = await getCohortGroups(cohort);
+  const groupById = new Map(groups.map((g) => [g.id, g] as const));
+  const orderIdx = groupOrderIndex(groups);
 
   // Build a list of unlocked sections with assembled metadata.
   type Assembled = {
@@ -1444,16 +1435,18 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
       type = hard.type;
     }
 
-    const tierUnlocked = Boolean(tierAccess[String(cs.level)]);
+    const gid = groupIdForRow(cohort, cs);
+    const group = gid == null ? undefined : groupById.get(gid);
+    if (!group) continue;
     const unlocked =
-      tierUnlocked || !cs.codeActive || unlockedIds.has(cs.sectionId);
+      group.isOpen || !cs.codeActive || unlockedIds.has(cs.sectionId);
     if (!unlocked) continue;
 
     const sectionLite: SectionLite = {
       id: cs.sectionId,
       title,
       description,
-      level: cs.level,
+      groupId: group.id,
       sortOrder: cs.sortOrder,
       type,
       unlocked,
@@ -1501,25 +1494,24 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
 
   // Sort and group by level.
   assembled.sort((a, b) =>
-    a.section.level === b.section.level
+    a.section.groupId === b.section.groupId
       ? a.section.sortOrder - b.section.sortOrder
-      : a.section.level - b.section.level,
+      : (orderIdx.get(a.section.groupId) ?? 0) - (orderIdx.get(b.section.groupId) ?? 0),
   );
 
-  const sectionsByLevel = new Map<number, Assembled[]>();
+  const sectionsByGroup = new Map<number, Assembled[]>();
   for (const a of assembled) {
-    const arr = sectionsByLevel.get(a.section.level) ?? [];
+    const arr = sectionsByGroup.get(a.section.groupId) ?? [];
     arr.push(a);
-    sectionsByLevel.set(a.section.level, arr);
+    sectionsByGroup.set(a.section.groupId, arr);
   }
 
-  const cohortLevelNames = getCohortLevelNames(cohort.settings);
   const cohortSettings = (cohort.settings ?? {}) as Record<string, unknown>;
   const workbookTitle =
     resolveWorkbookText(cohortSettings.workbookTitle, cohort.name?.trim() || null) || "Workbook";
   const workbookSubtitle = resolveWorkbookText(
     cohortSettings.workbookSubtitle,
-    defaultWorkbookSubtitle(cohort.tierAccess as Record<string, boolean> | null, cohortLevelNames),
+    defaultWorkbookSubtitle(groups),
   );
   const workbookBrand = resolveWorkbookText(cohortSettings.workbookBrand, DEFAULT_WORKBOOK_BRAND);
 
@@ -1531,10 +1523,10 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     generatedDate: formatDate(new Date()),
   });
   const html = buildHtml({
-    levelNames: cohortLevelNames,
+    groups,
     closingQuote,
     closingSubtext,
-    sectionsByLevel,
+    sectionsByGroup,
   });
 
   let browser: Browser | null = null;

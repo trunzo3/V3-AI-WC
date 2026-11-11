@@ -17,7 +17,7 @@ All participant endpoints require an authenticated session cookie
 export interface AdminCohortSectionInput {
   /** @minLength 1 */
   sectionId: string;
-  level: number;
+  groupId: number;
   sortOrder: number;
   displayName?: string | null;
   visible: boolean;

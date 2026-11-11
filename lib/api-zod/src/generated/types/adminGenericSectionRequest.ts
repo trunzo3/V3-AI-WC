@@ -23,8 +23,13 @@ export interface AdminGenericSectionRequest {
   sectionType?: string;
   showNotesField?: boolean;
   badgeLabel?: string | null;
-  /** Default level for library grouping (1-4) */
+  /**
+   * Legacy (frozen); use topicId.
+   * @deprecated
+   */
   defaultLevel?: number | null;
+  /** Library topic to file the section under. */
+  topicId?: number | null;
   /** Archive/restore flag; archived sections stay attached to cohorts */
   archived?: boolean | null;
   /** When creating, also insert this generic section into the given cohort */

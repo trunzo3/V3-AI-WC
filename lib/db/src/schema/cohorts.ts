@@ -40,6 +40,10 @@ export const cohortsTable = pgTable(
       .$type<Record<string, unknown>>()
       .notNull()
       .default({}),
+    // Set once the cohort's legacy levels 1–4 have been converted into
+    // cohort_groups rows (see convertLevelsToGroups in the api-server seed).
+    // Null = not converted yet; readers fall back to tier_access/level.
+    groupsConvertedAt: timestamp("groups_converted_at"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
@@ -58,6 +62,26 @@ export const insertCohortSchema = createInsertSchema(cohortsTable).omit({
 export type InsertCohort = z.infer<typeof insertCohortSchema>;
 export type Cohort = typeof cohortsTable.$inferSelect;
 
+/**
+ * Ordered, per-cohort section groups (replaces the fixed levels 1–4).
+ * `legacyLevel` is set on groups produced by the level→group conversion so
+ * seeded-module healing and the verification script can find "the old Level
+ * N group"; admin-created groups have null.
+ */
+export const cohortGroupsTable = pgTable("cohort_groups", {
+  id: serial("id").primaryKey(),
+  cohortId: integer("cohort_id")
+    .notNull()
+    .references(() => cohortsTable.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull(),
+  isOpen: boolean("is_open").notNull().default(false),
+  legacyLevel: integer("legacy_level"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type CohortGroup = typeof cohortGroupsTable.$inferSelect;
+export type InsertCohortGroup = typeof cohortGroupsTable.$inferInsert;
+
 export const cohortSectionsTable = pgTable(
   "cohort_sections",
   {
@@ -66,7 +90,11 @@ export const cohortSectionsTable = pgTable(
       .notNull()
       .references(() => cohortsTable.id, { onDelete: "cascade" }),
     sectionId: text("section_id").notNull(),
+    // Legacy level (1–4). Frozen after the groups conversion: new code reads
+    // group_id; this is still written (group's legacyLevel, else 1) so older
+    // builds keep working during a rollout.
     level: integer("level").notNull().default(1),
+    groupId: integer("group_id").references(() => cohortGroupsTable.id),
     sortOrder: integer("sort_order").notNull(),
     displayName: text("display_name"),
     visible: boolean("visible").notNull().default(true),

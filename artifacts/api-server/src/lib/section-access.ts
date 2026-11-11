@@ -5,20 +5,20 @@ import {
   cohortSectionsTable,
   unlockedSectionsTable,
 } from "@workspace/db";
+import { getCohortGroups, groupIdForRow } from "./cohort-groups";
 
 // The single unlock rule, shared by the sections route (bulk) and the
-// participant file routes (per section). A section is unlocked when:
-//  - the participant's tier already grants this level, OR
+// participant file/notes/responses routes (per section). A section is
+// unlocked when:
+//  - its group is open, OR
 //  - the section doesn't require a code (codeActive=false), OR
 //  - the participant has explicitly unlocked it via a code.
 export function isSectionUnlocked(opts: {
-  tierAccess: Record<string, boolean> | null | undefined;
-  level: number;
+  groupOpen: boolean;
   codeActive: boolean;
   explicitlyUnlocked: boolean;
 }): boolean {
-  const tierUnlocked = Boolean((opts.tierAccess ?? {})[String(opts.level)]);
-  return tierUnlocked || !opts.codeActive || opts.explicitlyUnlocked;
+  return opts.groupOpen || !opts.codeActive || opts.explicitlyUnlocked;
 }
 
 // Per-section check for a participant: the section must be assigned to the
@@ -31,6 +31,7 @@ export async function isSectionUnlockedForParticipant(
   const [cs] = await db
     .select({
       level: cohortSectionsTable.level,
+      groupId: cohortSectionsTable.groupId,
       codeActive: cohortSectionsTable.codeActive,
     })
     .from(cohortSectionsTable)
@@ -45,11 +46,15 @@ export async function isSectionUnlockedForParticipant(
   if (!cs) return false;
 
   const [cohort] = await db
-    .select({ tierAccess: cohortsTable.tierAccess })
+    .select()
     .from(cohortsTable)
     .where(eq(cohortsTable.id, cohortId))
     .limit(1);
   if (!cohort) return false;
+
+  const groups = await getCohortGroups(cohort);
+  const gid = groupIdForRow(cohort, cs);
+  const group = groups.find((g) => g.id === gid);
 
   const [unlockRow] = await db
     .select({ id: unlockedSectionsTable.id })
@@ -63,8 +68,7 @@ export async function isSectionUnlockedForParticipant(
     .limit(1);
 
   return isSectionUnlocked({
-    tierAccess: cohort.tierAccess as Record<string, boolean> | null,
-    level: cs.level,
+    groupOpen: Boolean(group?.isOpen),
     codeActive: cs.codeActive,
     explicitlyUnlocked: Boolean(unlockRow),
   });

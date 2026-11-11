@@ -57,9 +57,18 @@ export interface Participant {
 export type CohortTierAccess = { [key: string]: boolean };
 
 /**
- * Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.
+ * Legacy (frozen). Use groups.
+ * @deprecated
  */
 export type CohortLevelNames = { [key: string]: string };
+
+export interface SectionGroup {
+  id: number;
+  name: string;
+  sortOrder: number;
+  /** Open groups unlock every section inside them for all participants. */
+  isOpen: boolean;
+}
 
 export interface Cohort {
   id: number;
@@ -72,8 +81,13 @@ export interface Cohort {
   audienceType: string;
   /** When false, the self-assessment and "Talk with Anthony" links are hidden for this cohort's participants. Default true. */
   showCoachingLinks?: boolean;
-  /** Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults. */
+  /**
+   * Legacy (frozen). Use groups.
+   * @deprecated
+   */
   levelNames?: CohortLevelNames;
+  /** Ordered section groups of this cohort (replaces levels). */
+  groups?: SectionGroup[];
 }
 
 export interface LoginResponse {
@@ -276,7 +290,12 @@ export interface Section {
   id: string;
   title: string;
   description: string;
+  /**
+   * Legacy level (frozen); use groupId.
+   * @deprecated
+   */
   level: number;
+  groupId: number;
   sortOrder: number;
   type: SectionType;
   unlocked: boolean;
@@ -289,6 +308,7 @@ export interface Section {
 
 export interface SectionsResponse {
   sections: Section[];
+  groups: SectionGroup[];
 }
 
 export interface UnlockRequest {
@@ -486,9 +506,19 @@ export interface AdminMeResponse {
 export type AdminCohortTierAccess = { [key: string]: boolean };
 
 /**
- * Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.
+ * Legacy (frozen); groups carry the names now.
+ * @deprecated
  */
 export type AdminCohortLevelNames = { [key: string]: string };
+
+export interface AdminCohortGroup {
+  id: number;
+  name: string;
+  sortOrder: number;
+  isOpen: boolean;
+  legacyLevel?: number | null;
+  sectionCount?: number;
+}
 
 export interface AdminCohort {
   id: number;
@@ -498,8 +528,15 @@ export interface AdminCohort {
   facilitatorMessage: string;
   homeMessage?: string | null;
   tierAccess: AdminCohortTierAccess;
-  /** Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults. */
+  /**
+   * Legacy (frozen); groups carry the names now.
+   * @deprecated
+   */
   levelNames?: AdminCohortLevelNames;
+  /** Ordered section groups (list endpoint only). */
+  groups?: AdminCohortGroup[];
+  /** False while the cohort still renders from legacy levels. */
+  groupsConverted?: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -542,9 +579,21 @@ export interface AdminMakeEditableBlockedResponse {
 export type AdminCohortCreateRequestTierAccess = { [key: string]: boolean };
 
 /**
- * Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.
+ * Legacy (frozen); groups carry the names now.
+ * @deprecated
  */
 export type AdminCohortCreateRequestLevelNames = { [key: string]: string };
+
+/**
+ * "starting" (default) creates the starting groups (all locked) with the starting sections; "empty" creates no groups and no sections.
+ */
+export type AdminCohortCreateRequestStartWith =
+  (typeof AdminCohortCreateRequestStartWith)[keyof typeof AdminCohortCreateRequestStartWith];
+
+export const AdminCohortCreateRequestStartWith = {
+  starting: "starting",
+  empty: "empty",
+} as const;
 
 export interface AdminCohortCreateRequest {
   /** @minLength 1 */
@@ -555,8 +604,13 @@ export interface AdminCohortCreateRequest {
   facilitatorMessage?: string;
   homeMessage?: string | null;
   tierAccess?: AdminCohortCreateRequestTierAccess;
-  /** Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults. */
+  /**
+   * Legacy (frozen); groups carry the names now.
+   * @deprecated
+   */
   levelNames?: AdminCohortCreateRequestLevelNames;
+  /** "starting" (default) creates the starting groups (all locked) with the starting sections; "empty" creates no groups and no sections. */
+  startWith?: AdminCohortCreateRequestStartWith;
 }
 
 export type AdminCohortUpdateRequestTierAccess = { [key: string]: boolean };
@@ -583,7 +637,13 @@ export interface AdminCohortSection {
   id: number;
   cohortId: number;
   sectionId: string;
+  /**
+   * Legacy level (frozen); use groupId.
+   * @deprecated
+   */
   level: number;
+  /** Group the row belongs to (negative virtual id while a cohort is unconverted). */
+  groupId: number | null;
   sortOrder: number;
   displayName?: string | null;
   visible: boolean;
@@ -595,12 +655,81 @@ export interface AdminCohortSection {
 
 export interface AdminCohortSectionsResponse {
   sections: AdminCohortSection[];
+  groups: AdminCohortGroup[];
+  /** False while the cohort still renders from legacy levels; editing is refused until true. */
+  groupsConverted: boolean;
+}
+
+export interface AdminCohortGroupsResponse {
+  groups: AdminCohortGroup[];
+  groupsConverted: boolean;
+}
+
+export interface AdminCohortGroupResponse {
+  group: AdminCohortGroup;
+}
+
+export interface AdminCohortGroupCreateRequest {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  name: string;
+}
+
+export interface AdminCohortGroupUpdateRequest {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  name?: string;
+  isOpen?: boolean;
+}
+
+export interface AdminCohortGroupReorderRequest {
+  groupIds: number[];
+}
+
+export interface AdminTopic {
+  id: number;
+  name: string;
+  sortOrder: number;
+  legacyLevel?: number | null;
+  sectionCount: number;
+}
+
+export interface AdminTopicsResponse {
+  topics: AdminTopic[];
+}
+
+export interface AdminTopicResponse {
+  topic: AdminTopic;
+}
+
+export interface AdminTopicCreateRequest {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  name: string;
+}
+
+export interface AdminTopicUpdateRequest {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  name: string;
+}
+
+export interface AdminTopicReorderRequest {
+  topicIds: number[];
 }
 
 export interface AdminCohortSectionInput {
   /** @minLength 1 */
   sectionId: string;
-  level: number;
+  groupId: number;
   sortOrder: number;
   displayName?: string | null;
   visible: boolean;
@@ -655,8 +784,13 @@ export interface AdminGenericSection {
   sectionType: string;
   showNotesField?: boolean;
   badgeLabel?: string | null;
-  /** Default level grouping in the section library */
+  /**
+   * Legacy (frozen); use topicId.
+   * @deprecated
+   */
   defaultLevel: number;
+  /** Library topic this section is filed under. */
+  topicId?: number | null;
   /** Hidden from the library view but still attached to cohorts */
   archived: boolean;
   createdAt?: string | null;
@@ -667,7 +801,10 @@ export interface AdminGenericSectionUsage {
   genericId: number;
   cohortId: number;
   cohortName: string;
+  /** @deprecated */
   level: number;
+  groupId?: number | null;
+  groupName: string;
 }
 
 export interface AdminGenericSectionUsageResponse {
@@ -690,8 +827,13 @@ export interface AdminGenericSectionRequest {
   sectionType?: string;
   showNotesField?: boolean;
   badgeLabel?: string | null;
-  /** Default level for library grouping (1-4) */
+  /**
+   * Legacy (frozen); use topicId.
+   * @deprecated
+   */
   defaultLevel?: number | null;
+  /** Library topic to file the section under. */
+  topicId?: number | null;
   /** Archive/restore flag; archived sections stay attached to cohorts */
   archived?: boolean | null;
   /** When creating, also insert this generic section into the given cohort */

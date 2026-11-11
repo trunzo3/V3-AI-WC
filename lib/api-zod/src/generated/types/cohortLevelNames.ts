@@ -15,6 +15,7 @@ All participant endpoints require an authenticated session cookie
  */
 
 /**
- * Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.
+ * Legacy (frozen). Use groups.
+ * @deprecated
  */
 export type CohortLevelNames = { [key: string]: string };

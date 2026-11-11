@@ -627,6 +627,187 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
+  /admin/cohorts/{cohortId}/groups:
+    parameters:
+      - $ref: "#/components/parameters/CohortId"
+    get:
+      operationId: adminListCohortGroups
+      tags: [admin-sections]
+      summary: List a cohort's section groups with section counts
+      responses:
+        "200":
+          description: Groups
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminCohortGroupsResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      operationId: adminCreateCohortGroup
+      tags: [admin-sections]
+      summary: Add a group (appended last, locked)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminCohortGroupCreateRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminCohortGroupResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /admin/cohorts/{cohortId}/groups/reorder:
+    parameters:
+      - $ref: "#/components/parameters/CohortId"
+    put:
+      operationId: adminReorderCohortGroups
+      tags: [admin-sections]
+      summary: Reorder a cohort's groups (every group id exactly once)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminCohortGroupReorderRequest" }
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminCohortGroupsResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/cohorts/{cohortId}/groups/{groupId}:
+    parameters:
+      - $ref: "#/components/parameters/CohortId"
+      - name: groupId
+        in: path
+        required: true
+        schema: { type: integer }
+    put:
+      operationId: adminUpdateCohortGroup
+      tags: [admin-sections]
+      summary: Rename a group or toggle open/locked
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminCohortGroupUpdateRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminCohortGroupResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: adminDeleteCohortGroup
+      tags: [admin-sections]
+      summary: Delete an empty group (hidden sections count as non-empty)
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /admin/topics:
+    get:
+      operationId: adminListTopics
+      tags: [admin-sections]
+      summary: List library topics with section counts
+      responses:
+        "200":
+          description: Topics
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminTopicsResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: adminCreateTopic
+      tags: [admin-sections]
+      summary: Add a library topic (appended last)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminTopicCreateRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminTopicResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/topics/reorder:
+    put:
+      operationId: adminReorderTopics
+      tags: [admin-sections]
+      summary: Reorder library topics (every topic id exactly once)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminTopicReorderRequest" }
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminTopicsResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /admin/topics/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer }
+    put:
+      operationId: adminUpdateTopic
+      tags: [admin-sections]
+      summary: Rename a library topic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminTopicUpdateRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminTopicResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: adminDeleteTopic
+      tags: [admin-sections]
+      summary: Delete an empty library topic
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
   /admin/generic-sections:
     get:
       operationId: adminListGenericSections
@@ -1197,7 +1378,23 @@ components:
         levelNames:
           type: object
           additionalProperties: { type: string }
-          description: 'Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.'
+          deprecated: true
+          description: 'Legacy (frozen). Use groups.'
+        groups:
+          type: array
+          description: Ordered section groups of this cohort (replaces levels).
+          items: { $ref: "#/components/schemas/SectionGroup" }
+
+    SectionGroup:
+      type: object
+      required: [id, name, sortOrder, isOpen]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        sortOrder: { type: integer }
+        isOpen:
+          type: boolean
+          description: Open groups unlock every section inside them for all participants.
 
     LoginResponse:
       type: object
@@ -1221,12 +1418,13 @@ components:
 
     Section:
       type: object
-      required: [id, title, description, level, sortOrder, type, unlocked, hasCode, hasNotes, isGeneric]
+      required: [id, title, description, level, groupId, sortOrder, type, unlocked, hasCode, hasNotes, isGeneric]
       properties:
         id: { type: string }
         title: { type: string }
         description: { type: string }
-        level: { type: integer }
+        level: { type: integer, deprecated: true, description: Legacy level (frozen); use groupId. }
+        groupId: { type: integer }
         sortOrder: { type: integer }
         type:
           type: string
@@ -1433,11 +1631,14 @@ components:
 
     SectionsResponse:
       type: object
-      required: [sections]
+      required: [sections, groups]
       properties:
         sections:
           type: array
           items: { $ref: "#/components/schemas/Section" }
+        groups:
+          type: array
+          items: { $ref: "#/components/schemas/SectionGroup" }
 
     UnlockRequest:
       type: object
@@ -1744,7 +1945,15 @@ components:
         levelNames:
           type: object
           additionalProperties: { type: string }
-          description: 'Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.'
+          deprecated: true
+          description: Legacy (frozen); groups carry the names now.
+        groups:
+          type: array
+          description: Ordered section groups (list endpoint only).
+          items: { $ref: "#/components/schemas/AdminCohortGroup" }
+        groupsConverted:
+          type: boolean
+          description: False while the cohort still renders from legacy levels.
         createdAt:
           type: string
           format: date-time
@@ -1815,7 +2024,12 @@ components:
         levelNames:
           type: object
           additionalProperties: { type: string }
-          description: 'Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults.'
+          deprecated: true
+          description: Legacy (frozen); groups carry the names now.
+        startWith:
+          type: string
+          enum: [starting, empty]
+          description: '"starting" (default) creates the starting groups (all locked) with the starting sections; "empty" creates no groups and no sections.'
 
     AdminCohortUpdateRequest:
       type: object
@@ -1837,12 +2051,16 @@ components:
 
     AdminCohortSection:
       type: object
-      required: [id, cohortId, sectionId, level, sortOrder, visible, codeActive, title, type]
+      required: [id, cohortId, sectionId, level, groupId, sortOrder, visible, codeActive, title, type]
       properties:
         id: { type: integer }
         cohortId: { type: integer }
         sectionId: { type: string }
-        level: { type: integer }
+        level: { type: integer, deprecated: true, description: Legacy level (frozen); use groupId. }
+        groupId:
+          type: integer
+          nullable: true
+          description: Group the row belongs to (negative virtual id while a cohort is unconverted).
         sortOrder: { type: integer }
         displayName:
           type: string
@@ -1857,18 +2075,118 @@ components:
 
     AdminCohortSectionsResponse:
       type: object
-      required: [sections]
+      required: [sections, groups, groupsConverted]
       properties:
         sections:
           type: array
           items: { $ref: "#/components/schemas/AdminCohortSection" }
+        groups:
+          type: array
+          items: { $ref: "#/components/schemas/AdminCohortGroup" }
+        groupsConverted:
+          type: boolean
+          description: False while the cohort still renders from legacy levels; editing is refused until true.
+
+    AdminCohortGroup:
+      type: object
+      required: [id, name, sortOrder, isOpen]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        sortOrder: { type: integer }
+        isOpen: { type: boolean }
+        legacyLevel:
+          type: integer
+          nullable: true
+        sectionCount: { type: integer }
+
+    AdminCohortGroupsResponse:
+      type: object
+      required: [groups, groupsConverted]
+      properties:
+        groups:
+          type: array
+          items: { $ref: "#/components/schemas/AdminCohortGroup" }
+        groupsConverted: { type: boolean }
+
+    AdminCohortGroupResponse:
+      type: object
+      required: [group]
+      properties:
+        group: { $ref: "#/components/schemas/AdminCohortGroup" }
+
+    AdminCohortGroupCreateRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+
+    AdminCohortGroupUpdateRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        isOpen: { type: boolean }
+
+    AdminCohortGroupReorderRequest:
+      type: object
+      required: [groupIds]
+      properties:
+        groupIds:
+          type: array
+          items: { type: integer }
+
+    AdminTopic:
+      type: object
+      required: [id, name, sortOrder, sectionCount]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        sortOrder: { type: integer }
+        legacyLevel:
+          type: integer
+          nullable: true
+        sectionCount: { type: integer }
+
+    AdminTopicsResponse:
+      type: object
+      required: [topics]
+      properties:
+        topics:
+          type: array
+          items: { $ref: "#/components/schemas/AdminTopic" }
+
+    AdminTopicResponse:
+      type: object
+      required: [topic]
+      properties:
+        topic: { $ref: "#/components/schemas/AdminTopic" }
+
+    AdminTopicCreateRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+
+    AdminTopicUpdateRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+
+    AdminTopicReorderRequest:
+      type: object
+      required: [topicIds]
+      properties:
+        topicIds:
+          type: array
+          items: { type: integer }
 
     AdminCohortSectionInput:
       type: object
-      required: [sectionId, level, sortOrder, visible, codeActive]
+      required: [sectionId, groupId, sortOrder, visible, codeActive]
       properties:
         sectionId: { type: string, minLength: 1 }
-        level: { type: integer }
+        groupId: { type: integer }
         sortOrder: { type: integer }
         displayName:
           type: string
@@ -1959,7 +2277,12 @@ components:
           nullable: true
         defaultLevel:
           type: integer
-          description: Default level grouping in the section library
+          deprecated: true
+          description: Legacy (frozen); use topicId.
+        topicId:
+          type: integer
+          nullable: true
+          description: Library topic this section is filed under.
         archived:
           type: boolean
           description: Hidden from the library view but still attached to cohorts
@@ -1974,12 +2297,16 @@ components:
 
     AdminGenericSectionUsage:
       type: object
-      required: [genericId, cohortId, cohortName, level]
+      required: [genericId, cohortId, cohortName, level, groupName]
       properties:
         genericId: { type: integer }
         cohortId: { type: integer }
         cohortName: { type: string }
-        level: { type: integer }
+        level: { type: integer, deprecated: true }
+        groupId:
+          type: integer
+          nullable: true
+        groupName: { type: string }
 
     AdminGenericSectionUsageResponse:
       type: object
@@ -2022,7 +2349,12 @@ components:
         defaultLevel:
           type: integer
           nullable: true
-          description: Default level for library grouping (1-4)
+          deprecated: true
+          description: Legacy (frozen); use topicId.
+        topicId:
+          type: integer
+          nullable: true
+          description: Library topic to file the section under.
         archived:
           type: boolean
           nullable: true

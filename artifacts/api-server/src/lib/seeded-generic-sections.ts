@@ -5,10 +5,12 @@ import {
   cohortSectionsTable,
   cohortsTable,
   seededSectionRemovalsTable,
+  libraryTopicsTable,
   type GenericContentBlock,
 } from "@workspace/db";
 import { genericSectionId } from "./sections";
 import { logger } from "./logger";
+import { findGroupForLegacyLevel } from "./cohort-groups";
 
 /**
  * Seeded generic-section modules ship with the repo and are keyed by a
@@ -29,6 +31,7 @@ export type SeededGenericModule = {
   title: string;
   badgeLabel: string | null;
   showNotesField: boolean;
+  /** Starting topic key (legacy level): the module attaches to the cohort's group carrying it. */
   level: number;
   sortOrder: number;
   /** Unlock code; modules seed locked (code_active = true). */
@@ -642,6 +645,7 @@ export const BASE_COHORT_CODES = ["WORKSHOP", "LIVE2026"] as const;
  */
 export async function attachSeededGenericSectionsToCohort(
   cohortId: number,
+  groupByLevel?: Map<number, number>,
 ): Promise<void> {
   for (const m of SEEDED_GENERIC_MODULES) {
     const [row] = await db
@@ -650,12 +654,15 @@ export async function attachSeededGenericSectionsToCohort(
       .where(eq(genericSectionsTable.slug, m.slug))
       .limit(1);
     if (!row) continue;
+    const groupId = groupByLevel?.get(m.level) ?? (await findGroupForLegacyLevel(cohortId, m.level));
+    if (groupId == null) continue; // cohort has no group for this topic (e.g. "Empty" cohort)
     await db
       .insert(cohortSectionsTable)
       .values({
         cohortId,
         sectionId: genericSectionId(row.id),
         level: m.level,
+        groupId,
         sortOrder: m.sortOrder,
         displayName: null,
         visible: true,
@@ -700,6 +707,12 @@ export async function ensureSeededGenericSections(): Promise<void> {
     removalRows.map((r) => `${r.cohortId}:${r.slug}`),
   );
 
+  // Topic for new library rows: the topic carrying the module's starting key.
+  const topicRows = await db
+    .select({ id: libraryTopicsTable.id, legacyLevel: libraryTopicsTable.legacyLevel })
+    .from(libraryTopicsTable);
+  const topicByLevel = new Map(topicRows.filter((t) => t.legacyLevel != null).map((t) => [t.legacyLevel!, t.id] as const));
+
   for (const m of SEEDED_GENERIC_MODULES) {
     let [row] = await db
       .insert(genericSectionsTable)
@@ -712,6 +725,7 @@ export async function ensureSeededGenericSections(): Promise<void> {
         goalText: m.goalText ?? null,
         contentBlocks: m.contentBlocks,
         defaultLevel: m.level,
+        topicId: topicByLevel.get(m.level) ?? null,
       })
       .onConflictDoNothing({ target: genericSectionsTable.slug })
       .returning({ id: genericSectionsTable.id });
@@ -735,12 +749,21 @@ export async function ensureSeededGenericSections(): Promise<void> {
     // visibility intact for attachments that already exist.
     for (const cohort of targetCohorts) {
       if (!newlyCreated && tombstones.has(`${cohort.id}:${m.slug}`)) continue;
+      // Place into the cohort's group that carries the module's starting
+      // topic; a cohort without one (admin deleted it / empty cohort) is
+      // skipped and logged — the seed never invents groups.
+      const groupId = await findGroupForLegacyLevel(cohort.id, m.level);
+      if (groupId == null) {
+        if (newlyCreated) logger.warn({ slug: m.slug, cohortId: cohort.id }, "No group for seeded module's topic; skipped.");
+        continue;
+      }
       await db
         .insert(cohortSectionsTable)
         .values({
           cohortId: cohort.id,
           sectionId: genericSectionId(row.id),
           level: m.level,
+          groupId,
           sortOrder: m.sortOrder,
           displayName: null,
           visible: true,

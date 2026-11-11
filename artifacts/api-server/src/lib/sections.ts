@@ -7,8 +7,11 @@
  * this list using SECTION_CODE_CONFIG (in `../section-codes-config.ts`) for
  * default per-cohort codes.
  *
- * Tier maps directly to `cohort_sections.level` (tier 1 -> level 1, etc.).
- * `sortOrder` within a level is computed by ordering entries by (day, order).
+ * Tier is the built-in's *starting topic* (1 = Core Workshop, 2 = Applied
+ * Mastery, 3 = AI Builder, 4 = AI Change Leadership); a new cohort's starting
+ * groups are keyed by it. It is also persisted to the frozen legacy
+ * `cohort_sections.level` column. `sortOrder` within a topic is computed by
+ * ordering entries by (day, order).
  */
 
 export type SectionType = "exercise" | "reference" | "locked";
@@ -19,9 +22,9 @@ export interface HardcodedSection {
   description: string;
   /** Curriculum day (1 or 2). */
   day: 1 | 2;
-  /** Curriculum tier; persisted as `level` on cohort_sections. */
-  level: 1 | 2 | 3 | 4;
-  /** 1-based position within the (level) group, derived from (day, order). */
+  /** Starting topic key (legacy level number); see file header. */
+  level: number;
+  /** 1-based position within the starting topic, derived from (day, order). */
   sortOrder: number;
   type: SectionType;
 }
@@ -32,7 +35,7 @@ interface RawSection {
   description: string;
   day: 1 | 2;
   order: number;
-  tier: 1 | 2 | 3 | 4;
+  tier: number;
   type: SectionType;
 }
 
@@ -79,7 +82,7 @@ function buildAllSections(): ReadonlyArray<HardcodedSection> {
   const sortedByCurriculum = [...RAW_SECTIONS].sort((a, b) =>
     a.day === b.day ? a.order - b.order : a.day - b.day,
   );
-  const perTierIndex: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  const perTierIndex: Record<number, number> = {};
   return sortedByCurriculum.map((s) => {
     perTierIndex[s.tier] = (perTierIndex[s.tier] ?? 0) + 1;
     return {

@@ -10,10 +10,13 @@ import {
   useAdminUnlockAllForCohort,
   useAdminListGenericSectionUsage,
   useAdminMakeSectionEditable,
+  useAdminListTopics,
+  getAdminListTopicsQueryKey,
   getAdminListCohortSectionsQueryKey,
   getAdminListGenericSectionsQueryKey,
   getAdminListGenericSectionUsageQueryKey,
   type AdminCohortSection,
+  type AdminCohortGroup,
   type AdminGenericSection,
   type GenericContentBlock,
 } from "@workspace/api-client-react";
@@ -59,6 +62,16 @@ import {
   SectionFilesDialog,
   type SectionFile,
 } from "@/components/admin/SectionFilesDialog";
+import { CohortGroupsEditor } from "@/components/admin/CohortGroupsEditor";
+import { LibraryTopicsEditor } from "@/components/admin/LibraryTopicsEditor";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Props {
   cohortId: number;
@@ -66,13 +79,15 @@ interface Props {
 
 type Row = AdminCohortSection & { __title?: string };
 
-// Per-browser key for remembering which level groups are collapsed in the
-// admin Sections tab. Admin app is not a sandboxed artifact, so localStorage
-// is appropriate here.
-const LEVEL_COLLAPSE_KEY = "admin-sections-collapsed-levels";
-// Same idea for the Section library's default-level groups and the Archived
-// Sections area.
-const LIBRARY_COLLAPSE_KEY = "admin-library-collapsed-levels";
+// Per-browser key for remembering which groups are collapsed in the admin
+// Sections tab (keyed by group id). Admin app is not a sandboxed artifact,
+// so localStorage is appropriate here.
+const LEVEL_COLLAPSE_KEY = "admin-sections-collapsed-groups";
+// Same idea for the Section library's topics (keyed by topic id) and the
+// Archived Sections area.
+const LIBRARY_COLLAPSE_KEY = "admin-library-collapsed-topics";
+// Library sections whose topic no longer resolves are listed under this key.
+const NO_TOPIC_KEY = -1;
 const ARCHIVED_COLLAPSE_KEY = "admin-archived-collapsed";
 
 function titleFor(row: AdminCohortSection): string {
@@ -90,9 +105,9 @@ export function SectionsTab({ cohortId }: Props) {
   const [rows, setRows] = useState<Row[]>([]);
   const [dirty, setDirty] = useState(false);
 
-  // Per-browser collapsed/expanded state for the level groupings. Defaults to
+  // Per-browser collapsed/expanded state for the group headings. Defaults to
   // all expanded on first load (no stored value). Persisted so a collapsed
-  // level stays collapsed across reloads and sessions.
+  // group stays collapsed across reloads and sessions.
   const [collapsedLevels, setCollapsedLevels] = useState<Record<number, boolean>>(
     () => {
       try {
@@ -110,8 +125,8 @@ export function SectionsTab({ cohortId }: Props) {
       // Ignore storage write failures (e.g. private mode quota).
     }
   }, [collapsedLevels]);
-  const toggleLevel = (lvl: number) =>
-    setCollapsedLevels((prev) => ({ ...prev, [lvl]: !prev[lvl] }));
+  const toggleLevel = (groupId: number) =>
+    setCollapsedLevels((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
 
   useEffect(() => {
     if (sectionsQ.data?.sections) {
@@ -120,22 +135,35 @@ export function SectionsTab({ cohortId }: Props) {
     }
   }, [sectionsQ.data]);
 
+  // The cohort's ordered groups (headings) and whether it has been converted
+  // from legacy levels. While unconverted the list is read-only.
+  const groups: AdminCohortGroup[] = sectionsQ.data?.groups ?? [];
+  const groupsConverted = sectionsQ.data?.groupsConverted ?? true;
+  const groupName = (id: number | null | undefined) =>
+    groups.find((g) => g.id === id)?.name ?? "(no group)";
+  const [groupsEditorOpen, setGroupsEditorOpen] = useState(false);
+
   const generics = genericsQ.data?.sections ?? [];
+
+  // Library topics (admin-managed headings for the Section library).
+  const topicsQ = useAdminListTopics();
+  const topics = topicsQ.data?.topics ?? [];
+  const [topicsEditorOpen, setTopicsEditorOpen] = useState(false);
 
   // ---- Section library state ----
   const usageQ = useAdminListGenericSectionUsage();
-  // genericId -> every (cohort, level) attachment across all cohorts.
+  // genericId -> every (cohort, group) attachment across all cohorts.
   const usageByGeneric = useMemo(() => {
     const m = new Map<
       number,
-      Array<{ cohortId: number; cohortName: string; level: number }>
+      Array<{ cohortId: number; cohortName: string; groupName: string }>
     >();
     for (const u of usageQ.data?.usage ?? []) {
       const list = m.get(u.genericId) ?? [];
       list.push({
         cohortId: u.cohortId,
         cohortName: u.cohortName,
-        level: u.level,
+        groupName: u.groupName,
       });
       m.set(u.genericId, list);
     }
@@ -150,18 +178,26 @@ export function SectionsTab({ cohortId }: Props) {
     () => generics.filter((g) => g.archived),
     [generics],
   );
-  const libraryByLevel = useMemo(() => {
-    const m: Record<number, AdminGenericSection[]> = { 1: [], 2: [], 3: [], 4: [] };
+  // Library grouped by topic id (NO_TOPIC_KEY for sections whose topic is
+  // missing). Topics render in their admin-defined order.
+  const libraryByTopic = useMemo(() => {
+    const m = new Map<number, AdminGenericSection[]>();
+    const known = new Set(topics.map((t) => t.id));
     for (const g of activeLibrary) {
-      const lvl = g.defaultLevel >= 1 && g.defaultLevel <= 4 ? g.defaultLevel : 3;
-      m[lvl]!.push(g);
+      const key = g.topicId != null && known.has(g.topicId) ? g.topicId : NO_TOPIC_KEY;
+      const list = m.get(key) ?? [];
+      list.push(g);
+      m.set(key, list);
     }
-    for (const k of Object.keys(m))
-      m[Number(k)]!.sort((a, b) => a.title.localeCompare(b.title));
+    for (const list of m.values()) list.sort((a, b) => a.title.localeCompare(b.title));
     return m;
-  }, [activeLibrary]);
+  }, [activeLibrary, topics]);
+  const libraryTopicOrder: Array<{ id: number; name: string }> = [
+    ...topics.map((t) => ({ id: t.id, name: t.name })),
+    ...(libraryByTopic.has(NO_TOPIC_KEY) ? [{ id: NO_TOPIC_KEY, name: "No topic" }] : []),
+  ];
 
-  // Collapsed state for the library's default-level groups (persisted).
+  // Collapsed state for the library's topics (persisted).
   const [collapsedLibLevels, setCollapsedLibLevels] = useState<
     Record<number, boolean>
   >(() => {
@@ -208,13 +244,24 @@ export function SectionsTab({ cohortId }: Props) {
     useState<AdminGenericSection | null>(null);
   const [confirmDeleteText, setConfirmDeleteText] = useState("");
 
+  // Rows by group id, each sorted by sortOrder. Rows whose group is not one
+  // of the cohort's groups (shouldn't happen) are listed under "(no group)".
   const grouped = useMemo(() => {
-    const m: Record<number, Row[]> = { 1: [], 2: [], 3: [], 4: [] };
-    for (const r of rows) (m[r.level] ??= []).push(r);
-    for (const k of Object.keys(m))
-      m[Number(k)] = m[Number(k)]!.sort((a, b) => a.sortOrder - b.sortOrder);
+    const m = new Map<number, Row[]>();
+    for (const g of groups) m.set(g.id, []);
+    for (const r of rows) {
+      const key = r.groupId != null && m.has(r.groupId) ? r.groupId : NO_TOPIC_KEY;
+      const list = m.get(key) ?? [];
+      list.push(r);
+      m.set(key, list);
+    }
+    for (const list of m.values()) list.sort((a, b) => a.sortOrder - b.sortOrder);
     return m;
-  }, [rows]);
+  }, [rows, groups]);
+  const groupHeadings: Array<{ id: number; name: string; isOpen: boolean }> = [
+    ...groups.map((g) => ({ id: g.id, name: g.name, isOpen: g.isOpen })),
+    ...((grouped.get(NO_TOPIC_KEY)?.length ?? 0) > 0 ? [{ id: NO_TOPIC_KEY, name: "No group", isOpen: false }] : []),
+  ];
 
   const update = (idx: number, patch: Partial<Row>) => {
     setRows((prev) => {
@@ -230,12 +277,12 @@ export function SectionsTab({ cohortId }: Props) {
       const item = prev.find((r) => r.id === id);
       if (!item) return prev;
       const sameLevel = prev
-        .filter((r) => r.level === item.level)
+        .filter((r) => r.groupId === item.groupId)
         .sort((a, b) => a.sortOrder - b.sortOrder);
       const idx = sameLevel.findIndex((r) => r.id === id);
       const swapWith = sameLevel[idx + dir];
       if (!swapWith) return prev;
-      // Reorder by position, then renumber the whole level sequentially.
+      // Reorder by position, then renumber the whole group sequentially.
       // Swapping raw sortOrder values breaks when two rows share the same
       // sortOrder (which can happen after server-side re-seeding): swapping
       // equal values is a no-op, so rows get stuck. Renumbering also heals any
@@ -253,15 +300,16 @@ export function SectionsTab({ cohortId }: Props) {
     setDirty(true);
   };
 
-  const changeLevel = (id: number, newLevel: number) => {
+  // Move a row to another group (appended at the end of that group).
+  const changeGroup = (id: number, newGroupId: number) => {
     setRows((prev) => {
       const item = prev.find((r) => r.id === id);
-      if (!item || item.level === newLevel) return prev;
-      const inNew = prev.filter((r) => r.level === newLevel);
+      if (!item || item.groupId === newGroupId) return prev;
+      const inNew = prev.filter((r) => r.groupId === newGroupId);
       const nextOrder =
         inNew.reduce((m, r) => Math.max(m, r.sortOrder), 0) + 1;
       return prev.map((r) =>
-        r.id === id ? { ...r, level: newLevel, sortOrder: nextOrder } : r,
+        r.id === id ? { ...r, groupId: newGroupId, sortOrder: nextOrder } : r,
       );
     });
     setDirty(true);
@@ -272,12 +320,12 @@ export function SectionsTab({ cohortId }: Props) {
     setDirty(true);
   };
 
-  // Insert a new row directly below the original within the same level,
+  // Insert a new row directly below the original within the same group,
   // shifting later rows down by one.
   const insertRowBelow = (orig: Row, newRow: Row) => {
     setRows((prev) => {
       const bumped = prev.map((r) =>
-        r.level === orig.level && r.sortOrder > orig.sortOrder
+        r.groupId === orig.groupId && r.sortOrder > orig.sortOrder
           ? { ...r, sortOrder: r.sortOrder + 1 }
           : r,
       );
@@ -332,7 +380,7 @@ export function SectionsTab({ cohortId }: Props) {
         cohortId,
         data: rows.map((r) => ({
           sectionId: r.sectionId,
-          level: r.level,
+          groupId: r.groupId ?? groups[0]?.id ?? 0,
           sortOrder: r.sortOrder,
           displayName: r.displayName ?? null,
           visible: r.visible,
@@ -425,8 +473,8 @@ export function SectionsTab({ cohortId }: Props) {
   }, [genOpen, editingGeneric]);
 
   // Insert a generic section into the current cohort's section list at the
-  // bottom of the chosen level. Reused by the library "Add to level" picker.
-  const addGenericToLevel = (g: AdminGenericSection, lvl: number) => {
+  // bottom of the chosen group. Used by the library "Add to group…" picker.
+  const addGenericToGroup = (g: AdminGenericSection, groupId: number) => {
     const sectionId = `generic_${g.id}`;
     if (rows.some((r) => r.sectionId === sectionId)) {
       toast({
@@ -436,14 +484,15 @@ export function SectionsTab({ cohortId }: Props) {
       });
       return;
     }
-    const inLvl = rows.filter((r) => r.level === lvl);
+    const inGroup = rows.filter((r) => r.groupId === groupId);
     const nextSort =
-      inLvl.reduce((m, r) => Math.max(m, r.sortOrder), 0) + 1;
+      inGroup.reduce((m, r) => Math.max(m, r.sortOrder), 0) + 1;
     const newRow: Row = {
       id: -Date.now(),
       cohortId,
       sectionId,
-      level: lvl,
+      level: groups.find((x) => x.id === groupId)?.legacyLevel ?? 1,
+      groupId,
       sortOrder: nextSort,
       displayName: null,
       visible: true,
@@ -455,8 +504,8 @@ export function SectionsTab({ cohortId }: Props) {
     setRows((prev) => [...prev, newRow]);
     setDirty(true);
     toast({
-      title: "Added to level",
-      description: `"${g.title}" added to Level ${lvl}. Click Save to persist.`,
+      title: "Added to group",
+      description: `"${g.title}" added to ${groupName(groupId)}. Click Save to persist.`,
     });
   };
   interface GenForm {
@@ -464,7 +513,10 @@ export function SectionsTab({ cohortId }: Props) {
     contentBlocks: GenericContentBlock[];
     goalText: string;
     sectionType: "exercise" | "reference";
-    targetLevel: number;
+    /** Library topic the section is filed under. */
+    topicId: number | null;
+    /** Create only: also add the new section to this cohort group (or none). */
+    targetGroupId: number | null;
     showNotesField: boolean;
     badgeLabel: string;
   }
@@ -473,7 +525,8 @@ export function SectionsTab({ cohortId }: Props) {
     contentBlocks: [],
     goalText: "",
     sectionType: "exercise",
-    targetLevel: 1,
+    topicId: null,
+    targetGroupId: null,
     showNotesField: true,
     badgeLabel: "",
   });
@@ -686,7 +739,8 @@ export function SectionsTab({ cohortId }: Props) {
       contentBlocks: [],
       goalText: "",
       sectionType: "exercise",
-      targetLevel: 1,
+      topicId: topics[0]?.id ?? null,
+      targetGroupId: groups[0]?.id ?? null,
       showNotesField: true,
       badgeLabel: "",
     });
@@ -701,7 +755,8 @@ export function SectionsTab({ cohortId }: Props) {
         : [],
       goalText: g.goalText ?? "",
       sectionType: (g.sectionType as "exercise" | "reference") ?? "exercise",
-      targetLevel: 1,
+      topicId: g.topicId ?? null,
+      targetGroupId: null,
       showNotesField: g.showNotesField ?? true,
       badgeLabel: g.badgeLabel ?? "",
     });
@@ -715,7 +770,7 @@ export function SectionsTab({ cohortId }: Props) {
   // Duplicate a section row. Generic sections get a full content copy (a new
   // row in the generic section library); built-in sections get an alias id
   // ("<base>__copy<n>") that renders the same content but keeps its own
-  // display name, level, code, and participant answers. The duplicate is
+  // display name, group, code, and participant answers. The duplicate is
   // inserted directly below the original.
   const duplicateRow = (r: Row) => {
     if (r.sectionId.startsWith("generic_")) {
@@ -737,7 +792,7 @@ export function SectionsTab({ cohortId }: Props) {
             sectionType: g.sectionType,
             showNotesField: g.showNotesField,
             badgeLabel: g.badgeLabel ?? null,
-            defaultLevel: r.level,
+            topicId: g.topicId ?? null,
           },
         },
         {
@@ -749,6 +804,7 @@ export function SectionsTab({ cohortId }: Props) {
               cohortId,
               sectionId: `generic_${newGen.id}`,
               level: r.level,
+              groupId: r.groupId,
               sortOrder: r.sortOrder + 1,
               displayName: r.displayName ? `${r.displayName} (copy)` : null,
               visible: true,
@@ -802,6 +858,7 @@ export function SectionsTab({ cohortId }: Props) {
       sectionType: genForm.sectionType,
       showNotesField: genForm.showNotesField,
       badgeLabel: genForm.badgeLabel.trim() || null,
+      ...(genForm.topicId != null ? { topicId: genForm.topicId } : {}),
     };
     if (editingGeneric) {
       updateGenMut.mutate(
@@ -815,6 +872,7 @@ export function SectionsTab({ cohortId }: Props) {
             qc.invalidateQueries({
               queryKey: getAdminListCohortSectionsQueryKey(cohortId),
             });
+            qc.invalidateQueries({ queryKey: getAdminListTopicsQueryKey() });
             setGenOpen(false);
           },
           onError: (err) => {
@@ -825,20 +883,21 @@ export function SectionsTab({ cohortId }: Props) {
       );
     } else {
       createGenMut.mutate(
-        { data: { ...payload, defaultLevel: genForm.targetLevel } },
+        { data: payload },
         {
           onSuccess: (res) => {
             const newGen = res?.section;
-            if (newGen) {
-              const lvl = genForm.targetLevel;
-              const inLvl = rows.filter((r) => r.level === lvl);
+            const targetGroupId = genForm.targetGroupId;
+            if (newGen && targetGroupId != null && groups.some((g) => g.id === targetGroupId)) {
+              const inGroup = rows.filter((r) => r.groupId === targetGroupId);
               const nextSort =
-                inLvl.reduce((m, r) => Math.max(m, r.sortOrder), 0) + 1;
+                inGroup.reduce((m, r) => Math.max(m, r.sortOrder), 0) + 1;
               const newRow: Row = {
                 id: -Date.now(),
                 cohortId,
                 sectionId: `generic_${newGen.id}`,
-                level: lvl,
+                level: groups.find((x) => x.id === targetGroupId)?.legacyLevel ?? 1,
+                groupId: targetGroupId,
                 sortOrder: nextSort,
                 displayName: null,
                 visible: true,
@@ -853,9 +912,13 @@ export function SectionsTab({ cohortId }: Props) {
             qc.invalidateQueries({
               queryKey: getAdminListGenericSectionsQueryKey(),
             });
+            qc.invalidateQueries({ queryKey: getAdminListTopicsQueryKey() });
             toast({
               title: "Generic section added",
-              description: "Click Save below to persist its position in the cohort.",
+              description:
+                targetGroupId != null
+                  ? "Click Save below to persist its position in the cohort."
+                  : "It is in the library; use “Add to group…” to place it in a cohort.",
             });
             setGenOpen(false);
           },
@@ -1012,23 +1075,41 @@ export function SectionsTab({ cohortId }: Props) {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div>
+                      <Label>Topic</Label>
+                      <Select
+                        value={genForm.topicId != null ? String(genForm.topicId) : ""}
+                        onValueChange={(v) =>
+                          setGenForm({ ...genForm, topicId: Number(v) })
+                        }
+                      >
+                        <SelectTrigger data-testid="select-generic-topic">
+                          <SelectValue placeholder="Choose a topic" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {topics.map((t) => (
+                            <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     {!editingGeneric && (
                       <div>
-                        <Label>Insert into level</Label>
+                        <Label>Also add to group</Label>
                         <Select
-                          value={String(genForm.targetLevel)}
+                          value={genForm.targetGroupId != null ? String(genForm.targetGroupId) : "none"}
                           onValueChange={(v) =>
-                            setGenForm({ ...genForm, targetLevel: Number(v) })
+                            setGenForm({ ...genForm, targetGroupId: v === "none" ? null : Number(v) })
                           }
                         >
-                          <SelectTrigger data-testid="select-generic-level">
+                          <SelectTrigger data-testid="select-generic-group">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="1">Level 1</SelectItem>
-                            <SelectItem value="2">Level 2</SelectItem>
-                            <SelectItem value="3">Level 3</SelectItem>
-                            <SelectItem value="4">Level 4</SelectItem>
+                            <SelectItem value="none">Library only</SelectItem>
+                            {groups.map((g) => (
+                              <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -2036,19 +2117,31 @@ export function SectionsTab({ cohortId }: Props) {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {!groupsConverted && !sectionsQ.isLoading && (
+            <div className="text-xs rounded-md border border-amber-300 bg-amber-50 text-amber-900 px-3 py-2" data-testid="sections-unconverted-banner">
+              This cohort has not been converted to groups yet; the list is read-only until
+              the startup conversion succeeds (check the server log).
+            </div>
+          )}
           {sectionsQ.isLoading ? (
             <div className="text-sm text-muted-foreground">Loading…</div>
+          ) : groupHeadings.length === 0 ? (
+            <div className="text-sm text-muted-foreground italic" data-testid="text-no-groups">
+              This cohort has no groups yet. Add a group below, then add sections to it.
+            </div>
           ) : (
-            ([1, 2, 3, 4] as const).map((lvl) => {
+            groupHeadings.map((gh) => {
+              const lvl = gh.id;
               const collapsed = !!collapsedLevels[lvl];
-              const count = grouped[lvl].length;
+              const list = grouped.get(lvl) ?? [];
+              const count = list.length;
               return (
-              <div key={lvl}>
+              <div key={lvl} data-testid={`group-section-${lvl}`}>
                 <button
                   type="button"
                   onClick={() => toggleLevel(lvl)}
                   className="flex items-center gap-2 w-full text-left mb-2 group"
-                  data-testid={`level-toggle-${lvl}`}
+                  data-testid={`group-toggle-${lvl}`}
                   aria-expanded={!collapsed}
                 >
                   {collapsed ? (
@@ -2057,16 +2150,25 @@ export function SectionsTab({ cohortId }: Props) {
                     <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
                   )}
                   <span className="text-xs uppercase tracking-widest text-muted-foreground group-hover:text-foreground">
-                    Level {lvl} — {count}
+                    {gh.name} — {count}
                   </span>
+                  {lvl !== NO_TOPIC_KEY && (
+                    <Badge
+                      variant={gh.isOpen ? "default" : "secondary"}
+                      className="text-[10px] ml-1"
+                      data-testid={`badge-group-open-${lvl}`}
+                    >
+                      {gh.isOpen ? "Open" : "Locked"}
+                    </Badge>
+                  )}
                 </button>
                 {collapsed ? null : count === 0 ? (
                   <div className="text-sm text-muted-foreground italic">
-                    No sections at this level.
+                    No sections in this group.
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {grouped[lvl].map((r) => {
+                    {list.map((r) => {
                       const idx = rows.findIndex((x) => x.id === r.id);
                       const title = titleFor(r);
                       const isGeneric = r.sectionId.startsWith("generic_");
@@ -2127,19 +2229,18 @@ export function SectionsTab({ cohortId }: Props) {
                             />
                           </div>
                           <div className="col-span-1">
-                            <Label className="text-xs">Level</Label>
+                            <Label className="text-xs">Group</Label>
                             <Select
-                              value={String(r.level)}
-                              onValueChange={(v) => changeLevel(r.id, Number(v))}
+                              value={r.groupId != null ? String(r.groupId) : ""}
+                              onValueChange={(v) => changeGroup(r.id, Number(v))}
                             >
-                              <SelectTrigger data-testid={`select-level-${r.sectionId}`}>
-                                <SelectValue />
+                              <SelectTrigger data-testid={`select-group-${r.sectionId}`} title={groupName(r.groupId)}>
+                                <SelectValue placeholder="Group" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="1">1</SelectItem>
-                                <SelectItem value="2">2</SelectItem>
-                                <SelectItem value="3">3</SelectItem>
-                                <SelectItem value="4">4</SelectItem>
+                                {groups.map((g) => (
+                                  <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </div>
@@ -2222,11 +2323,11 @@ export function SectionsTab({ cohortId }: Props) {
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>
-                                    Remove from this level?
+                                    Remove from this group?
                                   </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    "{title}" will be removed from Level{" "}
-                                    {r.level} in this cohort only. The section
+                                    "{title}" will be removed from{" "}
+                                    {groupName(r.groupId)} in this cohort only. The section
                                     itself is not deleted.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
@@ -2251,18 +2352,58 @@ export function SectionsTab({ cohortId }: Props) {
               );
             })
           )}
+          {!sectionsQ.isLoading && (
+            <div className="border-t pt-4" data-testid="sections-groups-area">
+              <button
+                type="button"
+                className="flex items-center gap-2 text-sm font-medium"
+                onClick={() => setGroupsEditorOpen((v) => !v)}
+                aria-expanded={groupsEditorOpen}
+                data-testid="button-toggle-groups-editor"
+              >
+                {groupsEditorOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                Manage groups
+                <span className="text-xs font-normal text-muted-foreground">
+                  (add, rename, reorder, open/lock)
+                </span>
+              </button>
+              {groupsEditorOpen && (
+                <div className="mt-3">
+                  <CohortGroupsEditor cohortId={cohortId} compact />
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {generics.length > 0 && (
+      {(generics.length > 0 || topics.length > 0) && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle className="text-base">Section library</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setTopicsEditorOpen((v) => !v)}
+              aria-expanded={topicsEditorOpen}
+              data-testid="button-toggle-topics-editor"
+            >
+              {topicsEditorOpen ? "Done with topics" : "Manage topics"}
+            </Button>
           </CardHeader>
           <CardContent>
+            {topicsEditorOpen && (
+              <div className="mb-4 rounded-md border bg-muted/30 p-3">
+                <div className="text-xs text-muted-foreground mb-2">
+                  Topics are the headings the library is filed under. A topic can be deleted only when it has no sections.
+                </div>
+                <LibraryTopicsEditor />
+              </div>
+            )}
             <div className="space-y-3">
-              {[1, 2, 3, 4].map((lvl) => {
-                const group = libraryByLevel[lvl] ?? [];
+              {libraryTopicOrder.map((topic) => {
+                const lvl = topic.id;
+                const group = libraryByTopic.get(lvl) ?? [];
                 if (group.length === 0) return null;
                 const collapsed = Boolean(collapsedLibLevels[lvl]);
                 return (
@@ -2272,7 +2413,7 @@ export function SectionsTab({ cohortId }: Props) {
                       className="w-full flex items-center gap-2 py-1.5 text-left"
                       onClick={() => toggleLibLevel(lvl)}
                       aria-expanded={!collapsed}
-                      data-testid={`library-level-toggle-${lvl}`}
+                      data-testid={`library-topic-toggle-${lvl}`}
                     >
                       {collapsed ? (
                         <ChevronRight className="w-4 h-4 text-muted-foreground" />
@@ -2280,7 +2421,7 @@ export function SectionsTab({ cohortId }: Props) {
                         <ChevronDown className="w-4 h-4 text-muted-foreground" />
                       )}
                       <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                        Default Level {lvl} — {group.length}
+                        {topic.name} — {group.length}
                       </span>
                     </button>
                     {!collapsed && (
@@ -2322,17 +2463,39 @@ export function SectionsTab({ cohortId }: Props) {
                                     In this cohort
                                   </Badge>
                                 ) : (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      addGenericToLevel(g, g.defaultLevel)
-                                    }
-                                    data-testid={`button-add-to-cohort-${g.id}`}
-                                  >
-                                    <Plus className="w-4 h-4 mr-1.5" />
-                                    Add to this cohort
-                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!groupsConverted}
+                                        data-testid={`button-add-to-cohort-${g.id}`}
+                                      >
+                                        <Plus className="w-4 h-4 mr-1.5" />
+                                        Add to group…
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuLabel>Add to group</DropdownMenuLabel>
+                                      <DropdownMenuSeparator />
+                                      {groups.length === 0 ? (
+                                        <DropdownMenuItem disabled>
+                                          No groups yet — add one under “Manage groups”.
+                                        </DropdownMenuItem>
+                                      ) : (
+                                        groups.map((gr) => (
+                                          <DropdownMenuItem
+                                            key={gr.id}
+                                            onSelect={() => addGenericToGroup(g, gr.id)}
+                                            data-testid={`menu-add-to-group-${g.id}-${gr.id}`}
+                                          >
+                                            {gr.name}
+                                            {gr.isOpen ? "" : " (locked)"}
+                                          </DropdownMenuItem>
+                                        ))
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 )}
                                 <Button
                                   variant="ghost"
@@ -2464,7 +2627,7 @@ export function SectionsTab({ cohortId }: Props) {
                                     {u.cohortName}
                                   </span>
                                   <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                    Level {u.level}
+                                    {u.groupName}
                                   </span>
                                 </div>
                               ))}

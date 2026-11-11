@@ -1,4 +1,5 @@
 import { getCohortLevelNames } from "../lib/cohort-level-names";
+import { getCohortGroups } from "../lib/cohort-groups";
 import { Router, type IRouter } from "express";
 import { z } from "zod/v4";
 import { eq, sql, and, desc } from "drizzle-orm";
@@ -190,7 +191,10 @@ router.get("/auth/me", async (req, res) => {
     | "audienceType"
     | "workbookEnabled"
     | "showCoachingLinks"
-  > & { levelNames: Record<string, string> } | null = row.cohort
+  > & {
+    levelNames: Record<string, string>;
+    groups: Array<{ id: number; name: string; sortOrder: number; isOpen: boolean }>;
+  } | null = row.cohort
     ? {
         id: row.cohort.id,
         name: row.cohort.name,
@@ -201,6 +205,12 @@ router.get("/auth/me", async (req, res) => {
         workbookEnabled: row.cohort.workbookEnabled,
         showCoachingLinks: row.cohort.showCoachingLinks,
         levelNames: getCohortLevelNames(row.cohort.settings),
+        groups: (await getCohortGroups(row.cohort)).map((g) => ({
+          id: g.id,
+          name: g.name,
+          sortOrder: g.sortOrder,
+          isOpen: g.isOpen,
+        })),
       }
     : null;
 

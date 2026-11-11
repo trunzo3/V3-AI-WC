@@ -11,6 +11,7 @@
 import {
   db,
   cohortsTable,
+  cohortGroupsTable,
   llmToolsTable,
   safariLibraryTable,
   feedbackCategoriesTable,
@@ -21,6 +22,7 @@ import {
 import { eq, sql } from "drizzle-orm";
 import { logger } from "./lib/logger";
 import { seedCohortSections } from "./lib/cohort-sections";
+import { convertLevelsToGroups } from "./lib/cohort-groups";
 import {
   ensureSeededGenericSections,
   BASE_COHORT_CODES,
@@ -28,20 +30,15 @@ import {
 
 /**
  * Per-cohort creation settings for the baseline cohorts the seed always ensures
- * exist. WORKSHOP uses the default tier access; LIVE2026 is the dedicated
- * live-event cohort and unlocks Level 3 so its attached modules are visible.
- * Any code in BASE_COHORT_CODES without an entry here falls back to a name equal
- * to the code and DEFAULT_TIER_ACCESS.
+ * exist (only used when the cohort does not exist yet). Starting groups are
+ * all locked, except LIVE2026 (the dedicated live-event cohort) opens its
+ * AI Builder group so the attached modules are visible. Any code in
+ * BASE_COHORT_CODES without an entry here falls back to a name equal to the
+ * code and no open groups.
  */
-const COHORT_SETUP: Record<
-  string,
-  { name: string; tierAccess: Record<string, boolean> }
-> = {
-  WORKSHOP: { name: "Default Workshop", tierAccess: DEFAULT_TIER_ACCESS },
-  LIVE2026: {
-    name: "Live Event",
-    tierAccess: { "1": true, "2": false, "3": true, "4": false },
-  },
+const COHORT_SETUP: Record<string, { name: string; openStartingLevels: number[] }> = {
+  WORKSHOP: { name: "Default Workshop", openStartingLevels: [] },
+  LIVE2026: { name: "Live Event", openStartingLevels: [3] },
 };
 
 const DEFAULT_LLM_TOOLS = [
@@ -80,10 +77,7 @@ const DEFAULT_APP_SETTINGS: Array<{ key: string; value: string }> = [
 
 async function ensureSeedCohorts(): Promise<void> {
   for (const code of BASE_COHORT_CODES) {
-    const setup = COHORT_SETUP[code] ?? {
-      name: code,
-      tierAccess: DEFAULT_TIER_ACCESS,
-    };
+    const setup = COHORT_SETUP[code] ?? { name: code, openStartingLevels: [] };
     // Insert-if-missing that is safe against concurrent boots (autoscale cold
     // starts can run this seed in several instances at once). onConflictDoNothing
     // makes a losing racer a no-op instead of throwing on the cohort_code unique
@@ -95,13 +89,19 @@ async function ensureSeedCohorts(): Promise<void> {
         audienceType: "general",
         cohortCode: code,
         facilitatorMessage: DEFAULT_FACILITATOR_MESSAGE,
-        tierAccess: setup.tierAccess,
+        tierAccess: DEFAULT_TIER_ACCESS,
       })
       .onConflictDoNothing()
       .returning({ id: cohortsTable.id });
     // Only a cohort this boot actually created gets its starting set; an
     // existing cohort's sections are never touched by the seed.
-    if (inserted[0]) await seedCohortSections(inserted[0].id);
+    if (inserted[0]) {
+      const groupByLevel = await seedCohortSections(inserted[0].id);
+      for (const level of setup.openStartingLevels) {
+        const gid = groupByLevel.get(level);
+        if (gid) await db.update(cohortGroupsTable).set({ isOpen: true }).where(eq(cohortGroupsTable.id, gid));
+      }
+    }
     const [existing] = await db
       .select({ id: cohortsTable.id })
       .from(cohortsTable)
@@ -109,34 +109,6 @@ async function ensureSeedCohorts(): Promise<void> {
       .limit(1);
     if (!existing) throw new Error(`Failed to ensure cohort "${code}".`);
     logger.info({ cohortId: existing.id, code }, "Cohort ensured.");
-  }
-}
-
-/**
- * Backfill `tier_access` on existing cohorts so any tier keys that were
- * introduced after the cohort was created (e.g. level 4) are present and
- * default to false. Existing values are preserved.
- */
-async function backfillTierAccess(): Promise<void> {
-  const cohorts = await db
-    .select({ id: cohortsTable.id, tierAccess: cohortsTable.tierAccess })
-    .from(cohortsTable);
-  let updated = 0;
-  for (const c of cohorts) {
-    const current = (c.tierAccess ?? {}) as Record<string, boolean>;
-    const merged = { ...DEFAULT_TIER_ACCESS, ...current };
-    const changed = Object.keys(merged).some(
-      (k) => current[k] === undefined,
-    );
-    if (!changed) continue;
-    await db
-      .update(cohortsTable)
-      .set({ tierAccess: merged })
-      .where(eq(cohortsTable.id, c.id));
-    updated++;
-  }
-  if (updated > 0) {
-    logger.info({ updated }, "Backfilled tier_access on existing cohorts.");
   }
 }
 
@@ -211,7 +183,10 @@ async function ensureAppSettings(): Promise<void> {
 export async function runSeed(): Promise<void> {
   logger.info("Running seed...");
   await ensureSeedCohorts();
-  await backfillTierAccess();
+  // Levels → groups: topics once, then every unconverted cohort (each in its
+  // own transaction; failures are logged and the cohort keeps rendering from
+  // its legacy levels until the next successful run).
+  await convertLevelsToGroups();
   // Deliberately no section sync for existing cohorts: the app never adds
   // sections to an existing cohort on its own. Only a brand-new cohort gets
   // its starting set (seedCohortSections, at creation time).

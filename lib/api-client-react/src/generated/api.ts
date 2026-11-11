@@ -29,6 +29,11 @@ import type {
   AdminCohortCreateRequest,
   AdminCohortDuplicateRequest,
   AdminCohortDuplicateResponse,
+  AdminCohortGroupCreateRequest,
+  AdminCohortGroupReorderRequest,
+  AdminCohortGroupResponse,
+  AdminCohortGroupUpdateRequest,
+  AdminCohortGroupsResponse,
   AdminCohortListResponse,
   AdminCohortResponse,
   AdminCohortSafariTabInput,
@@ -66,6 +71,11 @@ import type {
   AdminSettingResponse,
   AdminSettingUpsertRequest,
   AdminSettingsListResponse,
+  AdminTopicCreateRequest,
+  AdminTopicReorderRequest,
+  AdminTopicResponse,
+  AdminTopicUpdateRequest,
+  AdminTopicsResponse,
   AdminUnlockAllResponse,
   AdminVariantUpsertRequest,
   AdminVariantUpsertResponse,
@@ -3096,6 +3106,942 @@ export const useAdminUpsertCohortVariant = <
   TContext
 > => {
   return useMutation(getAdminUpsertCohortVariantMutationOptions(options));
+};
+
+/**
+ * @summary List a cohort's section groups with section counts
+ */
+export const getAdminListCohortGroupsUrl = (cohortId: number) => {
+  return `/api/admin/cohorts/${cohortId}/groups`;
+};
+
+export const adminListCohortGroups = async (
+  cohortId: number,
+  options?: RequestInit,
+): Promise<AdminCohortGroupsResponse> => {
+  return customFetch<AdminCohortGroupsResponse>(
+    getAdminListCohortGroupsUrl(cohortId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminListCohortGroupsQueryKey = (cohortId: number) => {
+  return [`/api/admin/cohorts/${cohortId}/groups`] as const;
+};
+
+export const getAdminListCohortGroupsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListCohortGroups>>,
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+>(
+  cohortId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListCohortGroups>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAdminListCohortGroupsQueryKey(cohortId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListCohortGroups>>
+  > = ({ signal }) =>
+    adminListCohortGroups(cohortId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!cohortId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListCohortGroups>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListCohortGroupsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListCohortGroups>>
+>;
+export type AdminListCohortGroupsQueryError = ErrorType<
+  UnauthorizedResponse | NotFoundResponse
+>;
+
+/**
+ * @summary List a cohort's section groups with section counts
+ */
+
+export function useAdminListCohortGroups<
+  TData = Awaited<ReturnType<typeof adminListCohortGroups>>,
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+>(
+  cohortId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListCohortGroups>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListCohortGroupsQueryOptions(cohortId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a group (appended last, locked)
+ */
+export const getAdminCreateCohortGroupUrl = (cohortId: number) => {
+  return `/api/admin/cohorts/${cohortId}/groups`;
+};
+
+export const adminCreateCohortGroup = async (
+  cohortId: number,
+  adminCohortGroupCreateRequest: AdminCohortGroupCreateRequest,
+  options?: RequestInit,
+): Promise<AdminCohortGroupResponse> => {
+  return customFetch<AdminCohortGroupResponse>(
+    getAdminCreateCohortGroupUrl(cohortId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adminCohortGroupCreateRequest),
+    },
+  );
+};
+
+export const getAdminCreateCohortGroupMutationOptions = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | ConflictResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateCohortGroup>>,
+    TError,
+    { cohortId: number; data: BodyType<AdminCohortGroupCreateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminCreateCohortGroup>>,
+  TError,
+  { cohortId: number; data: BodyType<AdminCohortGroupCreateRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminCreateCohortGroup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminCreateCohortGroup>>,
+    { cohortId: number; data: BodyType<AdminCohortGroupCreateRequest> }
+  > = (props) => {
+    const { cohortId, data } = props ?? {};
+
+    return adminCreateCohortGroup(cohortId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminCreateCohortGroupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminCreateCohortGroup>>
+>;
+export type AdminCreateCohortGroupMutationBody =
+  BodyType<AdminCohortGroupCreateRequest>;
+export type AdminCreateCohortGroupMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | ConflictResponse
+>;
+
+/**
+ * @summary Add a group (appended last, locked)
+ */
+export const useAdminCreateCohortGroup = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | ConflictResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateCohortGroup>>,
+    TError,
+    { cohortId: number; data: BodyType<AdminCohortGroupCreateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminCreateCohortGroup>>,
+  TError,
+  { cohortId: number; data: BodyType<AdminCohortGroupCreateRequest> },
+  TContext
+> => {
+  return useMutation(getAdminCreateCohortGroupMutationOptions(options));
+};
+
+/**
+ * @summary Reorder a cohort's groups (every group id exactly once)
+ */
+export const getAdminReorderCohortGroupsUrl = (cohortId: number) => {
+  return `/api/admin/cohorts/${cohortId}/groups/reorder`;
+};
+
+export const adminReorderCohortGroups = async (
+  cohortId: number,
+  adminCohortGroupReorderRequest: AdminCohortGroupReorderRequest,
+  options?: RequestInit,
+): Promise<AdminCohortGroupsResponse> => {
+  return customFetch<AdminCohortGroupsResponse>(
+    getAdminReorderCohortGroupsUrl(cohortId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adminCohortGroupReorderRequest),
+    },
+  );
+};
+
+export const getAdminReorderCohortGroupsMutationOptions = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminReorderCohortGroups>>,
+    TError,
+    { cohortId: number; data: BodyType<AdminCohortGroupReorderRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminReorderCohortGroups>>,
+  TError,
+  { cohortId: number; data: BodyType<AdminCohortGroupReorderRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminReorderCohortGroups"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminReorderCohortGroups>>,
+    { cohortId: number; data: BodyType<AdminCohortGroupReorderRequest> }
+  > = (props) => {
+    const { cohortId, data } = props ?? {};
+
+    return adminReorderCohortGroups(cohortId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminReorderCohortGroupsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminReorderCohortGroups>>
+>;
+export type AdminReorderCohortGroupsMutationBody =
+  BodyType<AdminCohortGroupReorderRequest>;
+export type AdminReorderCohortGroupsMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse
+>;
+
+/**
+ * @summary Reorder a cohort's groups (every group id exactly once)
+ */
+export const useAdminReorderCohortGroups = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminReorderCohortGroups>>,
+    TError,
+    { cohortId: number; data: BodyType<AdminCohortGroupReorderRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminReorderCohortGroups>>,
+  TError,
+  { cohortId: number; data: BodyType<AdminCohortGroupReorderRequest> },
+  TContext
+> => {
+  return useMutation(getAdminReorderCohortGroupsMutationOptions(options));
+};
+
+/**
+ * @summary Rename a group or toggle open/locked
+ */
+export const getAdminUpdateCohortGroupUrl = (
+  cohortId: number,
+  groupId: number,
+) => {
+  return `/api/admin/cohorts/${cohortId}/groups/${groupId}`;
+};
+
+export const adminUpdateCohortGroup = async (
+  cohortId: number,
+  groupId: number,
+  adminCohortGroupUpdateRequest: AdminCohortGroupUpdateRequest,
+  options?: RequestInit,
+): Promise<AdminCohortGroupResponse> => {
+  return customFetch<AdminCohortGroupResponse>(
+    getAdminUpdateCohortGroupUrl(cohortId, groupId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adminCohortGroupUpdateRequest),
+    },
+  );
+};
+
+export const getAdminUpdateCohortGroupMutationOptions = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateCohortGroup>>,
+    TError,
+    {
+      cohortId: number;
+      groupId: number;
+      data: BodyType<AdminCohortGroupUpdateRequest>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminUpdateCohortGroup>>,
+  TError,
+  {
+    cohortId: number;
+    groupId: number;
+    data: BodyType<AdminCohortGroupUpdateRequest>;
+  },
+  TContext
+> => {
+  const mutationKey = ["adminUpdateCohortGroup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminUpdateCohortGroup>>,
+    {
+      cohortId: number;
+      groupId: number;
+      data: BodyType<AdminCohortGroupUpdateRequest>;
+    }
+  > = (props) => {
+    const { cohortId, groupId, data } = props ?? {};
+
+    return adminUpdateCohortGroup(cohortId, groupId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminUpdateCohortGroupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminUpdateCohortGroup>>
+>;
+export type AdminUpdateCohortGroupMutationBody =
+  BodyType<AdminCohortGroupUpdateRequest>;
+export type AdminUpdateCohortGroupMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+>;
+
+/**
+ * @summary Rename a group or toggle open/locked
+ */
+export const useAdminUpdateCohortGroup = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateCohortGroup>>,
+    TError,
+    {
+      cohortId: number;
+      groupId: number;
+      data: BodyType<AdminCohortGroupUpdateRequest>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminUpdateCohortGroup>>,
+  TError,
+  {
+    cohortId: number;
+    groupId: number;
+    data: BodyType<AdminCohortGroupUpdateRequest>;
+  },
+  TContext
+> => {
+  return useMutation(getAdminUpdateCohortGroupMutationOptions(options));
+};
+
+/**
+ * @summary Delete an empty group (hidden sections count as non-empty)
+ */
+export const getAdminDeleteCohortGroupUrl = (
+  cohortId: number,
+  groupId: number,
+) => {
+  return `/api/admin/cohorts/${cohortId}/groups/${groupId}`;
+};
+
+export const adminDeleteCohortGroup = async (
+  cohortId: number,
+  groupId: number,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(
+    getAdminDeleteCohortGroupUrl(cohortId, groupId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getAdminDeleteCohortGroupMutationOptions = <
+  TError = ErrorType<
+    UnauthorizedResponse | NotFoundResponse | ConflictResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteCohortGroup>>,
+    TError,
+    { cohortId: number; groupId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminDeleteCohortGroup>>,
+  TError,
+  { cohortId: number; groupId: number },
+  TContext
+> => {
+  const mutationKey = ["adminDeleteCohortGroup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminDeleteCohortGroup>>,
+    { cohortId: number; groupId: number }
+  > = (props) => {
+    const { cohortId, groupId } = props ?? {};
+
+    return adminDeleteCohortGroup(cohortId, groupId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminDeleteCohortGroupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminDeleteCohortGroup>>
+>;
+
+export type AdminDeleteCohortGroupMutationError = ErrorType<
+  UnauthorizedResponse | NotFoundResponse | ConflictResponse
+>;
+
+/**
+ * @summary Delete an empty group (hidden sections count as non-empty)
+ */
+export const useAdminDeleteCohortGroup = <
+  TError = ErrorType<
+    UnauthorizedResponse | NotFoundResponse | ConflictResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteCohortGroup>>,
+    TError,
+    { cohortId: number; groupId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminDeleteCohortGroup>>,
+  TError,
+  { cohortId: number; groupId: number },
+  TContext
+> => {
+  return useMutation(getAdminDeleteCohortGroupMutationOptions(options));
+};
+
+/**
+ * @summary List library topics with section counts
+ */
+export const getAdminListTopicsUrl = () => {
+  return `/api/admin/topics`;
+};
+
+export const adminListTopics = async (
+  options?: RequestInit,
+): Promise<AdminTopicsResponse> => {
+  return customFetch<AdminTopicsResponse>(getAdminListTopicsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getAdminListTopicsQueryKey = () => {
+  return [`/api/admin/topics`] as const;
+};
+
+export const getAdminListTopicsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListTopics>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListTopics>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getAdminListTopicsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof adminListTopics>>> = ({
+    signal,
+  }) => adminListTopics({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListTopics>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListTopicsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListTopics>>
+>;
+export type AdminListTopicsQueryError = ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary List library topics with section counts
+ */
+
+export function useAdminListTopics<
+  TData = Awaited<ReturnType<typeof adminListTopics>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListTopics>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListTopicsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a library topic (appended last)
+ */
+export const getAdminCreateTopicUrl = () => {
+  return `/api/admin/topics`;
+};
+
+export const adminCreateTopic = async (
+  adminTopicCreateRequest: AdminTopicCreateRequest,
+  options?: RequestInit,
+): Promise<AdminTopicResponse> => {
+  return customFetch<AdminTopicResponse>(getAdminCreateTopicUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminTopicCreateRequest),
+  });
+};
+
+export const getAdminCreateTopicMutationOptions = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateTopic>>,
+    TError,
+    { data: BodyType<AdminTopicCreateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminCreateTopic>>,
+  TError,
+  { data: BodyType<AdminTopicCreateRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminCreateTopic"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminCreateTopic>>,
+    { data: BodyType<AdminTopicCreateRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adminCreateTopic(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminCreateTopicMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminCreateTopic>>
+>;
+export type AdminCreateTopicMutationBody = BodyType<AdminTopicCreateRequest>;
+export type AdminCreateTopicMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse
+>;
+
+/**
+ * @summary Add a library topic (appended last)
+ */
+export const useAdminCreateTopic = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateTopic>>,
+    TError,
+    { data: BodyType<AdminTopicCreateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminCreateTopic>>,
+  TError,
+  { data: BodyType<AdminTopicCreateRequest> },
+  TContext
+> => {
+  return useMutation(getAdminCreateTopicMutationOptions(options));
+};
+
+/**
+ * @summary Reorder library topics (every topic id exactly once)
+ */
+export const getAdminReorderTopicsUrl = () => {
+  return `/api/admin/topics/reorder`;
+};
+
+export const adminReorderTopics = async (
+  adminTopicReorderRequest: AdminTopicReorderRequest,
+  options?: RequestInit,
+): Promise<AdminTopicsResponse> => {
+  return customFetch<AdminTopicsResponse>(getAdminReorderTopicsUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminTopicReorderRequest),
+  });
+};
+
+export const getAdminReorderTopicsMutationOptions = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminReorderTopics>>,
+    TError,
+    { data: BodyType<AdminTopicReorderRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminReorderTopics>>,
+  TError,
+  { data: BodyType<AdminTopicReorderRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminReorderTopics"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminReorderTopics>>,
+    { data: BodyType<AdminTopicReorderRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adminReorderTopics(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminReorderTopicsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminReorderTopics>>
+>;
+export type AdminReorderTopicsMutationBody = BodyType<AdminTopicReorderRequest>;
+export type AdminReorderTopicsMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse
+>;
+
+/**
+ * @summary Reorder library topics (every topic id exactly once)
+ */
+export const useAdminReorderTopics = <
+  TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminReorderTopics>>,
+    TError,
+    { data: BodyType<AdminTopicReorderRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminReorderTopics>>,
+  TError,
+  { data: BodyType<AdminTopicReorderRequest> },
+  TContext
+> => {
+  return useMutation(getAdminReorderTopicsMutationOptions(options));
+};
+
+/**
+ * @summary Rename a library topic
+ */
+export const getAdminUpdateTopicUrl = (id: number) => {
+  return `/api/admin/topics/${id}`;
+};
+
+export const adminUpdateTopic = async (
+  id: number,
+  adminTopicUpdateRequest: AdminTopicUpdateRequest,
+  options?: RequestInit,
+): Promise<AdminTopicResponse> => {
+  return customFetch<AdminTopicResponse>(getAdminUpdateTopicUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminTopicUpdateRequest),
+  });
+};
+
+export const getAdminUpdateTopicMutationOptions = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateTopic>>,
+    TError,
+    { id: number; data: BodyType<AdminTopicUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminUpdateTopic>>,
+  TError,
+  { id: number; data: BodyType<AdminTopicUpdateRequest> },
+  TContext
+> => {
+  const mutationKey = ["adminUpdateTopic"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminUpdateTopic>>,
+    { id: number; data: BodyType<AdminTopicUpdateRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return adminUpdateTopic(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminUpdateTopicMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminUpdateTopic>>
+>;
+export type AdminUpdateTopicMutationBody = BodyType<AdminTopicUpdateRequest>;
+export type AdminUpdateTopicMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+>;
+
+/**
+ * @summary Rename a library topic
+ */
+export const useAdminUpdateTopic = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateTopic>>,
+    TError,
+    { id: number; data: BodyType<AdminTopicUpdateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminUpdateTopic>>,
+  TError,
+  { id: number; data: BodyType<AdminTopicUpdateRequest> },
+  TContext
+> => {
+  return useMutation(getAdminUpdateTopicMutationOptions(options));
+};
+
+/**
+ * @summary Delete an empty library topic
+ */
+export const getAdminDeleteTopicUrl = (id: number) => {
+  return `/api/admin/topics/${id}`;
+};
+
+export const adminDeleteTopic = async (
+  id: number,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getAdminDeleteTopicUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getAdminDeleteTopicMutationOptions = <
+  TError = ErrorType<
+    UnauthorizedResponse | NotFoundResponse | ConflictResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteTopic>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminDeleteTopic>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["adminDeleteTopic"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminDeleteTopic>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return adminDeleteTopic(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminDeleteTopicMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminDeleteTopic>>
+>;
+
+export type AdminDeleteTopicMutationError = ErrorType<
+  UnauthorizedResponse | NotFoundResponse | ConflictResponse
+>;
+
+/**
+ * @summary Delete an empty library topic
+ */
+export const useAdminDeleteTopic = <
+  TError = ErrorType<
+    UnauthorizedResponse | NotFoundResponse | ConflictResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteTopic>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminDeleteTopic>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getAdminDeleteTopicMutationOptions(options));
 };
 
 /**

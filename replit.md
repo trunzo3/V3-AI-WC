@@ -66,21 +66,28 @@ Two surface areas:
   - Generic-section bodies use a block editor (text/prompt blocks, reorderable);
     cohort facilitator + home-screen messages use a Tiptap WYSIWYG
     (`components/admin/RichTextEditor.tsx`, with bold/italic/underline).
-  - The "Generic section library" card on the Sections tab exposes per-row
-    **View** (read-only preview dialog) and **Add to level…** (Select L1-L4 →
-    appends a new cohort_section row) actions; rows already present in the
-    cohort show an "Already added" badge instead of the Select. There is no
-    inline edit pencil on the library list (edit happens in the dedicated
-    create/edit dialog).
+  - The "Section library" card on the Sections tab is grouped by **topic**
+    (admin-managed via "Manage topics": add/rename/reorder/delete-if-empty)
+    and exposes per-row **View** (read-only preview dialog) and **Add to
+    group…** (menu of the selected cohort's groups → appends a new
+    cohort_section row); rows already present in the cohort show an "In this
+    cohort" badge. There is no inline edit pencil on the library list (edit
+    happens in the dedicated create/edit dialog, which has a Topic select and,
+    on create, an optional "Also add to group").
+  - **Groups replace the fixed levels 1–4** (see "Groups and topics" below).
+    Cohorts → edit shows a Groups editor (rename, reorder, open/locked,
+    add — new groups start locked —, delete only when empty); the Sections
+    tab lists sections under group headings with a per-row Group select and
+    a "Manage groups" area. The New cohort dialog has "Start with: Starting
+    sections / Empty".
   - Cohorts have a `home_message` HTML field rendered above the action cards
     on the participant home page (`data-testid="home-message"`).
-  - Cohorts can rename the level group headings per cohort (Cohorts → edit →
-    "Level names"). Stored as `settings.levelNames` (`{"1": "..."}`), exposed
-    as `levelNames` on cohort responses and `/api/auth/me`; used by the
-    participant sidebar and the workbook TOC. Blank = app default label.
+  - Legacy: `settings.levelNames` / `tier_access` / `cohort_sections.level`
+    are frozen (still written for compatibility, never read for display or
+    access once a cohort is converted to groups).
   - Cohorts can be duplicated (Cohorts → copy icon → new name + code;
-    `POST /api/admin/cohorts/:id/duplicate`). Copies settings, level names,
-    messages, open levels, and every section row. Admin-created generic
+    `POST /api/admin/cohorts/:id/duplicate`). Copies settings, groups (names,
+    order, open/locked), messages, and every section row. Admin-created generic
     sections are cloned into new library rows (independent content); built-in
     sections and seeded (slugged) modules are referenced. Seeded-module
     tombstones are copied; files attached to cloned sections are cloned and
@@ -171,9 +178,9 @@ Required env vars (managed via Replit Secrets):
   grid), the top bar hides `topnav-talk-anthony`, and `/levels` redirects
   home. Participant-facing wording uses "Program"/"Workshop code" (workbook
   cover label, login and workbook/sections error messages).
-- Workbook cover/footer text lives in `cohorts.settings` next to `levelNames`
-  (no columns): `workbookTitle` (default: cohort name), `workbookSubtitle`
-  (default: open levels' names joined with " · "; none → no subtitle),
+- Workbook cover/footer text lives in `cohorts.settings` (no columns):
+  `workbookTitle` (default: cohort name), `workbookSubtitle`
+  (default: open groups' names joined with " · "; none → no subtitle),
   `workbookBrand` (default: "IQmeetEQ Workshop Companion"). Values are
   trimmed; blank = default; exactly `-` = show nothing. The admin form always
   sends all three (empty string clears) because the update endpoint merges
@@ -397,8 +404,32 @@ former additive sync (`addMissingSectionsAllCohorts`) was removed. The
 destructive `resetCohortSectionsToDefaults` function still exists but is not
 called by the seed; like the starting set it skips Level 4 built-ins.
 
+### Groups and topics
+
+- `section_groups` (per cohort, ordered, `is_open`, `legacy_level` for
+  converted rows) and `topics` (global library headings, `legacy_level`) with
+  `cohort_sections.group_id` / `generic_sections.topic_id`. All additive; the
+  old level columns stay but are frozen.
+- `convertLevelsToGroups` runs inside `runSeed` at startup: for every cohort
+  without groups it creates one group per legacy level using today's heading
+  (per-cohort `levelNames` override or the title-case default, e.g.
+  "Level 1 — Core Workshop") and `is_open = tier_access[level]`, then stamps
+  `group_id` on each section row. Idempotent; a cohort still unconverted is
+  served from virtual negative-id groups and its admin section list is
+  read-only (409 on bulk PUT) until conversion succeeds.
+- Participants see groups as collapsible sidebar headings in order; empty
+  groups are hidden; the workbook pages by groups.
+- New cohorts ("Starting sections") get groups Core Workshop / Applied
+  Mastery / AI Builder, all LOCKED, holding the starting sections and the
+  seeded AI Builder modules; "Empty" creates no groups and no sections.
+- Verification: `node scripts/groups-verify.mjs snapshot|compare --before
+  <file>` renders what every participant sees (headings, order, sections,
+  codes, unlocked) so a conversion can be proven to change nothing. Snapshots
+  go in `generated-artifacts/` (git-ignored). `queries` prints the SQL for a
+  production read-only snapshot (`--rows`).
+
 A participant sees a section when ANY of these are true:
-- The cohort's tier (level) is unlocked by default in `cohorts.tier_access`, or
+- The section's group is open (`section_groups.is_open`), or
 - The section has `code_active = false` (admin marked it as not requiring a
   code), or
 - The participant has unlocked it via a code (`unlocked_sections` row).

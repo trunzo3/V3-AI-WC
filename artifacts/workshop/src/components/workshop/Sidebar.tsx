@@ -13,16 +13,6 @@ interface SidebarProps {
   onNavigateHome?: () => void;
 }
 
-// Sidebar level group headers. Level 4 intentionally omits the "Level 4 — "
-// prefix because it is positioned as a cross-cutting leadership track, not a
-// sequential next step. Edit here to adjust labels.
-const LEVEL_LABELS: Record<number, string> = {
-  1: "LEVEL 1 — CORE WORKSHOP",
-  2: "LEVEL 2 — APPLIED MASTERY",
-  3: "LEVEL 3 — AI BUILDER",
-  4: "AI CHANGE LEADERSHIP",
-};
-
 export function Sidebar({
   sections,
   activeSectionId,
@@ -36,15 +26,16 @@ export function Sidebar({
   );
   const { data: meResp } = useGetCurrentParticipant();
   const workbookEnabled = (meResp?.cohort as any)?.workbookEnabled ?? false;
-  // Admin can rename level groups per cohort (Cohorts → edit → Level names).
-  const levelNames = meResp?.cohort?.levelNames ?? {};
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
 
-  const levels = Array.from(new Set(sections.map((s) => s.level))).sort();
+  // The cohort's ordered groups (admin-managed, Cohorts → edit → Groups).
+  // Only groups that contain at least one visible section are shown.
+  const cohortGroups = meResp?.cohort?.groups ?? [];
+  const groups = cohortGroups.filter((g) => sections.some((s) => s.groupId === g.id));
 
-  // On load, levels containing at least one unlocked section start expanded;
-  // levels with no unlocks start collapsed. Recomputed on every page load —
+  // On load, groups containing at least one unlocked section start expanded;
+  // groups with no unlocks start collapsed. Recomputed on every page load —
   // intentionally not persisted, so manual toggles from a previous session
   // are forgotten. Initialized once when section data first arrives (sections
   // load async), then left alone so it never fights manual toggles.
@@ -55,13 +46,13 @@ export function Sidebar({
     expandedInitialized.current = true;
     const initial: Record<number, boolean> = {};
     for (const s of sections) {
-      if (s.unlocked) initial[s.level] = true;
+      if (s.unlocked) initial[s.groupId] = true;
     }
     setExpanded(initial);
   }, [sections]);
 
-  const toggleLevel = (level: number) =>
-    setExpanded((prev) => ({ ...prev, [level]: !prev[level] }));
+  const toggleGroup = (groupId: number) =>
+    setExpanded((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined as any, {
@@ -159,19 +150,19 @@ export function Sidebar({
         )}
 
         <div className="pt-2">
-          {levels.map((level) => {
+          {groups.map((group) => {
             const items = sections
-              .filter((s) => s.level === level)
+              .filter((s) => s.groupId === group.id)
               .sort((a, b) => a.sortOrder - b.sortOrder);
             const unlockedInLevel = items.filter((s) => s.unlocked).length;
-            const isOpen = !!expanded[level];
+            const isOpen = !!expanded[group.id];
 
             return (
-              <div key={level} className="mb-2">
+              <div key={group.id} className="mb-2">
                 <button
-                  onClick={() => toggleLevel(level)}
+                  onClick={() => toggleGroup(group.id)}
                   className="w-full flex items-center justify-between px-4 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors"
-                  data-testid={`sidebar-level-toggle-${level}`}
+                  data-testid={`sidebar-group-toggle-${group.id}`}
                 >
                   <span className="flex items-center gap-2">
                     {isOpen ? (
@@ -179,7 +170,7 @@ export function Sidebar({
                     ) : (
                       <ChevronRight className="w-3.5 h-3.5" />
                     )}
-                    {levelNames[String(level)] ?? LEVEL_LABELS[level] ?? `Level ${level}`}
+                    {group.name}
                   </span>
                   <span className="text-[10px] text-muted-foreground/70">
                     {unlockedInLevel}/{items.length}

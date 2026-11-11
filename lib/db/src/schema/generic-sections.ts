@@ -104,6 +104,17 @@ export type GenericContentBlock =
       recapFields: Array<{ fieldKey: string; label: string }>;
     };
 
+/** Admin-managed library topics (replaces the fixed default levels 1–4). */
+export const libraryTopicsTable = pgTable("library_topics", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull(),
+  // Set on the four topics created from default levels 1–4 by the conversion.
+  legacyLevel: integer("legacy_level").unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type LibraryTopic = typeof libraryTopicsTable.$inferSelect;
+
 export const genericSectionsTable = pgTable("generic_sections", {
   id: serial("id").primaryKey(),
   // Stable, author-defined key for seeded modules (e.g. "prefill-source").
@@ -123,7 +134,9 @@ export const genericSectionsTable = pgTable("generic_sections", {
   // level their seed assigns; hand-created sections use the level they were
   // created into. Drives the library's default-level grouping and the
   // "Add to this cohort" placement.
+  // Legacy (frozen after the topics conversion; topicId is authoritative).
   defaultLevel: integer("default_level").notNull().default(3),
+  topicId: integer("topic_id").references(() => libraryTopicsTable.id),
   // Archived sections are hidden from the working library view but stay
   // attached and functional in every cohort that has them.
   archived: boolean("archived").notNull().default(false),

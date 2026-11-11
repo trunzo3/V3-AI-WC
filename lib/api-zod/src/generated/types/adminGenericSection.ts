@@ -24,8 +24,13 @@ export interface AdminGenericSection {
   sectionType: string;
   showNotesField?: boolean;
   badgeLabel?: string | null;
-  /** Default level grouping in the section library */
+  /**
+   * Legacy (frozen); use topicId.
+   * @deprecated
+   */
   defaultLevel: number;
+  /** Library topic this section is filed under. */
+  topicId?: number | null;
   /** Hidden from the library view but still attached to cohorts */
   archived: boolean;
   createdAt?: Date | null;

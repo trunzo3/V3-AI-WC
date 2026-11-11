@@ -14,3 +14,4 @@
 - [jsonb key order](jsonb-key-order.md) — Postgres jsonb reorders object keys: never compare stored blocks with JSON.stringify, never rely on object key order for display.
 - [Cohort layout scripts](cohort-layout-scripts.md) — resolve layout rows from the target cohort's own Level 4 rows by title, never hardcode built-in ids; prod cohorts may carry made-editable copies.
 - [Level 4 library-only rule](level4-library-only.md) — seed never adds sections to existing cohorts; starting set excludes Level 4 built-ins; cleanup script in scripts/.
+- [Groups conversion & verification](groups-conversion-verification.md) — snapshot before / compare after on dev then prod; delete test participants before compare; legacy level columns frozen but still written.

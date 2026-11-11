@@ -18,7 +18,13 @@ export interface AdminCohortSection {
   id: number;
   cohortId: number;
   sectionId: string;
+  /**
+   * Legacy level (frozen); use groupId.
+   * @deprecated
+   */
   level: number;
+  /** Group the row belongs to (negative virtual id while a cohort is unconverted). */
+  groupId: number | null;
   sortOrder: number;
   displayName?: string | null;
   visible: boolean;

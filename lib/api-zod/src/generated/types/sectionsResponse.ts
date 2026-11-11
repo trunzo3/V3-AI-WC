@@ -14,7 +14,9 @@ All participant endpoints require an authenticated session cookie
  * OpenAPI spec version: 0.1.0
  */
 import type { Section } from "./section";
+import type { SectionGroup } from "./sectionGroup";
 
 export interface SectionsResponse {
   sections: Section[];
+  groups: SectionGroup[];
 }

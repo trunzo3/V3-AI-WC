@@ -20,7 +20,12 @@ export interface Section {
   id: string;
   title: string;
   description: string;
+  /**
+   * Legacy level (frozen); use groupId.
+   * @deprecated
+   */
   level: number;
+  groupId: number;
   sortOrder: number;
   type: SectionType;
   unlocked: boolean;

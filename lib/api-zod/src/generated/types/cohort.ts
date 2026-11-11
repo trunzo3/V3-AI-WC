@@ -15,6 +15,7 @@ All participant endpoints require an authenticated session cookie
  */
 import type { CohortLevelNames } from "./cohortLevelNames";
 import type { CohortTierAccess } from "./cohortTierAccess";
+import type { SectionGroup } from "./sectionGroup";
 
 export interface Cohort {
   id: number;
@@ -27,6 +28,11 @@ export interface Cohort {
   audienceType: string;
   /** When false, the self-assessment and "Talk with Anthony" links are hidden for this cohort's participants. Default true. */
   showCoachingLinks?: boolean;
-  /** Per-cohort override of level group labels, keyed by level number, e.g. {"1": "AI Change Leadership"}. Missing keys fall back to the app defaults. */
+  /**
+   * Legacy (frozen). Use groups.
+   * @deprecated
+   */
   levelNames?: CohortLevelNames;
+  /** Ordered section groups of this cohort (replaces levels). */
+  groups?: SectionGroup[];
 }

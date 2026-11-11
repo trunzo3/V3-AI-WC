@@ -103,9 +103,22 @@ export const GetCurrentParticipantResponse = zod.object({
     levelNames: zod
       .record(zod.string(), zod.string())
       .optional()
-      .describe(
-        'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
-      ),
+      .describe("Legacy (frozen). Use groups."),
+    groups: zod
+      .array(
+        zod.object({
+          id: zod.number(),
+          name: zod.string(),
+          sortOrder: zod.number(),
+          isOpen: zod
+            .boolean()
+            .describe(
+              "Open groups unlock every section inside them for all participants.",
+            ),
+        }),
+      )
+      .optional()
+      .describe("Ordered section groups of this cohort (replaces levels)."),
   }),
 });
 
@@ -137,7 +150,8 @@ export const ListSectionsResponse = zod.object({
       id: zod.string(),
       title: zod.string(),
       description: zod.string(),
-      level: zod.number(),
+      level: zod.number().describe("Legacy level (frozen); use groupId."),
+      groupId: zod.number(),
       sortOrder: zod.number(),
       type: zod.enum(["exercise", "reference", "locked"]),
       unlocked: zod.boolean(),
@@ -356,6 +370,18 @@ export const ListSectionsResponse = zod.object({
           badgeLabel: zod.string().nullable(),
         })
         .nullish(),
+    }),
+  ),
+  groups: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      sortOrder: zod.number(),
+      isOpen: zod
+        .boolean()
+        .describe(
+          "Open groups unlock every section inside them for all participants.",
+        ),
     }),
   ),
 });
@@ -643,9 +669,24 @@ export const AdminListCohortsResponse = zod.object({
       levelNames: zod
         .record(zod.string(), zod.string())
         .optional()
-        .describe(
-          'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
-        ),
+        .describe("Legacy (frozen); groups carry the names now."),
+      groups: zod
+        .array(
+          zod.object({
+            id: zod.number(),
+            name: zod.string(),
+            sortOrder: zod.number(),
+            isOpen: zod.boolean(),
+            legacyLevel: zod.number().nullish(),
+            sectionCount: zod.number().optional(),
+          }),
+        )
+        .optional()
+        .describe("Ordered section groups (list endpoint only)."),
+      groupsConverted: zod
+        .boolean()
+        .optional()
+        .describe("False while the cohort still renders from legacy levels."),
       createdAt: zod.coerce.date().nullish(),
       updatedAt: zod.coerce.date().nullish(),
     }),
@@ -666,8 +707,12 @@ export const AdminCreateCohortBody = zod.object({
   levelNames: zod
     .record(zod.string(), zod.string())
     .optional()
+    .describe("Legacy (frozen); groups carry the names now."),
+  startWith: zod
+    .enum(["starting", "empty"])
+    .optional()
     .describe(
-      'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
+      '\"starting\" (default) creates the starting groups (all locked) with the starting sections; \"empty\" creates no groups and no sections.',
     ),
 });
 
@@ -690,9 +735,24 @@ export const AdminGetCohortResponse = zod.object({
     levelNames: zod
       .record(zod.string(), zod.string())
       .optional()
-      .describe(
-        'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
-      ),
+      .describe("Legacy (frozen); groups carry the names now."),
+    groups: zod
+      .array(
+        zod.object({
+          id: zod.number(),
+          name: zod.string(),
+          sortOrder: zod.number(),
+          isOpen: zod.boolean(),
+          legacyLevel: zod.number().nullish(),
+          sectionCount: zod.number().optional(),
+        }),
+      )
+      .optional()
+      .describe("Ordered section groups (list endpoint only)."),
+    groupsConverted: zod
+      .boolean()
+      .optional()
+      .describe("False while the cohort still renders from legacy levels."),
     createdAt: zod.coerce.date().nullish(),
     updatedAt: zod.coerce.date().nullish(),
   }),
@@ -732,9 +792,24 @@ export const AdminUpdateCohortResponse = zod.object({
     levelNames: zod
       .record(zod.string(), zod.string())
       .optional()
-      .describe(
-        'Per-cohort override of level group labels, keyed by level number, e.g. {\"1\": \"AI Change Leadership\"}. Missing keys fall back to the app defaults.',
-      ),
+      .describe("Legacy (frozen); groups carry the names now."),
+    groups: zod
+      .array(
+        zod.object({
+          id: zod.number(),
+          name: zod.string(),
+          sortOrder: zod.number(),
+          isOpen: zod.boolean(),
+          legacyLevel: zod.number().nullish(),
+          sectionCount: zod.number().optional(),
+        }),
+      )
+      .optional()
+      .describe("Ordered section groups (list endpoint only)."),
+    groupsConverted: zod
+      .boolean()
+      .optional()
+      .describe("False while the cohort still renders from legacy levels."),
     createdAt: zod.coerce.date().nullish(),
     updatedAt: zod.coerce.date().nullish(),
   }),
@@ -778,7 +853,13 @@ export const AdminListCohortSectionsResponse = zod.object({
       id: zod.number(),
       cohortId: zod.number(),
       sectionId: zod.string(),
-      level: zod.number(),
+      level: zod.number().describe("Legacy level (frozen); use groupId."),
+      groupId: zod
+        .number()
+        .nullable()
+        .describe(
+          "Group the row belongs to (negative virtual id while a cohort is unconverted).",
+        ),
       sortOrder: zod.number(),
       displayName: zod.string().nullish(),
       visible: zod.boolean(),
@@ -788,6 +869,21 @@ export const AdminListCohortSectionsResponse = zod.object({
       type: zod.string(),
     }),
   ),
+  groups: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      sortOrder: zod.number(),
+      isOpen: zod.boolean(),
+      legacyLevel: zod.number().nullish(),
+      sectionCount: zod.number().optional(),
+    }),
+  ),
+  groupsConverted: zod
+    .boolean()
+    .describe(
+      "False while the cohort still renders from legacy levels; editing is refused until true.",
+    ),
 });
 
 /**
@@ -799,7 +895,7 @@ export const AdminBulkUpdateCohortSectionsParams = zod.object({
 
 export const AdminBulkUpdateCohortSectionsBodyItem = zod.object({
   sectionId: zod.string().min(1),
-  level: zod.number(),
+  groupId: zod.number(),
   sortOrder: zod.number(),
   displayName: zod.string().nullish(),
   visible: zod.boolean(),
@@ -891,6 +987,180 @@ export const AdminUpsertCohortVariantResponse = zod.object({
       zod.null(),
     ])
     .optional(),
+});
+
+/**
+ * @summary List a cohort's section groups with section counts
+ */
+export const AdminListCohortGroupsParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const AdminListCohortGroupsResponse = zod.object({
+  groups: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      sortOrder: zod.number(),
+      isOpen: zod.boolean(),
+      legacyLevel: zod.number().nullish(),
+      sectionCount: zod.number().optional(),
+    }),
+  ),
+  groupsConverted: zod.boolean(),
+});
+
+/**
+ * @summary Add a group (appended last, locked)
+ */
+export const AdminCreateCohortGroupParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const adminCreateCohortGroupBodyNameMax = 80;
+
+export const AdminCreateCohortGroupBody = zod.object({
+  name: zod.string().min(1).max(adminCreateCohortGroupBodyNameMax),
+});
+
+/**
+ * @summary Reorder a cohort's groups (every group id exactly once)
+ */
+export const AdminReorderCohortGroupsParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const AdminReorderCohortGroupsBody = zod.object({
+  groupIds: zod.array(zod.number()),
+});
+
+export const AdminReorderCohortGroupsResponse = zod.object({
+  groups: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      sortOrder: zod.number(),
+      isOpen: zod.boolean(),
+      legacyLevel: zod.number().nullish(),
+      sectionCount: zod.number().optional(),
+    }),
+  ),
+  groupsConverted: zod.boolean(),
+});
+
+/**
+ * @summary Rename a group or toggle open/locked
+ */
+export const AdminUpdateCohortGroupParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+  groupId: zod.coerce.number(),
+});
+
+export const adminUpdateCohortGroupBodyNameMax = 80;
+
+export const AdminUpdateCohortGroupBody = zod.object({
+  name: zod.string().min(1).max(adminUpdateCohortGroupBodyNameMax).optional(),
+  isOpen: zod.boolean().optional(),
+});
+
+export const AdminUpdateCohortGroupResponse = zod.object({
+  group: zod.object({
+    id: zod.number(),
+    name: zod.string(),
+    sortOrder: zod.number(),
+    isOpen: zod.boolean(),
+    legacyLevel: zod.number().nullish(),
+    sectionCount: zod.number().optional(),
+  }),
+});
+
+/**
+ * @summary Delete an empty group (hidden sections count as non-empty)
+ */
+export const AdminDeleteCohortGroupParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+  groupId: zod.coerce.number(),
+});
+
+export const AdminDeleteCohortGroupResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
+ * @summary List library topics with section counts
+ */
+export const AdminListTopicsResponse = zod.object({
+  topics: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      sortOrder: zod.number(),
+      legacyLevel: zod.number().nullish(),
+      sectionCount: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Add a library topic (appended last)
+ */
+export const adminCreateTopicBodyNameMax = 80;
+
+export const AdminCreateTopicBody = zod.object({
+  name: zod.string().min(1).max(adminCreateTopicBodyNameMax),
+});
+
+/**
+ * @summary Reorder library topics (every topic id exactly once)
+ */
+export const AdminReorderTopicsBody = zod.object({
+  topicIds: zod.array(zod.number()),
+});
+
+export const AdminReorderTopicsResponse = zod.object({
+  topics: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      sortOrder: zod.number(),
+      legacyLevel: zod.number().nullish(),
+      sectionCount: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Rename a library topic
+ */
+export const AdminUpdateTopicParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const adminUpdateTopicBodyNameMax = 80;
+
+export const AdminUpdateTopicBody = zod.object({
+  name: zod.string().min(1).max(adminUpdateTopicBodyNameMax),
+});
+
+export const AdminUpdateTopicResponse = zod.object({
+  topic: zod.object({
+    id: zod.number(),
+    name: zod.string(),
+    sortOrder: zod.number(),
+    legacyLevel: zod.number().nullish(),
+    sectionCount: zod.number(),
+  }),
+});
+
+/**
+ * @summary Delete an empty library topic
+ */
+export const AdminDeleteTopicParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AdminDeleteTopicResponse = zod.object({
+  success: zod.boolean(),
 });
 
 /**
@@ -1105,9 +1375,11 @@ export const AdminListGenericSectionsResponse = zod.object({
       sectionType: zod.string(),
       showNotesField: zod.boolean().optional(),
       badgeLabel: zod.string().nullish(),
-      defaultLevel: zod
+      defaultLevel: zod.number().describe("Legacy (frozen); use topicId."),
+      topicId: zod
         .number()
-        .describe("Default level grouping in the section library"),
+        .nullish()
+        .describe("Library topic this section is filed under."),
       archived: zod
         .boolean()
         .describe("Hidden from the library view but still attached to cohorts"),
@@ -1331,7 +1603,11 @@ export const AdminCreateGenericSectionBody = zod.object({
   defaultLevel: zod
     .number()
     .nullish()
-    .describe("Default level for library grouping (1-4)"),
+    .describe("Legacy (frozen); use topicId."),
+  topicId: zod
+    .number()
+    .nullish()
+    .describe("Library topic to file the section under."),
   archived: zod
     .boolean()
     .nullish()
@@ -1357,6 +1633,8 @@ export const AdminListGenericSectionUsageResponse = zod.object({
       cohortId: zod.number(),
       cohortName: zod.string(),
       level: zod.number(),
+      groupId: zod.number().nullish(),
+      groupName: zod.string(),
     }),
   ),
 });
@@ -1578,7 +1856,11 @@ export const AdminUpdateGenericSectionBody = zod.object({
   defaultLevel: zod
     .number()
     .nullish()
-    .describe("Default level for library grouping (1-4)"),
+    .describe("Legacy (frozen); use topicId."),
+  topicId: zod
+    .number()
+    .nullish()
+    .describe("Library topic to file the section under."),
   archived: zod
     .boolean()
     .nullish()
@@ -1802,9 +2084,11 @@ export const AdminUpdateGenericSectionResponse = zod.object({
     sectionType: zod.string(),
     showNotesField: zod.boolean().optional(),
     badgeLabel: zod.string().nullish(),
-    defaultLevel: zod
+    defaultLevel: zod.number().describe("Legacy (frozen); use topicId."),
+    topicId: zod
       .number()
-      .describe("Default level grouping in the section library"),
+      .nullish()
+      .describe("Library topic this section is filed under."),
     archived: zod
       .boolean()
       .describe("Hidden from the library view but still attached to cohorts"),
