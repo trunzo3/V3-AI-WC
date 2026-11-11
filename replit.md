@@ -406,8 +406,8 @@ called by the seed; like the starting set it skips Level 4 built-ins.
 
 ### Groups and topics
 
-- `section_groups` (per cohort, ordered, `is_open`, `legacy_level` for
-  converted rows) and `topics` (global library headings, `legacy_level`) with
+- `cohort_groups` (per cohort, ordered, `is_open`, `legacy_level` for
+  converted rows) and `library_topics` (global library headings, `legacy_level`) with
   `cohort_sections.group_id` / `generic_sections.topic_id`. All additive; the
   old level columns stay but are frozen.
 - `convertLevelsToGroups` runs inside `runSeed` at startup: for every cohort
