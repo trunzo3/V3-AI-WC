@@ -6,6 +6,8 @@ import {
   useAdminListGenericSections,
   useAdminGetCohortPollResults,
   getAdminGetCohortPollResultsQueryKey,
+  useAdminListCohortNonResponders,
+  getAdminListCohortNonRespondersQueryKey,
   type AdminFormResponse,
   type AdminPollResponse,
   type GenericContentBlock,
@@ -19,7 +21,9 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -37,6 +41,8 @@ interface CollectingForm {
   sectionId: string;
   blockIndex: number;
   label: string;
+  groupId: number | null;
+  groupName: string;
   kind: "form" | "poll";
   // Poll only: the block's questions, for rendering answers.
   questions?: GenericPollQuestion[];
@@ -68,18 +74,31 @@ export function ResponsesTab({ cohortId }: Props) {
   const [filter, setFilter] = useState<string>(ALL);
 
   // Build the "collecting forms" filter list from generic sections attached
-  // to this cohort that contain a form block with collectResponses on.
+  // to this cohort that contain a form block with collectResponses on, or a
+  // poll block. Course order: the API returns section rows sorted by group
+  // order then section sortOrder, but we re-sort explicitly here so the
+  // dropdown never depends on that; blocks keep their index order.
   const sectionsQ = useAdminListCohortSections(cohortId);
   const genericsQ = useAdminListGenericSections();
   const collectingForms = useMemo<CollectingForm[]>(() => {
-    const attached = sectionsQ.data?.sections ?? [];
     const generics = genericsQ.data?.sections ?? [];
+    const groups = sectionsQ.data?.groups ?? [];
+    const groupOrder = new Map(groups.map((g, i) => [g.id, i]));
+    const groupName = new Map(groups.map((g) => [g.id, g.name]));
+    const attached = [...(sectionsQ.data?.sections ?? [])].sort(
+      (a, b) =>
+        (groupOrder.get(a.groupId ?? -1) ?? 999) - (groupOrder.get(b.groupId ?? -1) ?? 999) ||
+        a.sortOrder - b.sortOrder ||
+        a.id - b.id,
+    );
     const byId = new Map(generics.map((g) => [`generic_${g.id}`, g]));
     const out: CollectingForm[] = [];
     for (const s of attached) {
       const g = byId.get(s.sectionId);
       if (!g) continue;
       const blocks = (g.contentBlocks ?? []) as GenericContentBlock[];
+      const gid = s.groupId ?? null;
+      const gname = (gid != null ? groupName.get(gid) : undefined) ?? "Other";
       blocks.forEach((b, i) => {
         const sectionTitle = s.displayName?.trim() || g.title;
         if (b.type === "poll") {
@@ -89,6 +108,8 @@ export function ResponsesTab({ cohortId }: Props) {
             sectionId: s.sectionId,
             blockIndex: i,
             label: `${name} — ${sectionTitle}`,
+            groupId: gid,
+            groupName: gname,
             kind: "poll",
             questions: b.questions ?? [],
           });
@@ -101,12 +122,24 @@ export function ResponsesTab({ cohortId }: Props) {
           sectionId: s.sectionId,
           blockIndex: i,
           label: `${name} — ${sectionTitle}`,
+          groupId: gid,
+          groupName: gname,
           kind: "form",
         });
       });
     }
     return out;
   }, [sectionsQ.data, genericsQ.data]);
+  // Consecutive items with the same group become one labelled dropdown group.
+  const groupedForms = useMemo(() => {
+    const out: Array<{ groupId: number | null; groupName: string; items: CollectingForm[] }> = [];
+    for (const f of collectingForms) {
+      const last = out[out.length - 1];
+      if (last && last.groupId === f.groupId) last.items.push(f);
+      else out.push({ groupId: f.groupId, groupName: f.groupName, items: [f] });
+    }
+    return out;
+  }, [collectingForms]);
 
   const selected = collectingForms.find((f) => f.key === filter);
   const isPoll = selected?.kind === "poll";
@@ -132,6 +165,21 @@ export function ResponsesTab({ cohortId }: Props) {
   });
   const pollResponses: AdminPollResponse[] = pollQ.data?.responses ?? [];
   const responses: AdminFormResponse[] = responsesQ.data?.responses ?? [];
+  // "Hasn't answered": participants with no submission for the selected
+  // block. Same 2s interval as the responses list so names drop off live.
+  const nonParams = params ?? { sectionId: "", blockIndex: 0 };
+  const nonRespondersQ = useAdminListCohortNonResponders(cohortId, nonParams, {
+    query: {
+      queryKey: getAdminListCohortNonRespondersQueryKey(cohortId, nonParams),
+      refetchInterval: 2000,
+      enabled: selected != null,
+    },
+  });
+  const nonResponders = nonRespondersQ.data?.participants ?? [];
+  const copyNonResponders = async () => {
+    await copyText(nonResponders.map((p) => `${p.name} <${p.email}>`).join("\n"));
+    toast({ title: `Copied ${nonResponders.length} name${nonResponders.length === 1 ? "" : "s"}` });
+  };
 
   // "New" badge: anything that arrived (or was resubmitted) after the tab
   // was opened. We snapshot what the first successful load returned — a map
@@ -218,10 +266,20 @@ export function ResponsesTab({ cohortId }: Props) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>All forms</SelectItem>
-                {collectingForms.map((f) => (
-                  <SelectItem key={f.key} value={f.key}>
-                    {f.label}
-                  </SelectItem>
+                {groupedForms.map((grp, gi) => (
+                  <SelectGroup key={`${grp.groupId ?? "none"}-${gi}`}>
+                    <SelectLabel
+                      className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+                      data-testid={`responses-filter-group-${grp.groupId ?? "none"}`}
+                    >
+                      {grp.groupName}
+                    </SelectLabel>
+                    {grp.items.map((f) => (
+                      <SelectItem key={f.key} value={f.key} data-testid={`responses-filter-item-${f.key}`}>
+                        {f.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>
@@ -247,7 +305,46 @@ export function ResponsesTab({ cohortId }: Props) {
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {selected && (
+          <div className="border rounded-lg p-4 bg-muted/30" data-testid="non-responders-panel">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <div className="font-semibold text-sm" data-testid="non-responders-heading">
+                  Hasn't answered ({nonResponders.length})
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Only lists people who have signed in to the Companion.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={copyNonResponders}
+                disabled={nonResponders.length === 0}
+                data-testid="button-non-responders-copy"
+              >
+                <Copy className="w-3.5 h-3.5 mr-1" /> Copy
+              </Button>
+            </div>
+            {nonRespondersQ.isLoading ? (
+              <p className="text-xs text-muted-foreground mt-2">Loading…</p>
+            ) : nonResponders.length === 0 ? (
+              <p className="text-xs text-muted-foreground mt-2" data-testid="non-responders-empty">
+                Everyone who has signed in has answered.
+              </p>
+            ) : (
+              <ul className="mt-2 grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+                {nonResponders.map((p) => (
+                  <li key={p.id} className="flex flex-col" data-testid={`non-responder-${p.id}`}>
+                    <span className="font-medium">{p.name}</span>
+                    <span className="text-xs text-muted-foreground">{p.email}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
         {isPoll ? (
           pollQ.isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>

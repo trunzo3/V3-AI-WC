@@ -396,6 +396,25 @@ export type AdminPollResponse = PollResponseRecord & {
   participantName: string;
 };
 
+export type AdminNonRespondersResponseKind =
+  (typeof AdminNonRespondersResponseKind)[keyof typeof AdminNonRespondersResponseKind];
+
+export const AdminNonRespondersResponseKind = {
+  form: "form",
+  poll: "poll",
+} as const;
+
+export type AdminNonRespondersResponseParticipantsItem = {
+  id: number;
+  name: string;
+  email: string;
+};
+
+export interface AdminNonRespondersResponse {
+  kind: AdminNonRespondersResponseKind;
+  participants: AdminNonRespondersResponseParticipantsItem[];
+}
+
 export type AdminPollResultsResponse = PollResultsResponse & {
   pollName: string;
   responses: AdminPollResponse[];
@@ -1152,6 +1171,11 @@ export type AdminListCohortFormResponsesParams = {
 };
 
 export type AdminGetCohortPollResultsParams = {
+  sectionId: string;
+  blockIndex: number;
+};
+
+export type AdminListCohortNonRespondersParams = {
   sectionId: string;
   blockIndex: number;
 };

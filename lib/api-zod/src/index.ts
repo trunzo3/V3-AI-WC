@@ -4,4 +4,4 @@ export * from "./generated/types";
 // this same name for operations that have path AND query params. Prefer the
 // zod schema (the types barrel version is a plain `{ sectionId?, blockIndex? }`).
 export { AdminListCohortFormResponsesParams } from "./generated/api";
-export { AdminGetCohortPollResultsParams } from "./generated/api";
+export { AdminGetCohortPollResultsParams, AdminListCohortNonRespondersParams } from "./generated/api";

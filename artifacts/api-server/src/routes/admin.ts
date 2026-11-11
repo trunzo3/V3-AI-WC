@@ -2227,6 +2227,58 @@ router.get(
   },
 );
 
+// Participants in the cohort with no submission for one form or poll block.
+// Only people who have signed in (i.e. have a participants row) can appear.
+router.get(
+  "/admin/cohorts/:cohortId/non-responders",
+  requireAdmin,
+  async (req, res) => {
+    const cohortId = Number(req.params.cohortId);
+    if (!Number.isInteger(cohortId)) {
+      res.status(400).json({ error: "Invalid cohort id." });
+      return;
+    }
+    const parsed = pollResultsQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ error: "sectionId and blockIndex are required." });
+      return;
+    }
+    const { sectionId, blockIndex } = parsed.data;
+    const isPoll = (await findPollBlock(sectionId, blockIndex)) != null;
+    const answered = isPoll
+      ? await db
+          .select({ participantId: pollResponsesTable.participantId })
+          .from(pollResponsesTable)
+          .where(
+            and(
+              eq(pollResponsesTable.cohortId, cohortId),
+              eq(pollResponsesTable.sectionId, sectionId),
+              eq(pollResponsesTable.blockIndex, blockIndex),
+            ),
+          )
+      : await db
+          .select({ participantId: formResponsesTable.participantId })
+          .from(formResponsesTable)
+          .where(
+            and(
+              eq(formResponsesTable.cohortId, cohortId),
+              eq(formResponsesTable.sectionId, sectionId),
+              eq(formResponsesTable.blockIndex, blockIndex),
+            ),
+          );
+    const answeredIds = new Set(answered.map((r) => r.participantId));
+    const participants = await db
+      .select({ id: participantsTable.id, name: participantsTable.name, email: participantsTable.email })
+      .from(participantsTable)
+      .where(eq(participantsTable.cohortId, cohortId));
+    const missing = participants
+      .filter((p) => !answeredIds.has(p.id))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }) || a.id - b.id);
+    res.set("Cache-Control", "no-store");
+    res.json({ kind: isPoll ? "poll" : "form", participants: missing });
+  },
+);
+
 router.get(
   "/admin/cohorts/:cohortId/participants",
   requireAdmin,

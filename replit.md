@@ -318,8 +318,23 @@ Sections come from two sources:
    in the admin **Responses** tab (COHORT group, `tabs/ResponsesTab.tsx`):
    `GET /api/admin/cohorts/:cohortId/responses?sectionId=&blockIndex=`,
    newest first, polled every 2s, "New" badge for arrivals since the tab
-   opened, filter dropdown of collecting forms attached to the cohort,
+   opened, filter dropdown of collecting forms and polls attached to the
+   cohort in **course order** (cohort groups in sort order → sections by
+   sortOrder → block index; the tab re-sorts the cohort-sections rows
+   itself and renders one `SelectGroup`/`SelectLabel` heading per group,
+   `responses-filter-group-<groupId>`, with "All forms" first),
    per-card Copy and "Copy all" (participant name line + text per entry).
+   With a single form or poll selected, a **"Hasn't answered (N)"** panel
+   (`non-responders-panel`, heading `non-responders-heading`, rows
+   `non-responder-<participantId>`) sits above the responses: every cohort
+   participant without a submission for that exact section+block, sorted
+   by name, name + email, note "Only lists people who have signed in to the
+   Companion.", Copy button (`button-non-responders-copy`, one
+   `Name <email>` per line). Backed by
+   `GET /api/admin/cohorts/:cohortId/non-responders?sectionId=&blockIndex=`
+   (`adminListCohortNonResponders`: `{kind: "form"|"poll", participants}`;
+   uses `poll_responses` when the block is a poll, else `form_responses`),
+   polled every 2s like the responses list. Hidden on "All forms".
    The OpenAPI operationId is `adminListCohortFormResponses` — an id ending
    in "Responses" collides with orval's generated names.
    **Identifier fields:** a form field with `identifier: true` (editor

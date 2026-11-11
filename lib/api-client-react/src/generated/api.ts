@@ -53,6 +53,7 @@ import type {
   AdminGenericSectionUsageResponse,
   AdminGetCohortPollResultsParams,
   AdminListCohortFormResponsesParams,
+  AdminListCohortNonRespondersParams,
   AdminListFeedbackParams,
   AdminLlmToolCreateRequest,
   AdminLlmToolListResponse,
@@ -62,6 +63,7 @@ import type {
   AdminMakeEditableBlockedResponse,
   AdminMakeEditableResponse,
   AdminMeResponse,
+  AdminNonRespondersResponse,
   AdminParticipantActiveRequest,
   AdminParticipantListResponse,
   AdminParticipantResponse,
@@ -6683,6 +6685,131 @@ export function useAdminGetCohortPollResults<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getAdminGetCohortPollResultsQueryOptions(
+    cohortId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Participants with no submission for one form or poll block
+ */
+export const getAdminListCohortNonRespondersUrl = (
+  cohortId: number,
+  params: AdminListCohortNonRespondersParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/cohorts/${cohortId}/non-responders?${stringifiedParams}`
+    : `/api/admin/cohorts/${cohortId}/non-responders`;
+};
+
+export const adminListCohortNonResponders = async (
+  cohortId: number,
+  params: AdminListCohortNonRespondersParams,
+  options?: RequestInit,
+): Promise<AdminNonRespondersResponse> => {
+  return customFetch<AdminNonRespondersResponse>(
+    getAdminListCohortNonRespondersUrl(cohortId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminListCohortNonRespondersQueryKey = (
+  cohortId: number,
+  params?: AdminListCohortNonRespondersParams,
+) => {
+  return [
+    `/api/admin/cohorts/${cohortId}/non-responders`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getAdminListCohortNonRespondersQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListCohortNonResponders>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  cohortId: number,
+  params: AdminListCohortNonRespondersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListCohortNonResponders>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getAdminListCohortNonRespondersQueryKey(cohortId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListCohortNonResponders>>
+  > = ({ signal }) =>
+    adminListCohortNonResponders(cohortId, params, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!cohortId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListCohortNonResponders>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListCohortNonRespondersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListCohortNonResponders>>
+>;
+export type AdminListCohortNonRespondersQueryError =
+  ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary Participants with no submission for one form or poll block
+ */
+
+export function useAdminListCohortNonResponders<
+  TData = Awaited<ReturnType<typeof adminListCohortNonResponders>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  cohortId: number,
+  params: AdminListCohortNonRespondersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListCohortNonResponders>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListCohortNonRespondersQueryOptions(
     cohortId,
     params,
     options,

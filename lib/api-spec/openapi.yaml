@@ -1322,6 +1322,30 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /admin/cohorts/{cohortId}/non-responders:
+    parameters:
+      - $ref: "#/components/parameters/CohortId"
+    get:
+      operationId: adminListCohortNonResponders
+      tags: [admin-participants]
+      summary: Participants with no submission for one form or poll block
+      parameters:
+        - name: sectionId
+          in: query
+          required: true
+          schema: { type: string }
+        - name: blockIndex
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Non-responders, sorted by name
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminNonRespondersResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /admin/participants/{id}:
     parameters:
       - $ref: "#/components/parameters/IntegerId"
@@ -1830,6 +1854,20 @@ components:
           properties:
             participantName: { type: string }
 
+    AdminNonRespondersResponse:
+      type: object
+      required: [kind, participants]
+      properties:
+        kind: { type: string, enum: [form, poll] }
+        participants:
+          type: array
+          items:
+            type: object
+            required: [id, name, email]
+            properties:
+              id: { type: integer }
+              name: { type: string }
+              email: { type: string }
     AdminPollResultsResponse:
       allOf:
         - $ref: "#/components/schemas/PollResultsResponse"

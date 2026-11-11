@@ -2779,6 +2779,29 @@ export const AdminGetCohortPollResultsResponse = zod
   );
 
 /**
+ * @summary Participants with no submission for one form or poll block
+ */
+export const AdminListCohortNonRespondersParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const AdminListCohortNonRespondersQueryParams = zod.object({
+  sectionId: zod.coerce.string(),
+  blockIndex: zod.coerce.number(),
+});
+
+export const AdminListCohortNonRespondersResponse = zod.object({
+  kind: zod.enum(["form", "poll"]),
+  participants: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      email: zod.string(),
+    }),
+  ),
+});
+
+/**
  * @summary Delete a participant and all their data
  */
 export const AdminDeleteParticipantParams = zod.object({
