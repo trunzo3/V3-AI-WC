@@ -29,4 +29,5 @@ export const GenericContentBlockType = {
   download: "download",
   recap: "recap",
   image: "image",
+  poll: "poll",
 } as const;

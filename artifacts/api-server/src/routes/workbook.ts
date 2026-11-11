@@ -15,6 +15,8 @@ import {
   genericSectionsTable,
   contentVariantsTable,
   formResponsesTable,
+  pollResponsesTable,
+  type PollAnswers,
   type GenericContentBlock,
 } from "@workspace/db";
 import {
@@ -528,6 +530,8 @@ function renderGenericBlocks(
     notes: Array<{ fieldKey: string; content: string }>;
     // form_responses for this section, keyed by block index.
     formResponses: Map<number, string>;
+    // poll_responses for this section, keyed by block index.
+    pollResponses: Map<number, PollAnswers>;
   },
 ): string {
   if (!blocks || blocks.length === 0) return "";
@@ -634,6 +638,28 @@ function renderGenericBlocks(
               : "";
           return `<div class="form-block">${fieldsHtml}${submittedHtml}</div>`;
         }
+        case "poll": {
+          // Each question with the participant's own submitted choices and
+          // comment, or "No answer" when they did not submit.
+          const questions = Array.isArray(b.questions) ? (b.questions as Array<Record<string, unknown>>) : [];
+          const answers = opts.pollResponses.get(blockIndex);
+          const pollName = str(b.pollName).trim();
+          const questionsHtml = questions
+            .map((q) => {
+              const key = str(q.questionKey);
+              const a = answers?.[key];
+              const chosen = (a?.choices ?? []).map((c) => escapeHtml(c)).join(", ");
+              const comment = (a?.comment ?? "").trim();
+              const commentLabel = str(q.commentLabel).trim() || "Comment";
+              return `<div class="entry-block">
+                <div class="entry-heading">${escapeHtml(str(q.text))}</div>
+                ${chosen ? `<div class="entry-body">${chosen}</div>` : `<div class="entry-body empty-notes">No answer</div>`}
+                ${comment ? `<div class="entry-help"><strong>${escapeHtml(commentLabel)}:</strong> ${escapeHtml(comment)}</div>` : ""}
+              </div>`;
+            })
+            .join("");
+          return `<div class="form-block">${pollName ? `<span class="entry-pill">${escapeHtml(pollName)}</span>` : ""}${questionsHtml}</div>`;
+        }
         default:
           // image / recap: not rendered in the PDF.
           return "";
@@ -704,6 +730,7 @@ function buildHtml(opts: {
     workflowMapHtml: string;
     allNotes: Array<{ fieldKey: string; content: string }>;
     formResponses: Map<number, string>;
+    pollResponses: Map<number, PollAnswers>;
   }>>;
 }): string {
   const { groups, closingQuote, closingSubtext, sectionsByGroup } = opts;
@@ -743,6 +770,7 @@ function buildHtml(opts: {
                 sectionId: section.id,
                 notes: it.allNotes,
                 formResponses: it.formResponses,
+                pollResponses: it.pollResponses,
               })
             : "";
           // Reference content (hardcoded for known sections, special-case for
@@ -1349,6 +1377,22 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     formResponsesBySection.set(r.sectionId, m);
   }
 
+  // Submitted poll answers, keyed by section id -> block index.
+  const pollResponseRows = await db
+    .select({
+      sectionId: pollResponsesTable.sectionId,
+      blockIndex: pollResponsesTable.blockIndex,
+      answers: pollResponsesTable.answers,
+    })
+    .from(pollResponsesTable)
+    .where(eq(pollResponsesTable.participantId, participantId));
+  const pollResponsesBySection = new Map<string, Map<number, PollAnswers>>();
+  for (const r of pollResponseRows) {
+    const m = pollResponsesBySection.get(r.sectionId) ?? new Map<number, PollAnswers>();
+    m.set(r.blockIndex, r.answers);
+    pollResponsesBySection.set(r.sectionId, m);
+  }
+
   // Load workflow map (single per participant).
   const [workflowMapRow] = await db
     .select()
@@ -1386,6 +1430,7 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     workflowMapHtml: string;
     allNotes: Array<{ fieldKey: string; content: string }>;
     formResponses: Map<number, string>;
+    pollResponses: Map<number, PollAnswers>;
   };
   const assembled: Assembled[] = [];
 
@@ -1489,6 +1534,7 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
       workflowMapHtml,
       allNotes: rawNotes,
       formResponses: formResponsesBySection.get(cs.sectionId) ?? new Map(),
+      pollResponses: pollResponsesBySection.get(cs.sectionId) ?? new Map(),
     });
   }
 

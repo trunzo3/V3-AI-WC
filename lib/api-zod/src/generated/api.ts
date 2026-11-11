@@ -144,6 +144,8 @@ export const AdminLogoutResponse = zod.object({
 /**
  * @summary List visible sections for the current participant's cohort
  */
+export const listSectionsResponseSectionsItemGenericContentBlocksItemQuestionsItemChoicesMin = 2;
+
 export const ListSectionsResponse = zod.object({
   sections: zod.array(
     zod.object({
@@ -179,6 +181,7 @@ export const ListSectionsResponse = zod.object({
                   "download",
                   "recap",
                   "image",
+                  "poll",
                 ]),
                 content: zod.string().optional(),
                 label: zod.string().optional(),
@@ -259,6 +262,35 @@ export const ListSectionsResponse = zod.object({
                     }),
                   )
                   .optional(),
+                pollName: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "For poll blocks - admin-facing name shown in the Responses tab and on the Board.",
+                  ),
+                questions: zod
+                  .array(
+                    zod.object({
+                      questionKey: zod.string(),
+                      text: zod.string(),
+                      choiceType: zod.enum(["single", "multiple"]),
+                      choices: zod
+                        .array(zod.string())
+                        .min(
+                          listSectionsResponseSectionsItemGenericContentBlocksItemQuestionsItemChoicesMin,
+                        ),
+                      allowComment: zod.boolean().optional(),
+                      commentLabel: zod.string().optional(),
+                    }),
+                  )
+                  .optional()
+                  .describe("For poll blocks - at least one question."),
+                showResults: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "For poll blocks - show per-choice counts to participants after they submit. Default false.",
+                  ),
                 preview: zod
                   .boolean()
                   .optional()
@@ -499,6 +531,92 @@ export const ListMyFormSubmissionsResponse = zod.object({
       sectionId: zod.string(),
       blockIndex: zod.number(),
       updatedAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * Validates answers against the block's current questions and choices (400 on unknown keys/choices or missing answers), 403 when the poll's responsesOpen is false, 404 when the section is not unlocked.
+
+ * @summary Submit (or resubmit) answers to a poll block
+ */
+export const SubmitPollResponseBody = zod.object({
+  sectionId: zod.string(),
+  blockIndex: zod.number(),
+  answers: zod
+    .record(
+      zod.string(),
+      zod.object({
+        choices: zod.array(zod.string()),
+        comment: zod.string().optional(),
+      }),
+    )
+    .describe("questionKey -> answer."),
+});
+
+export const SubmitPollResponseResponse = zod.object({
+  response: zod.object({
+    id: zod.number(),
+    cohortId: zod.number(),
+    participantId: zod.number(),
+    sectionId: zod.string(),
+    blockIndex: zod.number(),
+    answers: zod
+      .record(
+        zod.string(),
+        zod.object({
+          choices: zod.array(zod.string()),
+          comment: zod.string().optional(),
+        }),
+      )
+      .describe("questionKey -> answer."),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary The participant's own poll submissions with answers
+ */
+export const ListMyPollSubmissionsResponse = zod.object({
+  submissions: zod.array(
+    zod.object({
+      sectionId: zod.string(),
+      blockIndex: zod.number(),
+      answers: zod
+        .record(
+          zod.string(),
+          zod.object({
+            choices: zod.array(zod.string()),
+            comment: zod.string().optional(),
+          }),
+        )
+        .describe("questionKey -> answer."),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Per-choice counts for a poll with showResults on (after the participant submitted)
+ */
+export const GetPollResultsQueryParams = zod.object({
+  sectionId: zod.coerce.string(),
+  blockIndex: zod.coerce.number(),
+});
+
+export const GetPollResultsResponse = zod.object({
+  total: zod.number().describe("Number of submissions."),
+  questions: zod.array(
+    zod.object({
+      questionKey: zod.string(),
+      text: zod.string(),
+      counts: zod.array(
+        zod.object({
+          choice: zod.string(),
+          count: zod.number(),
+        }),
+      ),
     }),
   ),
 });
@@ -1166,6 +1284,8 @@ export const AdminDeleteTopicResponse = zod.object({
 /**
  * @summary List all generic (admin-authored) section bodies
  */
+export const adminListGenericSectionsResponseSectionsItemContentBlocksItemQuestionsItemChoicesMin = 2;
+
 export const AdminListGenericSectionsResponse = zod.object({
   sections: zod.array(
     zod.object({
@@ -1187,6 +1307,7 @@ export const AdminListGenericSectionsResponse = zod.object({
               "download",
               "recap",
               "image",
+              "poll",
             ]),
             content: zod.string().optional(),
             label: zod.string().optional(),
@@ -1265,6 +1386,35 @@ export const AdminListGenericSectionsResponse = zod.object({
                 }),
               )
               .optional(),
+            pollName: zod
+              .string()
+              .optional()
+              .describe(
+                "For poll blocks - admin-facing name shown in the Responses tab and on the Board.",
+              ),
+            questions: zod
+              .array(
+                zod.object({
+                  questionKey: zod.string(),
+                  text: zod.string(),
+                  choiceType: zod.enum(["single", "multiple"]),
+                  choices: zod
+                    .array(zod.string())
+                    .min(
+                      adminListGenericSectionsResponseSectionsItemContentBlocksItemQuestionsItemChoicesMin,
+                    ),
+                  allowComment: zod.boolean().optional(),
+                  commentLabel: zod.string().optional(),
+                }),
+              )
+              .optional()
+              .describe("For poll blocks - at least one question."),
+            showResults: zod
+              .boolean()
+              .optional()
+              .describe(
+                "For poll blocks - show per-choice counts to participants after they submit. Default false.",
+              ),
             preview: zod
               .boolean()
               .optional()
@@ -1393,6 +1543,8 @@ export const AdminListGenericSectionsResponse = zod.object({
  * @summary Create a generic section body
  */
 
+export const adminCreateGenericSectionBodyContentBlocksItemQuestionsItemChoicesMin = 2;
+
 export const AdminCreateGenericSectionBody = zod.object({
   title: zod.string().min(1),
   contentBlocks: zod
@@ -1411,6 +1563,7 @@ export const AdminCreateGenericSectionBody = zod.object({
             "download",
             "recap",
             "image",
+            "poll",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
@@ -1489,6 +1642,35 @@ export const AdminCreateGenericSectionBody = zod.object({
               }),
             )
             .optional(),
+          pollName: zod
+            .string()
+            .optional()
+            .describe(
+              "For poll blocks - admin-facing name shown in the Responses tab and on the Board.",
+            ),
+          questions: zod
+            .array(
+              zod.object({
+                questionKey: zod.string(),
+                text: zod.string(),
+                choiceType: zod.enum(["single", "multiple"]),
+                choices: zod
+                  .array(zod.string())
+                  .min(
+                    adminCreateGenericSectionBodyContentBlocksItemQuestionsItemChoicesMin,
+                  ),
+                allowComment: zod.boolean().optional(),
+                commentLabel: zod.string().optional(),
+              }),
+            )
+            .optional()
+            .describe("For poll blocks - at least one question."),
+          showResults: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For poll blocks - show per-choice counts to participants after they submit. Default false.",
+            ),
           preview: zod
             .boolean()
             .optional()
@@ -1640,11 +1822,26 @@ export const AdminListGenericSectionUsageResponse = zod.object({
 });
 
 /**
+ * @summary Number of poll submissions per block index across all cohorts (editor warning)
+ */
+export const AdminGetGenericSectionPollResponseCountsParams = zod.object({
+  id: zod.coerce.number().describe("Numeric id"),
+});
+
+export const AdminGetGenericSectionPollResponseCountsResponse = zod.object({
+  counts: zod
+    .record(zod.string(), zod.number())
+    .describe("blockIndex (as string) -> number of submissions."),
+});
+
+/**
  * @summary Update a generic section body
  */
 export const AdminUpdateGenericSectionParams = zod.object({
   id: zod.coerce.number().describe("Numeric id"),
 });
+
+export const adminUpdateGenericSectionBodyContentBlocksItemQuestionsItemChoicesMin = 2;
 
 export const AdminUpdateGenericSectionBody = zod.object({
   title: zod.string().min(1),
@@ -1664,6 +1861,7 @@ export const AdminUpdateGenericSectionBody = zod.object({
             "download",
             "recap",
             "image",
+            "poll",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
@@ -1742,6 +1940,35 @@ export const AdminUpdateGenericSectionBody = zod.object({
               }),
             )
             .optional(),
+          pollName: zod
+            .string()
+            .optional()
+            .describe(
+              "For poll blocks - admin-facing name shown in the Responses tab and on the Board.",
+            ),
+          questions: zod
+            .array(
+              zod.object({
+                questionKey: zod.string(),
+                text: zod.string(),
+                choiceType: zod.enum(["single", "multiple"]),
+                choices: zod
+                  .array(zod.string())
+                  .min(
+                    adminUpdateGenericSectionBodyContentBlocksItemQuestionsItemChoicesMin,
+                  ),
+                allowComment: zod.boolean().optional(),
+                commentLabel: zod.string().optional(),
+              }),
+            )
+            .optional()
+            .describe("For poll blocks - at least one question."),
+          showResults: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For poll blocks - show per-choice counts to participants after they submit. Default false.",
+            ),
           preview: zod
             .boolean()
             .optional()
@@ -1876,6 +2103,8 @@ export const AdminUpdateGenericSectionBody = zod.object({
   insertAfterSortOrder: zod.number().nullish(),
 });
 
+export const adminUpdateGenericSectionResponseSectionContentBlocksItemQuestionsItemChoicesMin = 2;
+
 export const AdminUpdateGenericSectionResponse = zod.object({
   section: zod.object({
     id: zod.number(),
@@ -1896,6 +2125,7 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             "download",
             "recap",
             "image",
+            "poll",
           ]),
           content: zod.string().optional(),
           label: zod.string().optional(),
@@ -1974,6 +2204,35 @@ export const AdminUpdateGenericSectionResponse = zod.object({
               }),
             )
             .optional(),
+          pollName: zod
+            .string()
+            .optional()
+            .describe(
+              "For poll blocks - admin-facing name shown in the Responses tab and on the Board.",
+            ),
+          questions: zod
+            .array(
+              zod.object({
+                questionKey: zod.string(),
+                text: zod.string(),
+                choiceType: zod.enum(["single", "multiple"]),
+                choices: zod
+                  .array(zod.string())
+                  .min(
+                    adminUpdateGenericSectionResponseSectionContentBlocksItemQuestionsItemChoicesMin,
+                  ),
+                allowComment: zod.boolean().optional(),
+                commentLabel: zod.string().optional(),
+              }),
+            )
+            .optional()
+            .describe("For poll blocks - at least one question."),
+          showResults: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For poll blocks - show per-choice counts to participants after they submit. Default false.",
+            ),
           preview: zod
             .boolean()
             .optional()
@@ -2458,6 +2717,66 @@ export const AdminListCohortFormResponsesResponse = zod.object({
       ),
   ),
 });
+
+/**
+ * @summary Counts per choice and every response for one poll block
+ */
+export const AdminGetCohortPollResultsParams = zod.object({
+  cohortId: zod.coerce.number().describe("Numeric cohort id"),
+});
+
+export const AdminGetCohortPollResultsQueryParams = zod.object({
+  sectionId: zod.coerce.string(),
+  blockIndex: zod.coerce.number(),
+});
+
+export const AdminGetCohortPollResultsResponse = zod
+  .object({
+    total: zod.number().describe("Number of submissions."),
+    questions: zod.array(
+      zod.object({
+        questionKey: zod.string(),
+        text: zod.string(),
+        counts: zod.array(
+          zod.object({
+            choice: zod.string(),
+            count: zod.number(),
+          }),
+        ),
+      }),
+    ),
+  })
+  .and(
+    zod.object({
+      pollName: zod.string(),
+      responses: zod.array(
+        zod
+          .object({
+            id: zod.number(),
+            cohortId: zod.number(),
+            participantId: zod.number(),
+            sectionId: zod.string(),
+            blockIndex: zod.number(),
+            answers: zod
+              .record(
+                zod.string(),
+                zod.object({
+                  choices: zod.array(zod.string()),
+                  comment: zod.string().optional(),
+                }),
+              )
+              .describe("questionKey -> answer."),
+            createdAt: zod.coerce.date(),
+            updatedAt: zod.coerce.date(),
+          })
+          .and(
+            zod.object({
+              participantName: zod.string(),
+            }),
+          ),
+      ),
+    }),
+  );
 
 /**
  * @summary Delete a participant and all their data

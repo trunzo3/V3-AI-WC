@@ -40,3 +40,12 @@ Section files: bytes are stored base64 directly in `section_files.storage_path`
 to that route works (cookie flows through the proxy; browsers ignore the
 `Content-Disposition: attachment` header for images), so image blocks reuse the
 exact download-block serving path.
+
+**Response-bearing blocks (form, poll):** a block that stores participant
+submissions touches more than the three definitions above — its own routes
+file, the admin results route, `ResponsesTab.tsx` filter list, `board.tsx`
+block-kind detection, and `workbook.ts` (which needs the participant's rows
+threaded through `renderGenericBlocks` opts). Poll choices are validated
+against the *current* block on every submit, so admins editing choices after
+answers exist only get a warning, not a block; stored answers may then hold
+choices that no longer exist (the renderer filters them out on pre-select).

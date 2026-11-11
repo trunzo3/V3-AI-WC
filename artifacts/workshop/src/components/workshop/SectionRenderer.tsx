@@ -28,6 +28,7 @@ import { SectionAttachedFiles } from "./SectionAttachedFiles";
 import { useResolveTemplate } from "@/hooks/use-resolve-template";
 import { LiveValuesProvider } from "@/hooks/use-live-values";
 import { CopyButton } from "./CopyButton";
+import { PollBlock } from "./PollBlock";
 import {
   VerificationTest,
   ToolSafari,
@@ -920,6 +921,20 @@ function GenericSectionView({
                 showPromptBox={block.showPromptBox ?? true}
                 showCopyButton={block.showCopyButton}
                 boxLabel={block.boxLabel}
+              />
+            );
+          case "poll":
+            if (!block.questions || block.questions.length === 0) return null;
+            return (
+              <PollBlock
+                key={i}
+                sectionId={section.id}
+                blockIndex={i}
+                pollName={block.pollName}
+                questions={block.questions}
+                buttonLabel={block.buttonLabel ?? ""}
+                responsesOpen={block.responsesOpen ?? true}
+                showResults={block.showResults ?? false}
               />
             );
           case "download":

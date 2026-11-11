@@ -21,6 +21,7 @@ import type { GenericContentBlockStyle } from "./genericContentBlockStyle";
 import type { GenericContentBlockType } from "./genericContentBlockType";
 import type { GenericContentBlockVariant } from "./genericContentBlockVariant";
 import type { GenericFormField } from "./genericFormField";
+import type { GenericPollQuestion } from "./genericPollQuestion";
 import type { RecapField } from "./recapField";
 
 /**
@@ -53,6 +54,12 @@ export interface GenericContentBlock {
   prefill?: string;
   copyStyle?: GenericContentBlockCopyStyle;
   fields?: GenericFormField[];
+  /** For poll blocks - admin-facing name shown in the Responses tab and on the Board. */
+  pollName?: string;
+  /** For poll blocks - at least one question. */
+  questions?: GenericPollQuestion[];
+  /** For poll blocks - show per-choice counts to participants after they submit. Default false. */
+  showResults?: boolean;
   /** Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.
    */
   preview?: boolean;

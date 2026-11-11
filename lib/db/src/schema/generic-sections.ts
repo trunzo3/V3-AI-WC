@@ -97,6 +97,29 @@ export type GenericContentBlock =
       altText?: string;
     }
   | {
+      type: "poll";
+      // Admin-facing name shown in the Responses tab and on the Board.
+      pollName?: string;
+      questions: Array<{
+        // Stable key, unique within the block; answers are stored under it.
+        questionKey: string;
+        text: string;
+        choiceType: "single" | "multiple";
+        // At least 2.
+        choices: string[];
+        // Default false.
+        allowComment?: boolean;
+        commentLabel?: string;
+      }>;
+      // Default "Submit".
+      buttonLabel?: string;
+      // Default true.
+      responsesOpen?: boolean;
+      // Default false: show per-choice counts to participants after they
+      // submit (never names or comments).
+      showResults?: boolean;
+    }
+  | {
       type: "recap";
       title: string;
       // Slug (or generic_N id) of the section whose saved answers to show.

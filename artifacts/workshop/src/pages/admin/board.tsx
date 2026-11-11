@@ -6,6 +6,8 @@ import {
   useAdminListCohortSections,
   useAdminListGenericSections,
   useAdminListCohortFormResponses,
+  useAdminGetCohortPollResults,
+  getAdminGetCohortPollResultsQueryKey,
   getAdminGetCohortQueryKey,
   getAdminListCohortParticipantsQueryKey,
   getAdminListCohortSectionsQueryKey,
@@ -16,6 +18,7 @@ import {
 } from "@workspace/api-client-react";
 import { getAdminAuth, ADMIN_SESSION_EXPIRED_EVENT } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { PollCounts } from "@/components/admin/PollResultsView";
 
 // Projector "Board" view: a full-screen, read-only wall of submissions for
 // one collecting form. Reads only existing admin endpoints; nothing here
@@ -159,10 +162,27 @@ export default function AdminBoard() {
     query: { queryKey: getAdminListGenericSectionsQueryKey(), enabled: validParams },
   });
   const filter = { sectionId, blockIndex };
+  // Block kind decides which endpoint feeds the board. Unknown until the
+  // library loads; both queries stay off until then.
+  const blockKind = useMemo<"form" | "poll" | null>(() => {
+    const generics = genericsQ.data?.sections;
+    if (!generics) return null;
+    const g = generics.find((x) => `generic_${x.id}` === sectionId);
+    const block = (g?.contentBlocks as GenericContentBlock[] | undefined)?.[blockIndex];
+    return block?.type === "poll" ? "poll" : "form";
+  }, [genericsQ.data, sectionId, blockIndex]);
+  const isPoll = blockKind === "poll";
   const responsesQ = useAdminListCohortFormResponses(cohortId, filter, {
     query: {
-      enabled: validParams,
+      enabled: validParams && blockKind === "form",
       queryKey: getAdminListCohortFormResponsesQueryKey(cohortId, filter),
+      refetchInterval: POLL_MS,
+    },
+  });
+  const pollQ = useAdminGetCohortPollResults(cohortId, filter, {
+    query: {
+      enabled: validParams && isPoll,
+      queryKey: getAdminGetCohortPollResultsQueryKey(cohortId, filter),
       refetchInterval: POLL_MS,
     },
   });
@@ -172,11 +192,17 @@ export default function AdminBoard() {
     const generics = genericsQ.data?.sections ?? [];
     const g = generics.find((x) => `generic_${x.id}` === sectionId);
     const block = (g?.contentBlocks as GenericContentBlock[] | undefined)?.[blockIndex];
-    const name = block?.type === "form" ? block.formName?.trim() : "";
+    const name =
+      block?.type === "form"
+        ? block.formName?.trim()
+        : block?.type === "poll"
+          ? block.pollName?.trim()
+          : "";
     if (name) return name;
     const row = sectionsQ.data?.sections.find((s) => s.sectionId === sectionId);
     const sectionTitle = row?.displayName?.trim() || g?.title;
-    return sectionTitle ? `Form ${blockIndex + 1} — ${sectionTitle}` : "";
+    const kind = block?.type === "poll" ? "Poll" : "Form";
+    return sectionTitle ? `${kind} ${blockIndex + 1} — ${sectionTitle}` : "";
   }, [genericsQ.data, sectionsQ.data, sectionId, blockIndex]);
 
   const responses = responsesQ.data?.responses ?? [];
@@ -213,8 +239,9 @@ export default function AdminBoard() {
 
   const totalParticipants = participantsQ.data?.participants.length ?? 0;
   const tableNumbers = new Set(cards.map((c) => c.tableNumber).filter(Boolean));
-  const countText =
-    tableNumbers.size > 0
+  const countText = isPoll
+    ? `${pollQ.data?.total ?? 0} of ${totalParticipants} answered`
+    : tableNumbers.size > 0
       ? `${tableNumbers.size} table${tableNumbers.size === 1 ? "" : "s"} submitted`
       : `${cards.length} of ${totalParticipants} submitted`;
 
@@ -252,7 +279,19 @@ export default function AdminBoard() {
       </header>
 
       <main className="px-8 py-7">
-        {responsesQ.isLoading ? null : cards.length === 0 ? (
+        {isPoll ? (
+          pollQ.data ? (
+            pollQ.data.total === 0 ? (
+              <p className="text-center text-muted-foreground text-2xl py-24 font-serif" data-testid="board-empty">
+                No answers yet.
+              </p>
+            ) : (
+              <div className="max-w-4xl mx-auto" data-testid="board-poll">
+                <PollCounts results={pollQ.data} size="lg" testIdPrefix="board-poll-counts" />
+              </div>
+            )
+          ) : null
+        ) : responsesQ.isLoading ? null : cards.length === 0 ? (
           <p
             className="text-center text-muted-foreground text-2xl py-24 font-serif"
             data-testid="board-empty"

@@ -9,6 +9,8 @@ import {
   useAdminDeleteGenericSection,
   useAdminUnlockAllForCohort,
   useAdminListGenericSectionUsage,
+  useAdminGetGenericSectionPollResponseCounts,
+  getAdminGetGenericSectionPollResponseCountsQueryKey,
   useAdminMakeSectionEditable,
   useAdminListTopics,
   getAdminListTopicsQueryKey,
@@ -64,6 +66,7 @@ import {
 } from "@/components/admin/SectionFilesDialog";
 import { CohortGroupsEditor } from "@/components/admin/CohortGroupsEditor";
 import { LibraryTopicsEditor } from "@/components/admin/LibraryTopicsEditor";
+import { PollBlockEditor, newPollQuestion } from "@/components/admin/PollBlockEditor";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -472,6 +475,17 @@ export function SectionsTab({ cohortId }: Props) {
     };
   }, [genOpen, editingGeneric]);
 
+  // Poll submissions per block index (all cohorts) for the section being
+  // edited — drives the "changing choices after people answer" warning.
+  const pollCountsQ = useAdminGetGenericSectionPollResponseCounts(editingGeneric?.id ?? 0, {
+    query: {
+      queryKey: getAdminGetGenericSectionPollResponseCountsQueryKey(editingGeneric?.id ?? 0),
+      enabled: genOpen && editingGeneric != null,
+    },
+  });
+  const pollHasResponses = (blockIdx: number) =>
+    (pollCountsQ.data?.counts?.[String(blockIdx)] ?? 0) > 0;
+
   // Insert a generic section into the current cohort's section list at the
   // bottom of the chosen group. Used by the library "Add to group…" picker.
   const addGenericToGroup = (g: AdminGenericSection, groupId: number) => {
@@ -583,6 +597,14 @@ export function SectionsTab({ cohortId }: Props) {
       responsesOpen: true,
     },
     download: { type: "download", fileId: 0, label: "" },
+    poll: {
+      type: "poll",
+      pollName: "",
+      questions: [newPollQuestion(1)],
+      buttonLabel: "",
+      responsesOpen: true,
+      showResults: false,
+    },
     image: {
       type: "image",
       fileId: 0,
@@ -877,7 +899,11 @@ export function SectionsTab({ cohortId }: Props) {
           },
           onError: (err) => {
             if (isAdminAuthError(err)) return;
-            toast({ title: "Update failed", variant: "destructive" });
+            toast({
+              title: "Update failed",
+              description: (err as { data?: { error?: string } })?.data?.error,
+              variant: "destructive",
+            });
           },
         },
       );
@@ -924,7 +950,11 @@ export function SectionsTab({ cohortId }: Props) {
           },
           onError: (err) => {
             if (isAdminAuthError(err)) return;
-            toast({ title: "Create failed", variant: "destructive" });
+            toast({
+              title: "Create failed",
+              description: (err as { data?: { error?: string } })?.data?.error,
+              variant: "destructive",
+            });
           },
         },
       );
@@ -1854,6 +1884,14 @@ export function SectionsTab({ cohortId }: Props) {
                               </div>
                             </div>
                           )}
+                          {block.type === "poll" && (
+                            <PollBlockEditor
+                              idx={idx}
+                              block={block}
+                              hasResponses={pollHasResponses(idx)}
+                              onChange={(patch) => updateBlock(idx, patch)}
+                            />
+                          )}
                           {block.type === "download" && (
                             <div className="space-y-2">
                               {!editingGeneric ? (
@@ -2061,6 +2099,7 @@ export function SectionsTab({ cohortId }: Props) {
                           <SelectItem value="link">Link</SelectItem>
                           <SelectItem value="field">Input field</SelectItem>
                           <SelectItem value="form">Form (fields + copy button)</SelectItem>
+                          <SelectItem value="poll">Poll (multiple choice)</SelectItem>
                           <SelectItem value="download">Download button</SelectItem>
                           <SelectItem value="image">Image</SelectItem>
                         </SelectContent>

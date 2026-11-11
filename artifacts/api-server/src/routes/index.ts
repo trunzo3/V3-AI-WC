@@ -14,6 +14,7 @@ import workbookRouter from "./workbook";
 import exportRouter from "./export";
 import adminRouter from "./admin";
 import responsesRouter from "./responses";
+import pollResponsesRouter from "./poll-responses";
 
 const router: IRouter = Router();
 
@@ -22,6 +23,7 @@ router.use(authRouter);
 router.use(sectionsRouter);
 router.use(notesRouter);
 router.use(responsesRouter);
+router.use(pollResponsesRouter);
 router.use(workflowMapsRouter);
 router.use(feedbackRouter);
 router.use(contentVariantsRouter);

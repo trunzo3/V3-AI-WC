@@ -38,7 +38,8 @@ import {
 async function defaultTopicId(): Promise<number | null> {
   return topicIdForLegacyLevel(3);
 }
-import { cohortGroupsTable, libraryTopicsTable } from "@workspace/db";
+import { cohortGroupsTable, libraryTopicsTable, pollResponsesTable } from "@workspace/db";
+import { findPollBlock, tallyPoll } from "./poll-responses";
 import { attachSeededGenericSectionsToCohort } from "../lib/seeded-generic-sections";
 import { baseSectionId, getHardcodedSection, parseGenericSectionId } from "../lib/sections";
 import { getBuiltinConversion, getBuiltinGoal } from "../lib/builtin-conversions";
@@ -1443,6 +1444,35 @@ const contentBlockSchema = z
       altText: z.string().optional(),
     }),
     z.object({
+      type: z.literal("poll"),
+      pollName: z.string().max(200).optional(),
+      questions: z
+        .array(
+          z.object({
+            questionKey: z.string().trim().min(1).max(200),
+            text: z.string().max(2000),
+            choiceType: z.enum(["single", "multiple"]),
+            choices: z
+              .array(z.string().trim().min(1, "Choices cannot be blank.").max(500))
+              .min(2, "A poll question needs at least two choices."),
+            allowComment: z.boolean().optional(),
+            commentLabel: z.string().max(200).optional(),
+          }),
+        )
+        .min(1, "A poll block must have at least one question.")
+        .refine(
+          (qs) => new Set(qs.map((q) => q.questionKey)).size === qs.length,
+          "Poll question keys must be unique within the block.",
+        )
+        .refine(
+          (qs) => qs.every((q) => new Set(q.choices).size === q.choices.length),
+          "Poll choices must be unique within a question.",
+        ),
+      buttonLabel: z.string().max(100).optional(),
+      responsesOpen: z.boolean().optional(),
+      showResults: z.boolean().optional(),
+    }),
+    z.object({
       type: z.literal("recap"),
       title: z.string(),
       source: z.string().trim().min(1),
@@ -2122,6 +2152,77 @@ router.get(
         participantName: r.participantName,
         sectionTitle: titleMap.get(r.response.sectionId) ?? r.response.sectionId,
       })),
+    });
+  },
+);
+
+// ----- Poll results --------------------------------------------------------
+
+// How many poll submissions exist per block index of a library section, over
+// every cohort. Drives the "changing choices after people answer" warning.
+router.get(
+  "/admin/generic-sections/:id/poll-response-counts",
+  requireAdmin,
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      res.status(400).json({ error: "Invalid section id." });
+      return;
+    }
+    const rows = await db
+      .select({ blockIndex: pollResponsesTable.blockIndex, n: sql<number>`count(*)::int` })
+      .from(pollResponsesTable)
+      .where(eq(pollResponsesTable.sectionId, `generic_${id}`))
+      .groupBy(pollResponsesTable.blockIndex);
+    res.set("Cache-Control", "no-store");
+    res.json({ counts: Object.fromEntries(rows.map((r) => [String(r.blockIndex), r.n])) });
+  },
+);
+
+const pollResultsQuerySchema = z.object({
+  sectionId: z.string().trim().min(1),
+  blockIndex: z.coerce.number().int().min(0),
+});
+
+// Counts per choice for one poll block plus every response (participant
+// name, answers, comments, time), newest first.
+router.get(
+  "/admin/cohorts/:cohortId/poll-results",
+  requireAdmin,
+  async (req, res) => {
+    const cohortId = Number(req.params.cohortId);
+    if (!Number.isInteger(cohortId)) {
+      res.status(400).json({ error: "Invalid cohort id." });
+      return;
+    }
+    const parsed = pollResultsQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ error: "sectionId and blockIndex are required." });
+      return;
+    }
+    const { sectionId, blockIndex } = parsed.data;
+    const block = await findPollBlock(sectionId, blockIndex);
+    if (!block) {
+      res.status(404).json({ error: "That block is not a poll." });
+      return;
+    }
+    const rows = await db
+      .select({ response: pollResponsesTable, participantName: participantsTable.name })
+      .from(pollResponsesTable)
+      .innerJoin(participantsTable, eq(participantsTable.id, pollResponsesTable.participantId))
+      .where(
+        and(
+          eq(pollResponsesTable.cohortId, cohortId),
+          eq(pollResponsesTable.sectionId, sectionId),
+          eq(pollResponsesTable.blockIndex, blockIndex),
+        ),
+      )
+      .orderBy(desc(pollResponsesTable.updatedAt), desc(pollResponsesTable.id));
+    res.set("Cache-Control", "no-store");
+    res.json({
+      pollName: block.pollName ?? "",
+      ...tallyPoll(block, rows.map((r) => r.response.answers)),
+      responses: rows.map((r) => ({ ...r.response, participantName: r.participantName })),
     });
   },
 );

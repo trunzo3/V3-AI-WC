@@ -128,6 +128,7 @@ export const GenericContentBlockType = {
   download: "download",
   recap: "recap",
   image: "image",
+  poll: "poll",
 } as const;
 
 export type GenericContentBlockVariant =
@@ -185,6 +186,24 @@ export interface GenericFormField {
   identifier?: boolean;
 }
 
+export type GenericPollQuestionChoiceType =
+  (typeof GenericPollQuestionChoiceType)[keyof typeof GenericPollQuestionChoiceType];
+
+export const GenericPollQuestionChoiceType = {
+  single: "single",
+  multiple: "multiple",
+} as const;
+
+export interface GenericPollQuestion {
+  questionKey: string;
+  text: string;
+  choiceType: GenericPollQuestionChoiceType;
+  /** @minItems 2 */
+  choices: string[];
+  allowComment?: boolean;
+  commentLabel?: string;
+}
+
 /**
  * For image blocks: horizontal alignment of the image within the content column.
 
@@ -233,6 +252,12 @@ export interface GenericContentBlock {
   prefill?: string;
   copyStyle?: GenericContentBlockCopyStyle;
   fields?: GenericFormField[];
+  /** For poll blocks - admin-facing name shown in the Responses tab and on the Board. */
+  pollName?: string;
+  /** For poll blocks - at least one question. */
+  questions?: GenericPollQuestion[];
+  /** For poll blocks - show per-choice counts to participants after they submit. Default false. */
+  showResults?: boolean;
   /** Legacy flag for form blocks. Form blocks now always render the live-updating preview box with the copy button attached; this field is accepted for backward compatibility but ignored by the renderer.
    */
   preview?: boolean;
@@ -304,6 +329,86 @@ export interface Section {
   hasNotes: boolean;
   isGeneric: boolean;
   generic?: SectionGeneric;
+}
+
+export interface PollAnswer {
+  choices: string[];
+  comment?: string;
+}
+
+/**
+ * questionKey -> answer.
+ */
+export interface PollAnswers {
+  [key: string]: PollAnswer;
+}
+
+export interface PollResponseSubmitRequest {
+  sectionId: string;
+  blockIndex: number;
+  answers: PollAnswers;
+}
+
+export interface PollResponseRecord {
+  id: number;
+  cohortId: number;
+  participantId: number;
+  sectionId: string;
+  blockIndex: number;
+  answers: PollAnswers;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PollResponseSubmitResponse {
+  response: PollResponseRecord;
+}
+
+export interface MyPollSubmission {
+  sectionId: string;
+  blockIndex: number;
+  answers: PollAnswers;
+  updatedAt: string;
+}
+
+export interface MyPollSubmissionsResponse {
+  submissions: MyPollSubmission[];
+}
+
+export interface PollChoiceCount {
+  choice: string;
+  count: number;
+}
+
+export interface PollQuestionCounts {
+  questionKey: string;
+  text: string;
+  counts: PollChoiceCount[];
+}
+
+export interface PollResultsResponse {
+  /** Number of submissions. */
+  total: number;
+  questions: PollQuestionCounts[];
+}
+
+export type AdminPollResponse = PollResponseRecord & {
+  participantName: string;
+};
+
+export type AdminPollResultsResponse = PollResultsResponse & {
+  pollName: string;
+  responses: AdminPollResponse[];
+};
+
+/**
+ * blockIndex (as string) -> number of submissions.
+ */
+export type PollResponseCountsResponseCounts = { [key: string]: number };
+
+export interface PollResponseCountsResponse {
+  /** blockIndex (as string) -> number of submissions. */
+  counts: PollResponseCountsResponseCounts;
 }
 
 export interface SectionsResponse {
@@ -1036,9 +1141,19 @@ export type NotFoundResponse = ErrorResponse;
  */
 export type ConflictResponse = ErrorResponse;
 
+export type GetPollResultsParams = {
+  sectionId: string;
+  blockIndex: number;
+};
+
 export type AdminListCohortFormResponsesParams = {
   sectionId?: string;
   blockIndex?: number;
+};
+
+export type AdminGetCohortPollResultsParams = {
+  sectionId: string;
+  blockIndex: number;
 };
 
 export type AdminListFeedbackParams = {

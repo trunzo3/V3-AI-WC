@@ -4,9 +4,14 @@ import {
   getAdminListCohortFormResponsesQueryKey,
   useAdminListCohortSections,
   useAdminListGenericSections,
+  useAdminGetCohortPollResults,
+  getAdminGetCohortPollResultsQueryKey,
   type AdminFormResponse,
+  type AdminPollResponse,
   type GenericContentBlock,
+  type GenericPollQuestion,
 } from "@workspace/api-client-react";
+import { PollCounts, pollAnswersToText } from "@/components/admin/PollResultsView";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +37,9 @@ interface CollectingForm {
   sectionId: string;
   blockIndex: number;
   label: string;
+  kind: "form" | "poll";
+  // Poll only: the block's questions, for rendering answers.
+  questions?: GenericPollQuestion[];
 }
 
 function fmt(d: string) {
@@ -73,14 +81,27 @@ export function ResponsesTab({ cohortId }: Props) {
       if (!g) continue;
       const blocks = (g.contentBlocks ?? []) as GenericContentBlock[];
       blocks.forEach((b, i) => {
-        if (b.type !== "form" || !b.collectResponses) return;
         const sectionTitle = s.displayName?.trim() || g.title;
+        if (b.type === "poll") {
+          const name = b.pollName?.trim() || `Poll ${i + 1}`;
+          out.push({
+            key: `${s.sectionId}:${i}`,
+            sectionId: s.sectionId,
+            blockIndex: i,
+            label: `${name} — ${sectionTitle}`,
+            kind: "poll",
+            questions: b.questions ?? [],
+          });
+          return;
+        }
+        if (b.type !== "form" || !b.collectResponses) return;
         const name = b.formName?.trim() || `Form ${i + 1}`;
         out.push({
           key: `${s.sectionId}:${i}`,
           sectionId: s.sectionId,
           blockIndex: i,
           label: `${name} — ${sectionTitle}`,
+          kind: "form",
         });
       });
     }
@@ -88,6 +109,7 @@ export function ResponsesTab({ cohortId }: Props) {
   }, [sectionsQ.data, genericsQ.data]);
 
   const selected = collectingForms.find((f) => f.key === filter);
+  const isPoll = selected?.kind === "poll";
   const params =
     selected != null
       ? { sectionId: selected.sectionId, blockIndex: selected.blockIndex }
@@ -97,8 +119,18 @@ export function ResponsesTab({ cohortId }: Props) {
     query: {
       queryKey: getAdminListCohortFormResponsesQueryKey(cohortId, params),
       refetchInterval: 2000,
+      enabled: !isPoll,
     },
   });
+  const pollParams = params ?? { sectionId: "", blockIndex: 0 };
+  const pollQ = useAdminGetCohortPollResults(cohortId, pollParams, {
+    query: {
+      queryKey: getAdminGetCohortPollResultsQueryKey(cohortId, pollParams),
+      refetchInterval: 2000,
+      enabled: isPoll,
+    },
+  });
+  const pollResponses: AdminPollResponse[] = pollQ.data?.responses ?? [];
   const responses: AdminFormResponse[] = responsesQ.data?.responses ?? [];
 
   // "New" badge: anything that arrived (or was resubmitted) after the tab
@@ -129,6 +161,23 @@ export function ResponsesTab({ cohortId }: Props) {
     const seen = base.get(r.id);
     return seen == null || seen !== r.updatedAt;
   };
+  // Same idea for the selected poll: baseline from its first load.
+  const pollBaselineRef = useRef<{ key: string; seen: Map<number, string> } | null>(null);
+  useEffect(() => {
+    if (!isPoll || !pollQ.data || !selected) return;
+    if (pollBaselineRef.current?.key !== selected.key) {
+      pollBaselineRef.current = {
+        key: selected.key,
+        seen: new Map(pollQ.data.responses.map((r) => [r.id, r.updatedAt])),
+      };
+    }
+  }, [isPoll, pollQ.data, selected]);
+  const isNewPoll = (r: AdminPollResponse) => {
+    const base = pollBaselineRef.current;
+    if (base == null || base.key !== selected?.key) return false;
+    const seen = base.seen.get(r.id);
+    return seen == null || seen !== r.updatedAt;
+  };
 
   const openBoard = () => {
     if (!selected) return;
@@ -141,11 +190,13 @@ export function ResponsesTab({ cohortId }: Props) {
   };
 
   const copyAll = async () => {
-    const text = responses
-      .map((r) => `${r.participantName}\n${r.responseText}`)
-      .join("\n\n");
-    await copyText(text);
-    toast({ title: `Copied ${responses.length} submission${responses.length === 1 ? "" : "s"}` });
+    const list = isPoll
+      ? pollResponses.map(
+          (r) => `${r.participantName}\n${pollAnswersToText(selected?.questions ?? [], r.answers)}`,
+        )
+      : responses.map((r) => `${r.participantName}\n${r.responseText}`);
+    await copyText(list.join("\n\n"));
+    toast({ title: `Copied ${list.length} submission${list.length === 1 ? "" : "s"}` });
   };
 
   return (
@@ -155,12 +206,12 @@ export function ResponsesTab({ cohortId }: Props) {
           <CardTitle className="text-base">Responses</CardTitle>
           <p className="text-xs text-muted-foreground mt-1">
             Live stream of participant submissions from forms with "Collect
-            responses" turned on. Newest first; refreshes every few seconds.
+            responses" turned on, and from polls. Newest first; refreshes every few seconds.
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-[220px]">
-            <Label className="text-xs">Form</Label>
+            <Label className="text-xs">Form or poll</Label>
             <Select value={filter} onValueChange={setFilter}>
               <SelectTrigger data-testid="select-responses-filter">
                 <SelectValue />
@@ -189,7 +240,7 @@ export function ResponsesTab({ cohortId }: Props) {
             variant="outline"
             size="sm"
             onClick={copyAll}
-            disabled={responses.length === 0}
+            disabled={(isPoll ? pollResponses.length : responses.length) === 0}
             data-testid="button-responses-copy-all"
           >
             <Copy className="w-3.5 h-3.5 mr-1" /> Copy all
@@ -197,7 +248,38 @@ export function ResponsesTab({ cohortId }: Props) {
         </div>
       </CardHeader>
       <CardContent>
-        {responsesQ.isLoading ? (
+        {isPoll ? (
+          pollQ.isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : pollQ.data ? (
+            <div className="space-y-6">
+              <div className="border rounded-lg p-4 bg-muted/30">
+                <div className="text-xs text-muted-foreground mb-3" data-testid="poll-results-total">
+                  {pollQ.data.total} response{pollQ.data.total === 1 ? "" : "s"}
+                </div>
+                <PollCounts results={pollQ.data} />
+              </div>
+              {pollResponses.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center" data-testid="responses-empty">
+                  No submissions yet.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {pollResponses.map((r) => (
+                    <PollResponseCard
+                      key={r.id}
+                      response={r}
+                      questions={selected?.questions ?? []}
+                      isNew={isNewPoll(r)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Could not load poll results.</p>
+          )
+        ) : responsesQ.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : responses.length === 0 ? (
           <p
@@ -293,6 +375,54 @@ function ResponseCard({
       >
         {r.responseText.trim() || <span className="text-muted-foreground italic">(empty)</span>}
       </pre>
+    </div>
+  );
+}
+
+function PollResponseCard({
+  response: r,
+  questions,
+  isNew,
+}: {
+  response: AdminPollResponse;
+  questions: GenericPollQuestion[];
+  isNew: boolean;
+}) {
+  return (
+    <div
+      className="border rounded-lg p-4 bg-card space-y-2"
+      data-testid={`poll-response-card-${r.id}`}
+    >
+      <div className="flex items-center gap-2">
+        <span className="font-semibold text-sm" data-testid={`poll-response-participant-${r.id}`}>
+          {r.participantName}
+        </span>
+        {isNew && (
+          <Badge className="bg-accent text-primary hover:bg-accent" data-testid={`poll-response-new-${r.id}`}>
+            New
+          </Badge>
+        )}
+        <span className="text-xs text-muted-foreground">{fmt(r.updatedAt)}</span>
+      </div>
+      <dl className="text-sm space-y-1.5">
+        {questions.map((q, qi) => {
+          const a = r.answers[q.questionKey];
+          return (
+            <div key={q.questionKey} data-testid={`poll-response-answer-${r.id}-${qi}`}>
+              <dt className="text-xs text-muted-foreground">{q.text}</dt>
+              <dd>
+                {a?.choices?.length ? a.choices.join(", ") : <span className="italic text-muted-foreground">No answer</span>}
+                {a?.comment?.trim() && (
+                  <div className="mt-0.5 text-sm bg-muted/40 rounded px-2 py-1 whitespace-pre-wrap">
+                    <span className="text-xs text-muted-foreground">{q.commentLabel?.trim() || "Comment"}: </span>
+                    {a.comment}
+                  </div>
+                )}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
     </div>
   );
 }

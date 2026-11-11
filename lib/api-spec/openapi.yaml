@@ -270,6 +270,77 @@ paths:
               schema: { $ref: "#/components/schemas/MyFormSubmissionsResponse" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
+  /poll-responses:
+    post:
+      operationId: submitPollResponse
+      tags: [responses]
+      summary: Submit (or resubmit) answers to a poll block
+      description: >
+        Validates answers against the block's current questions and choices
+        (400 on unknown keys/choices or missing answers), 403 when the poll's
+        responsesOpen is false, 404 when the section is not unlocked.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PollResponseSubmitRequest" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PollResponseSubmitResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Submissions closed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /poll-responses/mine:
+    get:
+      operationId: listMyPollSubmissions
+      tags: [responses]
+      summary: The participant's own poll submissions with answers
+      responses:
+        "200":
+          description: Submissions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MyPollSubmissionsResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /poll-responses/results:
+    get:
+      operationId: getPollResults
+      tags: [responses]
+      summary: Per-choice counts for a poll with showResults on (after the participant submitted)
+      parameters:
+        - name: sectionId
+          in: query
+          required: true
+          schema: { type: string }
+        - name: blockIndex
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Counts
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PollResultsResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Results not available
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /workflow-map:
     get:
       operationId: getWorkflowMap
@@ -854,6 +925,21 @@ paths:
                 { $ref: "#/components/schemas/AdminGenericSectionUsageResponse" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
+  /admin/generic-sections/{id}/poll-response-counts:
+    parameters:
+      - $ref: "#/components/parameters/IntegerId"
+    get:
+      operationId: adminGetGenericSectionPollResponseCounts
+      tags: [admin-sections]
+      summary: Number of poll submissions per block index across all cohorts (editor warning)
+      responses:
+        "200":
+          description: Counts
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PollResponseCountsResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /admin/generic-sections/{id}:
     parameters:
       - $ref: "#/components/parameters/IntegerId"
@@ -1211,6 +1297,31 @@ paths:
               schema: { $ref: "#/components/schemas/AdminFormResponseListResponse" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
+  /admin/cohorts/{cohortId}/poll-results:
+    parameters:
+      - $ref: "#/components/parameters/CohortId"
+    get:
+      operationId: adminGetCohortPollResults
+      tags: [admin-participants]
+      summary: Counts per choice and every response for one poll block
+      parameters:
+        - name: sectionId
+          in: query
+          required: true
+          schema: { type: string }
+        - name: blockIndex
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminPollResultsResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /admin/participants/{id}:
     parameters:
       - $ref: "#/components/parameters/IntegerId"
@@ -1464,7 +1575,7 @@ components:
       properties:
         type:
           type: string
-          enum: [text, prompt, callout, cards, steps, link, field, form, download, recap, image]
+          enum: [text, prompt, callout, cards, steps, link, field, form, download, recap, image, poll]
         content: { type: string }
         label: { type: string }
         buttonLabel: { type: string }
@@ -1510,6 +1621,16 @@ components:
         fields:
           type: array
           items: { $ref: "#/components/schemas/GenericFormField" }
+        pollName:
+          type: string
+          description: For poll blocks - admin-facing name shown in the Responses tab and on the Board.
+        questions:
+          type: array
+          description: For poll blocks - at least one question.
+          items: { $ref: "#/components/schemas/GenericPollQuestion" }
+        showResults:
+          type: boolean
+          description: For poll blocks - show per-choice counts to participants after they submit. Default false.
         preview:
           type: boolean
           description: >
@@ -1598,6 +1719,136 @@ components:
       properties:
         fieldKey: { type: string }
         label: { type: string }
+
+    GenericPollQuestion:
+      type: object
+      required: [questionKey, text, choiceType, choices]
+      properties:
+        questionKey: { type: string }
+        text: { type: string }
+        choiceType:
+          type: string
+          enum: [single, multiple]
+        choices:
+          type: array
+          minItems: 2
+          items: { type: string }
+        allowComment: { type: boolean }
+        commentLabel: { type: string }
+
+    PollAnswer:
+      type: object
+      required: [choices]
+      properties:
+        choices:
+          type: array
+          items: { type: string }
+        comment: { type: string }
+
+    PollAnswers:
+      type: object
+      description: questionKey -> answer.
+      additionalProperties: { $ref: "#/components/schemas/PollAnswer" }
+
+    PollResponseSubmitRequest:
+      type: object
+      required: [sectionId, blockIndex, answers]
+      properties:
+        sectionId: { type: string }
+        blockIndex: { type: integer }
+        answers: { $ref: "#/components/schemas/PollAnswers" }
+
+    PollResponseRecord:
+      type: object
+      required: [id, cohortId, participantId, sectionId, blockIndex, answers, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        cohortId: { type: integer }
+        participantId: { type: integer }
+        sectionId: { type: string }
+        blockIndex: { type: integer }
+        answers: { $ref: "#/components/schemas/PollAnswers" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    PollResponseSubmitResponse:
+      type: object
+      required: [response]
+      properties:
+        response: { $ref: "#/components/schemas/PollResponseRecord" }
+
+    MyPollSubmission:
+      type: object
+      required: [sectionId, blockIndex, answers, updatedAt]
+      properties:
+        sectionId: { type: string }
+        blockIndex: { type: integer }
+        answers: { $ref: "#/components/schemas/PollAnswers" }
+        updatedAt: { type: string, format: date-time }
+
+    MyPollSubmissionsResponse:
+      type: object
+      required: [submissions]
+      properties:
+        submissions:
+          type: array
+          items: { $ref: "#/components/schemas/MyPollSubmission" }
+
+    PollChoiceCount:
+      type: object
+      required: [choice, count]
+      properties:
+        choice: { type: string }
+        count: { type: integer }
+
+    PollQuestionCounts:
+      type: object
+      required: [questionKey, text, counts]
+      properties:
+        questionKey: { type: string }
+        text: { type: string }
+        counts:
+          type: array
+          items: { $ref: "#/components/schemas/PollChoiceCount" }
+
+    PollResultsResponse:
+      type: object
+      required: [total, questions]
+      properties:
+        total:
+          type: integer
+          description: Number of submissions.
+        questions:
+          type: array
+          items: { $ref: "#/components/schemas/PollQuestionCounts" }
+
+    AdminPollResponse:
+      allOf:
+        - $ref: "#/components/schemas/PollResponseRecord"
+        - type: object
+          required: [participantName]
+          properties:
+            participantName: { type: string }
+
+    AdminPollResultsResponse:
+      allOf:
+        - $ref: "#/components/schemas/PollResultsResponse"
+        - type: object
+          required: [pollName, responses]
+          properties:
+            pollName: { type: string }
+            responses:
+              type: array
+              items: { $ref: "#/components/schemas/AdminPollResponse" }
+
+    PollResponseCountsResponse:
+      type: object
+      required: [counts]
+      properties:
+        counts:
+          type: object
+          description: blockIndex (as string) -> number of submissions.
+          additionalProperties: { type: integer }
 
     GenericFormField:
       type: object

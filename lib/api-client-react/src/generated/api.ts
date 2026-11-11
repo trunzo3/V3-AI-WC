@@ -51,6 +51,7 @@ import type {
   AdminGenericSectionRequest,
   AdminGenericSectionResponse,
   AdminGenericSectionUsageResponse,
+  AdminGetCohortPollResultsParams,
   AdminListCohortFormResponsesParams,
   AdminListFeedbackParams,
   AdminLlmToolCreateRequest,
@@ -64,6 +65,7 @@ import type {
   AdminParticipantActiveRequest,
   AdminParticipantListResponse,
   AdminParticipantResponse,
+  AdminPollResultsResponse,
   AdminSafariLibraryCreateRequest,
   AdminSafariLibraryListResponse,
   AdminSafariLibraryResponse,
@@ -92,16 +94,22 @@ import type {
   FeedbackUpsertRequest,
   FormResponseSubmitRequest,
   FormResponseSubmitResponse,
+  GetPollResultsParams,
   HealthStatus,
   LlmToolsResponse,
   LoginRequest,
   LoginResponse,
   MeResponse,
   MyFormSubmissionsResponse,
+  MyPollSubmissionsResponse,
   NotFoundResponse,
   NoteResponse,
   NoteUpsertRequest,
   NotesResponse,
+  PollResponseCountsResponse,
+  PollResponseSubmitRequest,
+  PollResponseSubmitResponse,
+  PollResultsResponse,
   SafariTabsResponse,
   SectionsResponse,
   SuccessResponse,
@@ -1197,6 +1205,276 @@ export function useListMyFormSubmissions<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListMyFormSubmissionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Validates answers against the block's current questions and choices (400 on unknown keys/choices or missing answers), 403 when the poll's responsesOpen is false, 404 when the section is not unlocked.
+
+ * @summary Submit (or resubmit) answers to a poll block
+ */
+export const getSubmitPollResponseUrl = () => {
+  return `/api/poll-responses`;
+};
+
+export const submitPollResponse = async (
+  pollResponseSubmitRequest: PollResponseSubmitRequest,
+  options?: RequestInit,
+): Promise<PollResponseSubmitResponse> => {
+  return customFetch<PollResponseSubmitResponse>(getSubmitPollResponseUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pollResponseSubmitRequest),
+  });
+};
+
+export const getSubmitPollResponseMutationOptions = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | ErrorResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitPollResponse>>,
+    TError,
+    { data: BodyType<PollResponseSubmitRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitPollResponse>>,
+  TError,
+  { data: BodyType<PollResponseSubmitRequest> },
+  TContext
+> => {
+  const mutationKey = ["submitPollResponse"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitPollResponse>>,
+    { data: BodyType<PollResponseSubmitRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return submitPollResponse(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitPollResponseMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitPollResponse>>
+>;
+export type SubmitPollResponseMutationBody =
+  BodyType<PollResponseSubmitRequest>;
+export type SubmitPollResponseMutationError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | ErrorResponse | NotFoundResponse
+>;
+
+/**
+ * @summary Submit (or resubmit) answers to a poll block
+ */
+export const useSubmitPollResponse = <
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | ErrorResponse | NotFoundResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitPollResponse>>,
+    TError,
+    { data: BodyType<PollResponseSubmitRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitPollResponse>>,
+  TError,
+  { data: BodyType<PollResponseSubmitRequest> },
+  TContext
+> => {
+  return useMutation(getSubmitPollResponseMutationOptions(options));
+};
+
+/**
+ * @summary The participant's own poll submissions with answers
+ */
+export const getListMyPollSubmissionsUrl = () => {
+  return `/api/poll-responses/mine`;
+};
+
+export const listMyPollSubmissions = async (
+  options?: RequestInit,
+): Promise<MyPollSubmissionsResponse> => {
+  return customFetch<MyPollSubmissionsResponse>(getListMyPollSubmissionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListMyPollSubmissionsQueryKey = () => {
+  return [`/api/poll-responses/mine`] as const;
+};
+
+export const getListMyPollSubmissionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMyPollSubmissions>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMyPollSubmissions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListMyPollSubmissionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listMyPollSubmissions>>
+  > = ({ signal }) => listMyPollSubmissions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMyPollSubmissions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMyPollSubmissionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMyPollSubmissions>>
+>;
+export type ListMyPollSubmissionsQueryError = ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary The participant's own poll submissions with answers
+ */
+
+export function useListMyPollSubmissions<
+  TData = Awaited<ReturnType<typeof listMyPollSubmissions>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMyPollSubmissions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMyPollSubmissionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Per-choice counts for a poll with showResults on (after the participant submitted)
+ */
+export const getGetPollResultsUrl = (params: GetPollResultsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/poll-responses/results?${stringifiedParams}`
+    : `/api/poll-responses/results`;
+};
+
+export const getPollResults = async (
+  params: GetPollResultsParams,
+  options?: RequestInit,
+): Promise<PollResultsResponse> => {
+  return customFetch<PollResultsResponse>(getGetPollResultsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPollResultsQueryKey = (params?: GetPollResultsParams) => {
+  return [`/api/poll-responses/results`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetPollResultsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPollResults>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | ErrorResponse | NotFoundResponse
+  >,
+>(
+  params: GetPollResultsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPollResults>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPollResultsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPollResults>>> = ({
+    signal,
+  }) => getPollResults(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPollResults>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPollResultsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPollResults>>
+>;
+export type GetPollResultsQueryError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | ErrorResponse | NotFoundResponse
+>;
+
+/**
+ * @summary Per-choice counts for a poll with showResults on (after the participant submitted)
+ */
+
+export function useGetPollResults<
+  TData = Awaited<ReturnType<typeof getPollResults>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | ErrorResponse | NotFoundResponse
+  >,
+>(
+  params: GetPollResultsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPollResults>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPollResultsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -4298,6 +4576,105 @@ export function useAdminListGenericSectionUsage<
 }
 
 /**
+ * @summary Number of poll submissions per block index across all cohorts (editor warning)
+ */
+export const getAdminGetGenericSectionPollResponseCountsUrl = (id: number) => {
+  return `/api/admin/generic-sections/${id}/poll-response-counts`;
+};
+
+export const adminGetGenericSectionPollResponseCounts = async (
+  id: number,
+  options?: RequestInit,
+): Promise<PollResponseCountsResponse> => {
+  return customFetch<PollResponseCountsResponse>(
+    getAdminGetGenericSectionPollResponseCountsUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminGetGenericSectionPollResponseCountsQueryKey = (
+  id: number,
+) => {
+  return [`/api/admin/generic-sections/${id}/poll-response-counts`] as const;
+};
+
+export const getAdminGetGenericSectionPollResponseCountsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminGetGenericSectionPollResponseCounts>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminGetGenericSectionPollResponseCounts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getAdminGetGenericSectionPollResponseCountsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminGetGenericSectionPollResponseCounts>>
+  > = ({ signal }) =>
+    adminGetGenericSectionPollResponseCounts(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminGetGenericSectionPollResponseCounts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminGetGenericSectionPollResponseCountsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminGetGenericSectionPollResponseCounts>>
+>;
+export type AdminGetGenericSectionPollResponseCountsQueryError =
+  ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary Number of poll submissions per block index across all cohorts (editor warning)
+ */
+
+export function useAdminGetGenericSectionPollResponseCounts<
+  TData = Awaited<ReturnType<typeof adminGetGenericSectionPollResponseCounts>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminGetGenericSectionPollResponseCounts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminGetGenericSectionPollResponseCountsQueryOptions(
+    id,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Update a generic section body
  */
 export const getAdminUpdateGenericSectionUrl = (id: number) => {
@@ -6183,6 +6560,129 @@ export function useAdminListCohortFormResponses<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getAdminListCohortFormResponsesQueryOptions(
+    cohortId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Counts per choice and every response for one poll block
+ */
+export const getAdminGetCohortPollResultsUrl = (
+  cohortId: number,
+  params: AdminGetCohortPollResultsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/cohorts/${cohortId}/poll-results?${stringifiedParams}`
+    : `/api/admin/cohorts/${cohortId}/poll-results`;
+};
+
+export const adminGetCohortPollResults = async (
+  cohortId: number,
+  params: AdminGetCohortPollResultsParams,
+  options?: RequestInit,
+): Promise<AdminPollResultsResponse> => {
+  return customFetch<AdminPollResultsResponse>(
+    getAdminGetCohortPollResultsUrl(cohortId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminGetCohortPollResultsQueryKey = (
+  cohortId: number,
+  params?: AdminGetCohortPollResultsParams,
+) => {
+  return [
+    `/api/admin/cohorts/${cohortId}/poll-results`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getAdminGetCohortPollResultsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminGetCohortPollResults>>,
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+>(
+  cohortId: number,
+  params: AdminGetCohortPollResultsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminGetCohortPollResults>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getAdminGetCohortPollResultsQueryKey(cohortId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminGetCohortPollResults>>
+  > = ({ signal }) =>
+    adminGetCohortPollResults(cohortId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!cohortId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminGetCohortPollResults>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminGetCohortPollResultsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminGetCohortPollResults>>
+>;
+export type AdminGetCohortPollResultsQueryError = ErrorType<
+  UnauthorizedResponse | NotFoundResponse
+>;
+
+/**
+ * @summary Counts per choice and every response for one poll block
+ */
+
+export function useAdminGetCohortPollResults<
+  TData = Awaited<ReturnType<typeof adminGetCohortPollResults>>,
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+>(
+  cohortId: number,
+  params: AdminGetCohortPollResultsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminGetCohortPollResults>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminGetCohortPollResultsQueryOptions(
     cohortId,
     params,
     options,

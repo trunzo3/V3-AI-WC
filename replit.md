@@ -378,6 +378,48 @@ Sections come from two sources:
    width with a `Label: value` definition list (split on first ": ",
    case-insensitive labels; unparseable → full text). Uses the app's
    Lora/Poppins fonts and tokens; no extra font loads.
+   **Poll block** (`type: "poll"`, separate from form blocks; editor item
+   "Poll (multiple choice)", `components/admin/PollBlockEditor.tsx`):
+   `{pollName?, questions:[{questionKey, text, choiceType:"single"|"multiple",
+   choices (≥2), allowComment?, commentLabel?}] (≥1), buttonLabel? ("Submit"),
+   responsesOpen? (true), showResults? (false)}`. Server zod requires unique
+   question keys and unique non-blank choices. Participant view
+   (`components/workshop/PollBlock.tsx`): radios/checkboxes per question,
+   optional comment textarea, one Submit with the same states as form
+   submits (`poll-submit-<section>-<block>`, `poll-submitted-status-…`);
+   submit requires every question answered (the missing question is
+   outlined with "Please answer this question.", `poll-missing-…-<q>`).
+   Answers are stored in `poll_responses` (`answers` jsonb
+   `{[questionKey]: {choices: string[], comment?}}`, unique
+   participant+section+block, resubmit updates). Routes
+   (`routes/poll-responses.ts`): `POST /api/poll-responses` validates
+   against the block's current questions/choices (400 on unknown key or
+   choice / missing answer / wrong count for single, 403 when
+   `responsesOpen` is false, 404 locked via `section-access.ts`);
+   `GET /api/poll-responses/mine` returns the participant's own answers
+   (pre-selected after reload); `GET /api/poll-responses/results?sectionId=
+   &blockIndex=` returns counts only (403 unless `showResults` is on AND
+   the participant has submitted) — the block then shows a count + bar per
+   choice (`poll-count-…`), polled every 5s. Admin:
+   `GET /api/admin/cohorts/:cohortId/poll-results?sectionId=&blockIndex=`
+   (`adminGetCohortPollResults`: pollName, total, per-question counts, and
+   each response with participantName/answers/comments, newest first) and
+   `GET /api/admin/generic-sections/:id/poll-response-counts` (submissions
+   per block index across all cohorts — drives the editor warning
+   `poll-responses-warning-<block>`: "Changing choices after people answer
+   can make counts misleading."; editing stays allowed). The Responses tab
+   lists polls in the same filter dropdown as collecting forms ("Form or
+   poll"); for a poll it shows counts + bars per question on top
+   (`PollCounts` in `components/admin/PollResultsView.tsx`,
+   `poll-counts-count-<q>-<c>`, `poll-results-total`) then one card per
+   person (`poll-response-card-<id>`) with answers and comments; "Copy all"
+   copies name + `Question: choices` lines + indented comments. The Board
+   detects a poll block and renders the large `PollCounts` (bars only, no
+   names; header "N of T answered"). Duplicate cohort copies poll blocks
+   with their sections; `poll_responses` are never copied. The workbook PDF
+   prints each poll question with the participant's own choices and
+   comment, or "No answer". Production gets the `poll_responses` table via
+   the Publish schema diff.
    `scripts/t4day5-setup.mjs` flags Table number / Table name on the
    Mini-PRD form and, on re-run, patches only that flag onto the live
    section (it otherwise never rewrites existing content).

@@ -1,6 +1,6 @@
 - [Package firewall blocks](package-firewall-blocks.md) — sanitize-html 2.17.3 is 403-blocked by the Replit package firewall; pinned 2.17.0 instead.
 - [zod v3/v4 hoisting break](zod-hoisting-hookform.md) — tools pulling zod v4 break @hookform/resolvers types; fixed via packageExtensions peer dep in pnpm-workspace.yaml.
-- [Generic content block types](generic-content-block-types.md) — a new block type must be added in 3 hand-written places (db $type, admin zod union, openapi enum) + codegen + restart both workflows.
+- [Generic content block types](generic-content-block-types.md) — new block type = 3 hand-written defs + codegen + restart both workflows; response-bearing blocks (form/poll) touch 5 more places.
 - [Live template previews](live-template-previews.md) — generic prompt previews update per-keystroke via LiveValuesProvider; overlay keyed by fieldKey only (cross-section caveat).
 - [Workshop seed behavior](workshop-seed-behavior.md) — seed is upsert-by-slug, never deletes; removing a module needs manual DB detach, repeated on production.
 - [Prod data seeding](prod-data-seeding.md) — prod rows only reach prod via Publish "overwrite data" (wholesale); agent can't write prod; seed attaches generic Level 3 modules to EVERY cohort (+ admin-created ones), env-specific ids.
