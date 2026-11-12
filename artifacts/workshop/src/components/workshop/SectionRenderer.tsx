@@ -480,10 +480,14 @@ function FormBlock({
   const { data: mineForLock } = useListMyFormSubmissions({
     query: { queryKey: getListMyFormSubmissionsQueryKey(), staleTime: 60_000, enabled: collectResponses && oneSubmissionOnly },
   });
+  // serverLocked: the server answered 409 "Already submitted." — lock even
+  // if the client-side flag or submission list is stale.
+  const [serverLocked, setServerLocked] = useState(false);
   const locked =
-    collectResponses &&
-    oneSubmissionOnly &&
-    Boolean(mineForLock?.submissions.some((r) => r.sectionId === sectionId && r.blockIndex === blockIndex));
+    serverLocked ||
+    (collectResponses &&
+      oneSubmissionOnly &&
+      Boolean(mineForLock?.submissions.some((r) => r.sectionId === sectionId && r.blockIndex === blockIndex)));
   // Live values, keyed by fieldKey. State (not a ref) so the assembled
   // preview re-renders as the participant types.
   const [values, setValues] = useState<Record<string, string>>({});
@@ -565,6 +569,7 @@ function FormBlock({
             identifiers={identifiers}
             open={responsesOpen}
             locked={locked}
+            onAlreadySubmitted={() => setServerLocked(true)}
             standalone
           />
         )}
@@ -663,6 +668,7 @@ function FormBlock({
                 identifiers={identifiers}
                 open={responsesOpen}
                 locked={locked}
+                onAlreadySubmitted={() => setServerLocked(true)}
               />
             )}
           </div>
@@ -692,6 +698,7 @@ function SubmitResponseButton({
   identifiers,
   open,
   locked = false,
+  onAlreadySubmitted,
   standalone = false,
 }: {
   sectionId: string;
@@ -701,6 +708,8 @@ function SubmitResponseButton({
   open: boolean;
   // One-submission-only and already submitted: status only, no button.
   locked?: boolean;
+  // Server returned 409 "Already submitted." for this block.
+  onAlreadySubmitted?: () => void;
   // true when rendered on the page surface (prompt box hidden) rather than
   // inside the navy prompt box.
   standalone?: boolean;
@@ -741,9 +750,13 @@ function SubmitResponseButton({
           });
         },
         onError: (err) => {
-          const msg =
-            (err as { data?: { error?: string } })?.data?.error ??
-            "Could not submit. Please try again.";
+          const e = err as { status?: number; data?: { error?: string } };
+          if (e?.status === 409) {
+            onAlreadySubmitted?.();
+            void queryClient.invalidateQueries({ queryKey: mineKey });
+            return;
+          }
+          const msg = e?.data?.error ?? "Could not submit. Please try again.";
           toast({ title: "Submit failed", description: msg, variant: "destructive" });
         },
       },

@@ -15,3 +15,4 @@
 - [Cohort layout scripts](cohort-layout-scripts.md) — resolve layout rows from the target cohort's own Level 4 rows by title, never hardcode built-in ids; prod cohorts may carry made-editable copies.
 - [Level 4 library-only rule](level4-library-only.md) — seed never adds sections to existing cohorts; starting set excludes Level 4 built-ins; cleanup script in scripts/.
 - [Groups conversion & verification](groups-conversion-verification.md) — snapshot before / compare after on dev then prod; delete test participants before compare; legacy level columns frozen but still written.
+- [Stale frontend after publish](prod-stale-frontend.md) — prod index.html is heuristically cached; old JS + new API right after a publish looks like a UI bug. Hard refresh first.

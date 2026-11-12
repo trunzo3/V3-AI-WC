@@ -419,7 +419,10 @@ Sections come from two sources:
    fields (`NotesField readOnly`) are read-only (they show the auto-saved
    notes). `POST /api/responses` and `POST /api/poll-responses` return 409
    `{error: "Already submitted."}` when the flag is on and a row already
-   exists for that participant+section+block. Copy still works.
+   exists for that participant+section+block. If the client ever gets a
+   409 anyway (stale bundle / stale section data), it switches to the locked
+   view and refetches `…/mine` instead of showing an error toast. Copy still
+   works.
    **Board view** (`pages/admin/board.tsx`, wouter route
    `/admin/board/:cohortId/:sectionId/:blockIndex`): projector-style
    full-screen wall of one form's submissions, opened in a new tab via the

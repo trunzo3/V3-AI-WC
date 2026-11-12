@@ -74,7 +74,10 @@ export function PollBlock({
   const hasSubmitted = Boolean(existing);
   // One-submission-only polls freeze after the first submit: no button,
   // read-only choices and comments showing the submitted answers.
-  const locked = oneSubmissionOnly && hasSubmitted;
+  // serverLocked: the server answered 409 "Already submitted." — treat the
+  // block as locked even if the client-side flag/submission list is stale.
+  const [serverLocked, setServerLocked] = useState(false);
+  const locked = (oneSubmissionOnly && hasSubmitted) || serverLocked;
 
   const [draft, setDraft] = useState<Draft>(() => draftFromAnswers(questions));
   const [missingKey, setMissingKey] = useState<string | null>(null);
@@ -150,9 +153,13 @@ export function PollBlock({
           if (showResults) void queryClient.invalidateQueries({ queryKey: resultsKey });
         },
         onError: (err) => {
-          const msg =
-            (err as { data?: { error?: string } })?.data?.error ??
-            "Could not submit. Please try again.";
+          const e = err as { status?: number; data?: { error?: string } };
+          if (e?.status === 409) {
+            setServerLocked(true);
+            void queryClient.invalidateQueries({ queryKey: mineKey });
+            return;
+          }
+          const msg = e?.data?.error ?? "Could not submit. Please try again.";
           toast({ title: "Submit failed", description: msg, variant: "destructive" });
         },
       },
