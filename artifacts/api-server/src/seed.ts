@@ -29,8 +29,8 @@ import {
 } from "./lib/seeded-generic-sections";
 
 /**
- * Per-cohort creation settings for the baseline cohorts the seed always ensures
- * exist (only used when the cohort does not exist yet). Starting groups are
+ * Per-cohort creation settings for the baseline cohorts the seed creates on
+ * an EMPTY database only (never once any cohort exists). Starting groups are
  * all locked, except LIVE2026 (the dedicated live-event cohort) opens its
  * AI Builder group so the attached modules are visible. Any code in
  * BASE_COHORT_CODES without an entry here falls back to a name equal to the
@@ -76,6 +76,16 @@ const DEFAULT_APP_SETTINGS: Array<{ key: string; value: string }> = [
 ];
 
 async function ensureSeedCohorts(): Promise<void> {
+  // Only a brand-new, empty database gets the base cohorts. Once any cohort
+  // exists the startup seed never creates one — an admin who deletes
+  // WORKSHOP or LIVE2026 must not see them come back on the next boot.
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(cohortsTable);
+  if ((count ?? 0) > 0) {
+    logger.info({ cohorts: count }, "Cohorts exist; skipping base-cohort seed.");
+    return;
+  }
   for (const code of BASE_COHORT_CODES) {
     const setup = COHORT_SETUP[code] ?? { name: code, openStartingLevels: [] };
     // Insert-if-missing that is safe against concurrent boots (autoscale cold

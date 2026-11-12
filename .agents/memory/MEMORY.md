@@ -2,7 +2,7 @@
 - [zod v3/v4 hoisting break](zod-hoisting-hookform.md) — tools pulling zod v4 break @hookform/resolvers types; fixed via packageExtensions peer dep in pnpm-workspace.yaml.
 - [Generic content block types](generic-content-block-types.md) — new block type = 3 hand-written defs + codegen + restart both workflows; response-bearing blocks (form/poll) touch 5 more places.
 - [Live template previews](live-template-previews.md) — generic prompt previews update per-keystroke via LiveValuesProvider; overlay keyed by fieldKey only (cross-section caveat).
-- [Workshop seed behavior](workshop-seed-behavior.md) — seed is upsert-by-slug, never deletes; removing a module needs manual DB detach, repeated on production.
+- [Workshop seed behavior](workshop-seed-behavior.md) — seed upserts modules by slug, never deletes; base cohorts only created on an EMPTY db; removing a module needs manual DB detach.
 - [Prod data seeding](prod-data-seeding.md) — prod rows only reach prod via Publish "overwrite data" (wholesale); agent can't write prod; seed attaches generic Level 3 modules to EVERY cohort (+ admin-created ones), env-specific ids.
 - [Restart Vite after codegen](monorepo-codegen-build-boundaries.md) — orval codegen breaks the running workshop Vite server mid-HMR; restart the workshop workflow before UI testing.
 - [Workshop e2e routing](workshop-e2e-routing.md) — browser tests must use localhost:80 (shared proxy); admin is at /admin/login, /workshop is a wouter route not a base path.

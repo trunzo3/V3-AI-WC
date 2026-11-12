@@ -135,7 +135,8 @@ object). All others use the documented OpenAPI shapes.
   Zod schemas from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run seed` — idempotent seed
-  (default cohort, LLM tools, safari library, feedback categories, settings)
+  (base cohorts only on an empty database, LLM tools, safari library,
+  feedback categories, settings)
 - Run via the configured workflow `artifacts/api-server: API Server`
   (do **not** run `pnpm dev` at the workspace root)
 - `[API_BASE=https://host] [APPLY=1] node scripts/caltrans-day5-v2.mjs` — builds
@@ -187,8 +188,22 @@ Required env vars (managed via Replit Secrets):
   `settings` rather than replacing it. The PDF is two Puppeteer renders
   merged with pdf-lib: a zero-margin, footer-less full-bleed cover, then the
   body with the footer ("brand — name" / "Page X of Y", cover excluded).
-- The default cohort is seeded with code `WORKSHOP`. Lookups are
+- **The app never creates cohorts on startup except on an empty database.**
+  `ensureSeedCohorts()` in `seed.ts` checks `count(*) from cohorts` first;
+  only when it is zero (brand-new database) does it create the base cohorts
+  `WORKSHOP` ("Default Workshop") and `LIVE2026` ("Live Event"). Once any
+  cohort exists, a deleted base cohort stays deleted across restarts. The
+  seeded-module attachment step iterates whatever cohorts exist and simply
+  does nothing for cohorts that are gone. Cohort code lookups are
   case-insensitive (`lower(cohort_code) = lower(input)`).
+- `[API_BASE=https://host] [APPLY=1] [KEEP_CODES=A,B] node scripts/delete-cohorts.mjs`
+  — deletes every cohort not in the keep list (default: TEST-NG, SCZ,
+  T4DAY5, DAVIS, AI301SVP) via the admin API: participants first (cascades
+  notes, unlocks, workflow maps, feedback, form and poll responses), then
+  the cohort (cascades groups, section rows, variants, safari tabs,
+  tombstones). Library sections and uploaded files are never touched. Dry
+  run prints KEEP/DELETE with participant and response counts; stops with
+  exit 2 if any keep code is missing.
 - Creating a new cohort auto-seeds `cohort_sections` from the **starting
   set** (`STARTING_SET_SECTIONS` in `lib/cohort-sections.ts` = `ALL_SECTIONS`
   minus every Level 4 built-in, + `SECTION_CODE_CONFIG`). **Level 4 holds

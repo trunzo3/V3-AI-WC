@@ -15,3 +15,8 @@ description: The seed is insert-only-by-slug (admin edits win) and never deletes
 
 **Why:** deleting a module from the seed silently left a live orphaned section attached to the cohort until manually detached.
 **How to apply:** whenever a module is removed from the seed, run the manual detach SQL in dev AND flag the same cleanup for production.
+
+**Base cohorts (WORKSHOP / LIVE2026) are created only on an empty database**
+(zero cohorts). Deleting them is permanent; the seed never re-creates a
+cohort once any cohort exists. `scripts/delete-cohorts.mjs` is the keep-list
+cohort cleanup (dry run by default, API_BASE for production).
