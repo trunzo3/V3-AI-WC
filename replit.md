@@ -339,7 +339,14 @@ Sections come from two sources:
    itself and renders one `SelectGroup`/`SelectLabel` heading per group,
    `responses-filter-group-<groupId>`, with "All forms" first),
    per-card Copy and "Copy all" (participant name line + text per entry).
-   With a single form or poll selected, a **"Hasn't answered (N)"** panel
+   With a single form or poll selected, a **response-rate panel**
+   (`response-rate-panel`) tops the card content: "<answered> of <total>
+   answered" (`response-rate-text`) and "<percent>%"
+   (`response-rate-percent`, rounded) over an accent progress bar, with the
+   note "Counted against the <total> people who have signed in to this
+   cohort. Updates as people submit."; total 0 → "No one has signed in to
+   this cohort yet." answered/total come from the non-responders endpoint
+   (below) so the Board and this panel always agree. Below it, a **"Hasn't answered (N)"** panel
    (`non-responders-panel`, heading `non-responders-heading`, rows
    `non-responder-<participantId>`) sits above the responses: every cohort
    participant without a submission for that exact section+block, sorted
@@ -347,9 +354,20 @@ Sections come from two sources:
    Companion.", Copy button (`button-non-responders-copy`, one
    `Name <email>` per line). Backed by
    `GET /api/admin/cohorts/:cohortId/non-responders?sectionId=&blockIndex=`
-   (`adminListCohortNonResponders`: `{kind: "form"|"poll", participants}`;
-   uses `poll_responses` when the block is a poll, else `form_responses`),
-   polled every 2s like the responses list. Hidden on "All forms".
+   (`adminListCohortNonResponders`: `{kind: "form"|"poll", answered,
+   total, participants}` — answered = distinct cohort participants with a
+   submission for that block, total = participants in the cohort; uses
+   `poll_responses` when the block is a poll, else `form_responses`),
+   polled every 2s like the responses list. Both panels are hidden on "All
+   forms". **Download CSV** (`button-responses-download-csv`, polls only,
+   next to Copy all): client-side CSV of the loaded poll results, one row
+   per answered participant sorted by name — Name, Email, Submitted ("Nov
+   12, 2026 5:41 PM", admin's local time), one column per question (choices
+   joined with "; "), plus a comment column right after any question with
+   `allowComment` (headed by its `commentLabel` or "Comment"). UTF-8 with
+   BOM, RFC 4180 quoting; file name `<cohort name> - <poll name> -
+   <YYYY-MM-DD>.csv` with `\ / : * ? " < > |` stripped. The admin
+   poll-results response includes `participantEmail` for this.
    The OpenAPI operationId is `adminListCohortFormResponses` — an id ending
    in "Responses" collides with orval's generated names.
    **Identifier fields:** a form field with `identifier: true` (editor
@@ -390,6 +408,18 @@ Sections come from two sources:
    (`checkbox-form-show-prompt-box-<blockIndex>`) and "Show Copy button"
    (`checkbox-form-show-copy-button-<blockIndex>`, displays the effective
    value and writes an explicit `showCopyButton` when toggled).
+   **`oneSubmissionOnly`** (form and poll blocks, optional, missing =
+   false): editor checkbox "One submission only — participants can't change
+   their answer after submitting" (`checkbox-one-submission-<blockIndex>`;
+   on forms only shown while Collect responses is on). Participant view
+   once they have submitted: green "✓ Submitted h:mm" with no button plus
+   the muted line "Your answer is submitted and can't be changed."
+   (`submit-locked-<section>-<block>` / `poll-locked-…`); poll choices and
+   comment boxes are disabled/read-only showing the submitted answers, form
+   fields (`NotesField readOnly`) are read-only (they show the auto-saved
+   notes). `POST /api/responses` and `POST /api/poll-responses` return 409
+   `{error: "Already submitted."}` when the flag is on and a row already
+   exists for that participant+section+block. Copy still works.
    **Board view** (`pages/admin/board.tsx`, wouter route
    `/admin/board/:cohortId/:sectionId/:blockIndex`): projector-style
    full-screen wall of one form's submissions, opened in a new tab via the
@@ -404,7 +434,10 @@ Sections come from two sources:
    participant name — table fields are read from `identifiers` first, then
    from "Table number:"/"Table name:" lines in the text; body = "The goal:"
    value, else first labeled value, at 24px, else full text; footer
-   relative time + NEW tag (baseline = first load). Click expands to full
+   relative time + NEW tag (baseline = first load). The header count reads
+   "<answered> of <total> answered · <percent>%" for forms and polls alike,
+   from the non-responders endpoint (same numbers as the Responses tab; the
+   old "N tables submitted" variant is gone). Click expands to full
    width with a `Label: value` definition list (split on first ": ",
    case-insensitive labels; unparseable → full text). Uses the app's
    Lora/Poppins fonts and tokens; no extra font loads.

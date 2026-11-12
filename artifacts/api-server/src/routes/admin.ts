@@ -1426,6 +1426,7 @@ const contentBlockSchema = z
       formName: z.string().optional(),
       collectResponses: z.boolean().optional(),
       responsesOpen: z.boolean().optional(),
+      oneSubmissionOnly: z.boolean().optional(),
       showPromptBox: z.boolean().optional(),
       showCopyButton: z.boolean().optional(),
       boxLabel: z.string().max(200).optional(),
@@ -1471,6 +1472,7 @@ const contentBlockSchema = z
       buttonLabel: z.string().max(100).optional(),
       responsesOpen: z.boolean().optional(),
       showResults: z.boolean().optional(),
+      oneSubmissionOnly: z.boolean().optional(),
     }),
     z.object({
       type: z.literal("recap"),
@@ -2207,7 +2209,7 @@ router.get(
       return;
     }
     const rows = await db
-      .select({ response: pollResponsesTable, participantName: participantsTable.name })
+      .select({ response: pollResponsesTable, participantName: participantsTable.name, participantEmail: participantsTable.email })
       .from(pollResponsesTable)
       .innerJoin(participantsTable, eq(participantsTable.id, pollResponsesTable.participantId))
       .where(
@@ -2222,7 +2224,7 @@ router.get(
     res.json({
       pollName: block.pollName ?? "",
       ...tallyPoll(block, rows.map((r) => r.response.answers)),
-      responses: rows.map((r) => ({ ...r.response, participantName: r.participantName })),
+      responses: rows.map((r) => ({ ...r.response, participantName: r.participantName, participantEmail: r.participantEmail })),
     });
   },
 );
@@ -2274,8 +2276,11 @@ router.get(
     const missing = participants
       .filter((p) => !answeredIds.has(p.id))
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }) || a.id - b.id);
+    // answered counts distinct cohort participants with a submission (a
+    // stale row from a deleted participant can't exist: FK cascade).
+    const answeredCount = participants.length - missing.length;
     res.set("Cache-Control", "no-store");
-    res.json({ kind: isPoll ? "poll" : "form", participants: missing });
+    res.json({ kind: isPoll ? "poll" : "form", answered: answeredCount, total: participants.length, participants: missing });
   },
 );
 

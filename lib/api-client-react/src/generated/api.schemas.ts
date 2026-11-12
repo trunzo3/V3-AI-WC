@@ -269,6 +269,8 @@ export interface GenericContentBlock {
   collectResponses?: boolean;
   /** For form blocks - when false, submissions are closed. Default true. */
   responsesOpen?: boolean;
+  /** For form and poll blocks - when true a participant can't change their answer after submitting (409 on resubmit). Default false. */
+  oneSubmissionOnly?: boolean;
   /** For form blocks - when false, the dark "Your prompt" box with the assembled text is hidden; the Copy/Submit action row renders with the fields instead. Missing = true.
    */
   showPromptBox?: boolean;
@@ -394,6 +396,7 @@ export interface PollResultsResponse {
 
 export type AdminPollResponse = PollResponseRecord & {
   participantName: string;
+  participantEmail: string;
 };
 
 export type AdminNonRespondersResponseKind =
@@ -412,6 +415,10 @@ export type AdminNonRespondersResponseParticipantsItem = {
 
 export interface AdminNonRespondersResponse {
   kind: AdminNonRespondersResponseKind;
+  /** Distinct cohort participants with a submission for this block. */
+  answered: number;
+  /** Participants who have signed in to this cohort. */
+  total: number;
   participants: AdminNonRespondersResponseParticipantsItem[];
 }
 

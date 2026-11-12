@@ -185,6 +185,23 @@ router.post("/poll-responses", requireParticipant, async (req, res) => {
     res.status(403).json({ error: "Submissions are closed for this poll." });
     return;
   }
+  if (block.oneSubmissionOnly === true) {
+    const [prior] = await db
+      .select({ id: pollResponsesTable.id })
+      .from(pollResponsesTable)
+      .where(
+        and(
+          eq(pollResponsesTable.participantId, participantId),
+          eq(pollResponsesTable.sectionId, sectionId),
+          eq(pollResponsesTable.blockIndex, blockIndex),
+        ),
+      )
+      .limit(1);
+    if (prior) {
+      res.status(409).json({ error: "Already submitted." });
+      return;
+    }
+  }
   const checked = validatePollAnswers(block, parsed.data.answers);
   if (!checked.ok) {
     res.status(400).json({ error: checked.error });

@@ -1718,6 +1718,20 @@ export function SectionsTab({ cohortId }: Props) {
                                     </Label>
                                   </div>
                                 )}
+                                {(block.collectResponses ?? false) && (
+                                  <div className="flex items-center gap-2">
+                                    <Checkbox
+                                      checked={block.oneSubmissionOnly ?? false}
+                                      onCheckedChange={(v) =>
+                                        updateBlock(idx, { oneSubmissionOnly: v === true })
+                                      }
+                                      data-testid={`checkbox-one-submission-${idx}`}
+                                    />
+                                    <Label className="text-xs">
+                                      One submission only — participants can't change their answer after submitting
+                                    </Label>
+                                  </div>
+                                )}
                               </div>
                               <div className="space-y-2">
                                 {(block.fields ?? []).map((field, fIdx) => {

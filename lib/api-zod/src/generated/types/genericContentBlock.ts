@@ -71,6 +71,8 @@ export interface GenericContentBlock {
   collectResponses?: boolean;
   /** For form blocks - when false, submissions are closed. Default true. */
   responsesOpen?: boolean;
+  /** For form and poll blocks - when true a participant can't change their answer after submitting (409 on resubmit). Default false. */
+  oneSubmissionOnly?: boolean;
   /** For form blocks - when false, the dark "Your prompt" box with the assembled text is hidden; the Copy/Submit action row renders with the fields instead. Missing = true.
    */
   showPromptBox?: boolean;

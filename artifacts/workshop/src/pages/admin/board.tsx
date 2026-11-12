@@ -8,6 +8,8 @@ import {
   useAdminListCohortFormResponses,
   useAdminGetCohortPollResults,
   getAdminGetCohortPollResultsQueryKey,
+  useAdminListCohortNonResponders,
+  getAdminListCohortNonRespondersQueryKey,
   getAdminGetCohortQueryKey,
   getAdminListCohortParticipantsQueryKey,
   getAdminListCohortSectionsQueryKey,
@@ -237,13 +239,19 @@ export default function AdminBoard() {
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  const totalParticipants = participantsQ.data?.participants.length ?? 0;
-  const tableNumbers = new Set(cards.map((c) => c.tableNumber).filter(Boolean));
-  const countText = isPoll
-    ? `${pollQ.data?.total ?? 0} of ${totalParticipants} answered`
-    : tableNumbers.size > 0
-      ? `${tableNumbers.size} table${tableNumbers.size === 1 ? "" : "s"} submitted`
-      : `${cards.length} of ${totalParticipants} submitted`;
+  // Same numbers as the Responses tab's response-rate panel: distinct
+  // participants with a submission for this block vs. everyone signed in.
+  const rateQ = useAdminListCohortNonResponders(cohortId, filter, {
+    query: {
+      queryKey: getAdminListCohortNonRespondersQueryKey(cohortId, filter),
+      enabled: validParams,
+      refetchInterval: POLL_MS,
+    },
+  });
+  const answered = rateQ.data?.answered ?? 0;
+  const totalParticipants = rateQ.data?.total ?? participantsQ.data?.participants.length ?? 0;
+  const percent = totalParticipants > 0 ? Math.round((answered / totalParticipants) * 100) : 0;
+  const countText = `${answered} of ${totalParticipants} answered · ${percent}%`;
 
   if (!validParams) {
     return (

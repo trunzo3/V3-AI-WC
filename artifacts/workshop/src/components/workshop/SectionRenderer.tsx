@@ -456,6 +456,7 @@ function FormBlock({
   showPromptBox = true,
   showCopyButton,
   boxLabel,
+  oneSubmissionOnly = false,
 }: {
   sectionId: string;
   blockIndex: number;
@@ -471,7 +472,18 @@ function FormBlock({
   showCopyButton?: boolean;
   // undefined = "Your prompt"; "" = no label.
   boxLabel?: string;
+  // When true, fields go read-only once the participant has submitted.
+  oneSubmissionOnly?: boolean;
 }) {
+  // One-submission-only: once this participant has a submission for this
+  // block, every field is read-only and the Submit button is gone.
+  const { data: mineForLock } = useListMyFormSubmissions({
+    query: { queryKey: getListMyFormSubmissionsQueryKey(), staleTime: 60_000, enabled: collectResponses && oneSubmissionOnly },
+  });
+  const locked =
+    collectResponses &&
+    oneSubmissionOnly &&
+    Boolean(mineForLock?.submissions.some((r) => r.sectionId === sectionId && r.blockIndex === blockIndex));
   // Live values, keyed by fieldKey. State (not a ref) so the assembled
   // preview re-renders as the participant types.
   const [values, setValues] = useState<Record<string, string>>({});
@@ -552,6 +564,7 @@ function FormBlock({
             text={assembled}
             identifiers={identifiers}
             open={responsesOpen}
+            locked={locked}
             standalone
           />
         )}
@@ -574,6 +587,7 @@ function FormBlock({
                 helpText={f.helpText}
                 multiline={f.multiline ?? true}
                 onValueChange={handleValueChange}
+                readOnly={locked}
               />
               {isLast && inlineSubmit}
             </div>
@@ -612,6 +626,7 @@ function FormBlock({
               placeholder={f.placeholder}
               multiline={f.multiline ?? true}
               onValueChange={handleValueChange}
+              readOnly={locked}
             />
             {isLast && inlineSubmit && (
               <div className="border-t pt-3 mt-3">{inlineSubmit}</div>
@@ -647,6 +662,7 @@ function FormBlock({
                 text={assembled}
                 identifiers={identifiers}
                 open={responsesOpen}
+                locked={locked}
               />
             )}
           </div>
@@ -675,6 +691,7 @@ function SubmitResponseButton({
   text,
   identifiers,
   open,
+  locked = false,
   standalone = false,
 }: {
   sectionId: string;
@@ -682,6 +699,8 @@ function SubmitResponseButton({
   text: string;
   identifiers: Record<string, string>;
   open: boolean;
+  // One-submission-only and already submitted: status only, no button.
+  locked?: boolean;
   // true when rendered on the page surface (prompt box hidden) rather than
   // inside the navy prompt box.
   standalone?: boolean;
@@ -700,7 +719,7 @@ function SubmitResponseButton({
   const hasSubmitted = Boolean(existing);
 
   const handleSubmit = () => {
-    if (!open || submit.isPending) return;
+    if (!open || submit.isPending || locked) return;
     submit.mutate(
       {
         data: {
@@ -754,20 +773,29 @@ function SubmitResponseButton({
           Submitted{time ? ` ${time}` : ""}
         </span>
       )}
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={!open || submit.isPending}
-        className={cn(
-          "inline-flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-          standalone
-            ? "bg-primary text-white hover:bg-primary/90"
-            : "bg-white/10 text-white border border-white/30 hover:bg-white/20",
-        )}
-        data-testid={`submit-response-${sectionId}-${blockIndex}`}
-      >
-        {label}
-      </button>
+      {locked ? (
+        <span
+          className={cn("text-xs", standalone ? "text-muted-foreground" : "text-white/70")}
+          data-testid={`submit-locked-${sectionId}-${blockIndex}`}
+        >
+          Your answer is submitted and can't be changed.
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!open || submit.isPending}
+          className={cn(
+            "inline-flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+            standalone
+              ? "bg-primary text-white hover:bg-primary/90"
+              : "bg-white/10 text-white border border-white/30 hover:bg-white/20",
+          )}
+          data-testid={`submit-response-${sectionId}-${blockIndex}`}
+        >
+          {label}
+        </button>
+      )}
     </span>
   );
 }
@@ -921,6 +949,7 @@ function GenericSectionView({
                 showPromptBox={block.showPromptBox ?? true}
                 showCopyButton={block.showCopyButton}
                 boxLabel={block.boxLabel}
+                oneSubmissionOnly={block.oneSubmissionOnly ?? false}
               />
             );
           case "poll":
@@ -935,6 +964,7 @@ function GenericSectionView({
                 buttonLabel={block.buttonLabel ?? ""}
                 responsesOpen={block.responsesOpen ?? true}
                 showResults={block.showResults ?? false}
+                oneSubmissionOnly={block.oneSubmissionOnly ?? false}
               />
             );
           case "download":

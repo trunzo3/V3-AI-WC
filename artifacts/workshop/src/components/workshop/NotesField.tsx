@@ -18,9 +18,11 @@ interface NotesFieldProps {
   multiline?: boolean;
   /** Reports the current value upward on every change (used by form blocks to assemble copy text). */
   onValueChange?: (fieldKey: string, value: string) => void;
+  /** Show the saved value without allowing edits (one-submission-only forms). */
+  readOnly?: boolean;
 }
 
-export function NotesField({ sectionId, fieldKey, label, placeholder, helpText, initialValue = "", className = "", minHeight = "min-h-[100px]", multiline = true, onValueChange }: NotesFieldProps) {
+export function NotesField({ sectionId, fieldKey, label, placeholder, helpText, initialValue = "", className = "", minHeight = "min-h-[100px]", multiline = true, onValueChange, readOnly = false }: NotesFieldProps) {
   const [value, setValue, flushSave] = useAutoSave(sectionId, fieldKey, initialValue);
   const reportValue = useLiveValues()?.reportValue;
 
@@ -51,7 +53,8 @@ export function NotesField({ sectionId, fieldKey, label, placeholder, helpText, 
           onChange={(e) => setValue(e.target.value)}
           onBlur={flushSave}
           placeholder={placeholder || "Add your notes here..."}
-          className={`${minHeight} resize-y bg-white border-border focus:border-ring`}
+          readOnly={readOnly}
+          className={`${minHeight} resize-y border-border focus:border-ring ${readOnly ? "bg-muted/40 text-muted-foreground" : "bg-white"}`}
           data-testid={`notes-${sectionId}-${fieldKey}`}
         />
       ) : (
@@ -61,7 +64,8 @@ export function NotesField({ sectionId, fieldKey, label, placeholder, helpText, 
           onChange={(e) => setValue(e.target.value)}
           onBlur={flushSave}
           placeholder={placeholder || "Add your notes here..."}
-          className="bg-white border-border focus:border-ring"
+          readOnly={readOnly}
+          className={`border-border focus:border-ring ${readOnly ? "bg-muted/40 text-muted-foreground" : "bg-white"}`}
           data-testid={`notes-${sectionId}-${fieldKey}`}
         />
       )}

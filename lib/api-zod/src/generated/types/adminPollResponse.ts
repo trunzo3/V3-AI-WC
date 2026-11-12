@@ -17,4 +17,5 @@ import type { PollResponseRecord } from "./pollResponseRecord";
 
 export type AdminPollResponse = PollResponseRecord & {
   participantName: string;
+  participantEmail: string;
 };

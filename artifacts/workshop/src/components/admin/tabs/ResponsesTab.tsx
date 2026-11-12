@@ -8,6 +8,8 @@ import {
   getAdminGetCohortPollResultsQueryKey,
   useAdminListCohortNonResponders,
   getAdminListCohortNonRespondersQueryKey,
+  useAdminGetCohort,
+  getAdminGetCohortQueryKey,
   type AdminFormResponse,
   type AdminPollResponse,
   type GenericContentBlock,
@@ -28,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Check, Presentation } from "lucide-react";
+import { Copy, Check, Presentation, Download } from "lucide-react";
 
 interface Props {
   cohortId: number;
@@ -54,6 +56,42 @@ function fmt(d: string) {
   } catch {
     return d;
   }
+}
+
+// CSV helpers: RFC 4180 quoting (quote fields containing comma, quote or
+// newline; double embedded quotes) and a UTF-8 BOM so Excel reads accents.
+function csvField(v: string): string {
+  return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+}
+function csvFrom(rows: string[][]): string {
+  return "\uFEFF" + rows.map((r) => r.map(csvField).join(",")).join("\r\n") + "\r\n";
+}
+function safeFileName(s: string): string {
+  return s.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "").replace(/\s+/g, " ").trim();
+}
+function downloadText(filename: string, text: string, type: string) {
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function fmtCsvDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  // e.g. "Nov 12, 2026 5:41 PM" in the admin's local time zone.
+  const date = d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return `${date} ${time}`;
+}
+function localDateStamp(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 async function copyText(text: string) {
@@ -176,6 +214,38 @@ export function ResponsesTab({ cohortId }: Props) {
     },
   });
   const nonResponders = nonRespondersQ.data?.participants ?? [];
+  const answered = nonRespondersQ.data?.answered ?? 0;
+  const totalSignedIn = nonRespondersQ.data?.total ?? 0;
+  const percent = totalSignedIn > 0 ? Math.round((answered / totalSignedIn) * 100) : 0;
+  const cohortQ = useAdminGetCohort(cohortId, {
+    query: { queryKey: getAdminGetCohortQueryKey(cohortId) },
+  });
+
+  const downloadCsv = () => {
+    if (!selected || !isPoll || !pollQ.data) return;
+    const questions = selected.questions ?? [];
+    const header = ["Name", "Email", "Submitted"];
+    for (const q of questions) {
+      header.push(q.text);
+      if (q.allowComment) header.push(q.commentLabel?.trim() || "Comment");
+    }
+    const rows = [...pollResponses]
+      .sort((a, b) => a.participantName.localeCompare(b.participantName, undefined, { sensitivity: "base" }) || a.id - b.id)
+      .map((r) => {
+        const row = [r.participantName, r.participantEmail, fmtCsvDate(r.updatedAt)];
+        for (const q of questions) {
+          const a = r.answers[q.questionKey];
+          row.push((a?.choices ?? []).join("; "));
+          if (q.allowComment) row.push(a?.comment ?? "");
+        }
+        return row;
+      });
+    const cohortName = cohortQ.data?.cohort.name ?? `Cohort ${cohortId}`;
+    const pollName = pollQ.data.pollName?.trim() || `Poll ${selected.blockIndex + 1}`;
+    const filename = `${safeFileName(`${cohortName} - ${pollName} - ${localDateStamp()}`)}.csv`;
+    downloadText(filename, csvFrom([header, ...rows]), "text/csv;charset=utf-8");
+    toast({ title: `Downloaded ${rows.length} row${rows.length === 1 ? "" : "s"}` });
+  };
   const copyNonResponders = async () => {
     await copyText(nonResponders.map((p) => `${p.name} <${p.email}>`).join("\n"));
     toast({ title: `Copied ${nonResponders.length} name${nonResponders.length === 1 ? "" : "s"}` });
@@ -294,6 +364,17 @@ export function ResponsesTab({ cohortId }: Props) {
           >
             <Presentation className="w-3.5 h-3.5 mr-1" /> Open board
           </Button>
+          {isPoll && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={downloadCsv}
+              disabled={!pollQ.data || pollResponses.length === 0}
+              data-testid="button-responses-download-csv"
+            >
+              <Download className="w-3.5 h-3.5 mr-1" /> Download CSV
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -306,6 +387,38 @@ export function ResponsesTab({ cohortId }: Props) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {selected && (
+          <div className="border rounded-lg p-4 bg-card" data-testid="response-rate-panel">
+            {nonRespondersQ.isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading…</p>
+            ) : totalSignedIn === 0 ? (
+              <p className="text-sm text-muted-foreground" data-testid="response-rate-empty">
+                No one has signed in to this cohort yet.
+              </p>
+            ) : (
+              <>
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="text-2xl font-semibold tabular-nums" data-testid="response-rate-text">
+                    {answered} of {totalSignedIn} answered
+                  </span>
+                  <span className="text-2xl font-semibold tabular-nums text-primary" data-testid="response-rate-percent">
+                    {percent}%
+                  </span>
+                </div>
+                <div className="mt-2 h-2.5 rounded bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-accent transition-all"
+                    style={{ width: `${percent}%` }}
+                    data-testid="response-rate-bar"
+                  />
+                </div>
+              </>
+            )}
+            <p className="text-xs text-muted-foreground mt-2">
+              Counted against the {totalSignedIn} people who have signed in to this cohort. Updates as people submit.
+            </p>
+          </div>
+        )}
         {selected && (
           <div className="border rounded-lg p-4 bg-muted/30" data-testid="non-responders-panel">
             <div className="flex flex-wrap items-start justify-between gap-2">

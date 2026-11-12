@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod/v4";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   db,
   formResponsesTable,
@@ -104,6 +104,23 @@ router.post("/responses", requireParticipant, async (req, res) => {
   if (found.block.responsesOpen === false) {
     res.status(403).json({ error: "Submissions are closed for this form." });
     return;
+  }
+  if (found.block.oneSubmissionOnly === true) {
+    const [prior] = await db
+      .select({ id: formResponsesTable.id })
+      .from(formResponsesTable)
+      .where(
+        and(
+          eq(formResponsesTable.participantId, participantId),
+          eq(formResponsesTable.sectionId, sectionId),
+          eq(formResponsesTable.blockIndex, blockIndex),
+        ),
+      )
+      .limit(1);
+    if (prior) {
+      res.status(409).json({ error: "Already submitted." });
+      return;
+    }
   }
 
   // Only the labels configured as identifier fields on this form are kept,

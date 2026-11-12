@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -271,6 +272,16 @@ export function PollBlockEditor({
             data-testid={`switch-poll-show-results-${idx}`}
           />
           <Label className="text-xs">Show results to participants</Label>
+        </div>
+        <div className="flex items-center gap-2 pb-2">
+          <Checkbox
+            checked={block.oneSubmissionOnly ?? false}
+            onCheckedChange={(v) => onChange({ oneSubmissionOnly: v === true })}
+            data-testid={`checkbox-one-submission-${idx}`}
+          />
+          <Label className="text-xs">
+            One submission only — participants can't change their answer after submitting
+          </Label>
         </div>
       </div>
     </div>

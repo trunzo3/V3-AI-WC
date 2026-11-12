@@ -321,6 +321,12 @@ export const ListSectionsResponse = zod.object({
                   .describe(
                     "For form blocks - when false, submissions are closed. Default true.",
                   ),
+                oneSubmissionOnly: zod
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "For form and poll blocks - when true a participant can't change their answer after submitting (409 on resubmit). Default false.",
+                  ),
                 showPromptBox: zod
                   .boolean()
                   .optional()
@@ -1445,6 +1451,12 @@ export const AdminListGenericSectionsResponse = zod.object({
               .describe(
                 "For form blocks - when false, submissions are closed. Default true.",
               ),
+            oneSubmissionOnly: zod
+              .boolean()
+              .optional()
+              .describe(
+                "For form and poll blocks - when true a participant can't change their answer after submitting (409 on resubmit). Default false.",
+              ),
             showPromptBox: zod
               .boolean()
               .optional()
@@ -1700,6 +1712,12 @@ export const AdminCreateGenericSectionBody = zod.object({
             .optional()
             .describe(
               "For form blocks - when false, submissions are closed. Default true.",
+            ),
+          oneSubmissionOnly: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form and poll blocks - when true a participant can't change their answer after submitting (409 on resubmit). Default false.",
             ),
           showPromptBox: zod
             .boolean()
@@ -1999,6 +2017,12 @@ export const AdminUpdateGenericSectionBody = zod.object({
             .describe(
               "For form blocks - when false, submissions are closed. Default true.",
             ),
+          oneSubmissionOnly: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form and poll blocks - when true a participant can't change their answer after submitting (409 on resubmit). Default false.",
+            ),
           showPromptBox: zod
             .boolean()
             .optional()
@@ -2262,6 +2286,12 @@ export const AdminUpdateGenericSectionResponse = zod.object({
             .optional()
             .describe(
               "For form blocks - when false, submissions are closed. Default true.",
+            ),
+          oneSubmissionOnly: zod
+            .boolean()
+            .optional()
+            .describe(
+              "For form and poll blocks - when true a participant can't change their answer after submitting (409 on resubmit). Default false.",
             ),
           showPromptBox: zod
             .boolean()
@@ -2772,6 +2802,7 @@ export const AdminGetCohortPollResultsResponse = zod
           .and(
             zod.object({
               participantName: zod.string(),
+              participantEmail: zod.string(),
             }),
           ),
       ),
@@ -2792,6 +2823,12 @@ export const AdminListCohortNonRespondersQueryParams = zod.object({
 
 export const AdminListCohortNonRespondersResponse = zod.object({
   kind: zod.enum(["form", "poll"]),
+  answered: zod
+    .number()
+    .describe("Distinct cohort participants with a submission for this block."),
+  total: zod
+    .number()
+    .describe("Participants who have signed in to this cohort."),
   participants: zod.array(
     zod.object({
       id: zod.number(),

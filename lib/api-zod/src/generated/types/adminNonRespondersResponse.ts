@@ -18,5 +18,9 @@ import type { AdminNonRespondersResponseParticipantsItem } from "./adminNonRespo
 
 export interface AdminNonRespondersResponse {
   kind: AdminNonRespondersResponseKind;
+  /** Distinct cohort participants with a submission for this block. */
+  answered: number;
+  /** Participants who have signed in to this cohort. */
+  total: number;
   participants: AdminNonRespondersResponseParticipantsItem[];
 }

@@ -69,6 +69,9 @@ export type GenericContentBlock =
       // When false (and collectResponses is on), submissions are closed.
       // Default true.
       responsesOpen?: boolean;
+      // When true, a participant who has submitted can't change their
+      // answer (server returns 409; fields go read-only). Default false.
+      oneSubmissionOnly?: boolean;
       // Legacy flag: form blocks now always render the live preview box.
       preview?: boolean;
       // When false, the navy "Your prompt" box (assembled text) is not
@@ -118,6 +121,9 @@ export type GenericContentBlock =
       // Default false: show per-choice counts to participants after they
       // submit (never names or comments).
       showResults?: boolean;
+      // When true, a participant who has submitted can't change their
+      // answer (server returns 409; choices go read-only). Default false.
+      oneSubmissionOnly?: boolean;
     }
   | {
       type: "recap";

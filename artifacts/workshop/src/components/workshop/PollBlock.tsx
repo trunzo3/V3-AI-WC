@@ -50,6 +50,7 @@ export function PollBlock({
   buttonLabel,
   responsesOpen,
   showResults,
+  oneSubmissionOnly = false,
 }: {
   sectionId: string;
   blockIndex: number;
@@ -58,6 +59,7 @@ export function PollBlock({
   buttonLabel: string;
   responsesOpen: boolean;
   showResults: boolean;
+  oneSubmissionOnly?: boolean;
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -70,6 +72,9 @@ export function PollBlock({
     (r) => r.sectionId === sectionId && r.blockIndex === blockIndex,
   );
   const hasSubmitted = Boolean(existing);
+  // One-submission-only polls freeze after the first submit: no button,
+  // read-only choices and comments showing the submitted answers.
+  const locked = oneSubmissionOnly && hasSubmitted;
 
   const [draft, setDraft] = useState<Draft>(() => draftFromAnswers(questions));
   const [missingKey, setMissingKey] = useState<string | null>(null);
@@ -92,6 +97,7 @@ export function PollBlock({
   });
 
   const toggle = (q: GenericPollQuestion, choice: string) => {
+    if (locked) return;
     setMissingKey(null);
     setDraft((d) => {
       const cur = d[q.questionKey] ?? { choices: [], comment: "" };
@@ -108,7 +114,7 @@ export function PollBlock({
   };
 
   const handleSubmit = () => {
-    if (!responsesOpen || submit.isPending) return;
+    if (!responsesOpen || submit.isPending || locked) return;
     const unanswered = questions.find((q) => (draft[q.questionKey]?.choices.length ?? 0) === 0);
     if (unanswered) {
       setMissingKey(unanswered.questionKey);
@@ -215,7 +221,9 @@ export function PollBlock({
                         name={inputName}
                         checked={checked}
                         onChange={() => toggle(q, choice)}
-                        className="accent-primary w-4 h-4"
+                        disabled={locked}
+                        readOnly={locked}
+                        className="accent-primary w-4 h-4 disabled:cursor-default"
                         data-testid={`poll-choice-${sectionId}-${blockIndex}-${qi}-${ci}`}
                       />
                       <span className="flex-1">{choice}</span>
@@ -254,7 +262,8 @@ export function PollBlock({
                     }))
                   }
                   rows={2}
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  readOnly={locked}
+                  className={cn("w-full rounded-md border bg-background px-3 py-2 text-sm", locked && "bg-muted/40 text-muted-foreground")}
                   data-testid={`poll-comment-${sectionId}-${blockIndex}-${qi}`}
                 />
               </div>
@@ -273,15 +282,21 @@ export function PollBlock({
             Submitted{time ? ` ${time}` : ""}
           </span>
         )}
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={!responsesOpen || submit.isPending}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold transition-colors bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-          data-testid={`poll-submit-${sectionId}-${blockIndex}`}
-        >
-          {label}
-        </button>
+        {locked ? (
+          <span className="text-xs text-muted-foreground" data-testid={`poll-locked-${sectionId}-${blockIndex}`}>
+            Your answer is submitted and can't be changed.
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!responsesOpen || submit.isPending}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold transition-colors bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid={`poll-submit-${sectionId}-${blockIndex}`}
+          >
+            {label}
+          </button>
+        )}
         {resultsVisible && (
           <span className="text-xs text-muted-foreground" data-testid={`poll-total-${sectionId}-${blockIndex}`}>
             {total} response{total === 1 ? "" : "s"}

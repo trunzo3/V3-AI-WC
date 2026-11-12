@@ -1674,6 +1674,9 @@ components:
         responsesOpen:
           type: boolean
           description: For form blocks - when false, submissions are closed. Default true.
+        oneSubmissionOnly:
+          type: boolean
+          description: For form and poll blocks - when true a participant can't change their answer after submitting (409 on resubmit). Default false.
         showPromptBox:
           type: boolean
           description: >
@@ -1850,15 +1853,22 @@ components:
       allOf:
         - $ref: "#/components/schemas/PollResponseRecord"
         - type: object
-          required: [participantName]
+          required: [participantName, participantEmail]
           properties:
             participantName: { type: string }
+            participantEmail: { type: string }
 
     AdminNonRespondersResponse:
       type: object
-      required: [kind, participants]
+      required: [kind, answered, total, participants]
       properties:
         kind: { type: string, enum: [form, poll] }
+        answered:
+          type: integer
+          description: Distinct cohort participants with a submission for this block.
+        total:
+          type: integer
+          description: Participants who have signed in to this cohort.
         participants:
           type: array
           items:
