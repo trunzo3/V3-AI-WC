@@ -18,7 +18,7 @@
 
 const B = (process.env.API_BASE ?? "http://localhost:80").replace(/\/$/, "") + "/api";
 const APPLY = process.env.APPLY === "1";
-const KEEP = (process.env.KEEP_CODES ?? "TEST-NG,SCZ,T4DAY5,DAVIS,AI301SVP")
+const KEEP = (process.env.KEEP_CODES ?? "TEST-NG,SCZ,T4DAY5,DAVIS,AI301SVP,AGENT")
   .split(",")
   .map((c) => c.trim().toUpperCase())
   .filter(Boolean);

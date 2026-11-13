@@ -39,6 +39,7 @@ async function defaultTopicId(): Promise<number | null> {
   return topicIdForLegacyLevel(3);
 }
 import { cohortGroupsTable, libraryTopicsTable, pollResponsesTable } from "@workspace/db";
+import type { GenericContentBlock } from "@workspace/db";
 import { findPollBlock, tallyPoll } from "./poll-responses";
 import { attachSeededGenericSectionsToCohort } from "../lib/seeded-generic-sections";
 import { baseSectionId, getHardcodedSection, parseGenericSectionId } from "../lib/sections";
@@ -278,6 +279,36 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 class DuplicateCohortError extends Error {}
+
+// Same placeholder shape as PLACEHOLDER_RE in the workshop's
+// use-resolve-template hook: {{ sectionId : fieldKey }}.
+const SECTION_PLACEHOLDER_RE = /\{\{\s*([^:{}\s]+)\s*:\s*([^{}]*?)\s*\}\}/g;
+
+function remapPlaceholders(text: string, idMap: Map<string, string>): string {
+  return text.replace(SECTION_PLACEHOLDER_RE, (all, sectionId: string, fieldKey: string) => {
+    const next = idMap.get(sectionId);
+    return next ? `{{${next}:${fieldKey}}}` : all;
+  });
+}
+
+// Rewrite the cross-section references in one content block (prompt
+// content, field prefill, recap source). Returns the same object when
+// nothing changed so callers can skip the write.
+function remapBlockSectionLinks(block: GenericContentBlock, idMap: Map<string, string>): GenericContentBlock {
+  if (block.type === "prompt" && typeof block.content === "string") {
+    const content = remapPlaceholders(block.content, idMap);
+    return content === block.content ? block : { ...block, content };
+  }
+  if (block.type === "field" && typeof block.prefill === "string") {
+    const prefill = remapPlaceholders(block.prefill, idMap);
+    return prefill === block.prefill ? block : { ...block, prefill };
+  }
+  if (block.type === "recap") {
+    const source = idMap.get(block.source);
+    return source ? { ...block, source } : block;
+  }
+  return block;
+}
 
 const duplicateCohortSchema = z.object({
   name: z.string().trim().min(1),
@@ -645,6 +676,40 @@ router.post("/admin/cohorts/:id/duplicate", requireAdmin, async (req, res) => {
             .update(genericSectionsTable)
             .set({ contentBlocks: blocks })
             .where(eq(genericSectionsTable.id, copy.id));
+        }
+      }
+
+      // Second pass: cross-section links. Copy boxes, field prefills and
+      // recap blocks reference other sections by id ({{generic_N:field}} /
+      // recap.source). Inside the copy, participants' answers live in the
+      // CLONED sections, so links to any section cloned in this duplicate
+      // are rewritten to the new id. Links to slugged modules, built-in
+      // sections and sections outside the source cohort stay as they are.
+      // Done after every clone exists because a section may link forward,
+      // or to its own fields.
+      const clonedIdMap = new Map<string, string>();
+      for (const [oldId, newSectionId] of remap) {
+        if (newSectionId !== `generic_${oldId}`) clonedIdMap.set(`generic_${oldId}`, newSectionId);
+      }
+      if (clonedIdMap.size > 0) {
+        const clonedRows = await tx
+          .select({ id: genericSectionsTable.id, contentBlocks: genericSectionsTable.contentBlocks })
+          .from(genericSectionsTable)
+          .where(inArray(genericSectionsTable.id, [...clonedIdMap.values()].map((sid) => parseGenericSectionId(sid)!)));
+        for (const row of clonedRows) {
+          const blocks = Array.isArray(row.contentBlocks) ? row.contentBlocks : [];
+          let changed = false;
+          const rewritten = blocks.map((b) => {
+            const out = remapBlockSectionLinks(b, clonedIdMap);
+            if (out !== b) changed = true;
+            return out;
+          });
+          if (changed) {
+            await tx
+              .update(genericSectionsTable)
+              .set({ contentBlocks: rewritten })
+              .where(eq(genericSectionsTable.id, row.id));
+          }
         }
       }
 

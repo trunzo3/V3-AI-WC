@@ -91,8 +91,14 @@ Two surface areas:
     sections are cloned into new library rows (independent content); built-in
     sections and seeded (slugged) modules are referenced. Seeded-module
     tombstones are copied; files attached to cloned sections are cloned and
-    their download/image `fileId`s remapped. No participants/notes/unlocks/
-    responses. A source row pointing at a missing library section aborts (409).
+    their download/image `fileId`s remapped. Cross-section links are rewritten
+    in a second pass after every clone exists: `{{generic_<old>:<field>}}` in
+    prompt content and field prefill, and recap `source`, become the cloned
+    section's id whenever that section was cloned in the same duplicate
+    (forward links and self-links included); links to built-ins, slugged
+    modules and sections outside the source cohort are left alone. No
+    participants/notes/unlocks/responses. A source row pointing at a missing
+    library section aborts (409).
   - **Make editable** (Cohorts → Sections → pen icon on a built-in row;
     `POST /api/admin/cohorts/:cohortId/sections/:sectionId/make-editable`).
     Converts one cohort's built-in row into a brand-new generic library
@@ -196,6 +202,13 @@ Required env vars (managed via Replit Secrets):
   seeded-module attachment step iterates whatever cohorts exist and simply
   does nothing for cohorts that are gone. Cohort code lookups are
   case-insensitive (`lower(cohort_code) = lower(input)`).
+- `[API_BASE=https://host] ADMIN_PASSWORD=… node scripts/agent-workshop-setup.mjs` —
+  builds the Agent Workshop cohort (code AGENT, empty start, six locked groups,
+  37 library sections in topic "AI Agents") from the V20261112B content spec.
+  Idempotent: matches sections by title and never rewrites existing content,
+  except resolving `{{key:field}}` copy-box links to `{{generic_N:field}}`.
+  AGENT is on the keep list of `delete-cohorts.mjs` (which refuses to run
+  while any keep code is missing from the target).
 - `[API_BASE=https://host] [APPLY=1] [KEEP_CODES=A,B] node scripts/delete-cohorts.mjs`
   — deletes every cohort not in the keep list (default: TEST-NG, SCZ,
   T4DAY5, DAVIS, AI301SVP) via the admin API: participants first (cascades
