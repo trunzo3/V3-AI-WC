@@ -202,7 +202,7 @@ Required env vars (managed via Replit Secrets):
   seeded-module attachment step iterates whatever cohorts exist and simply
   does nothing for cohorts that are gone. Cohort code lookups are
   case-insensitive (`lower(cohort_code) = lower(input)`).
-- `[API_BASE=https://host] ADMIN_PASSWORD=… node scripts/agent-workshop-setup.mjs` —
+- `[API_BASE=https://host] [APPLY=1] ADMIN_PASSWORD=… node scripts/agent-workshop-setup.mjs` (dry run by default) —
   builds the Agent Workshop cohort (code AGENT, empty start, six locked groups,
   37 library sections in topic "AI Agents") from the V20261112B content spec.
   Idempotent: matches sections by title and never rewrites existing content,

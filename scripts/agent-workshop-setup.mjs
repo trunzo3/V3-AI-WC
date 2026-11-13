@@ -13,7 +13,10 @@
 // {{key:field}} links are replaced with {{generic_N:field}} once the target
 // section exists. Groups are matched by name.
 //
-// Usage: [API_BASE=https://host] ADMIN_PASSWORD=... node scripts/agent-workshop-setup.mjs
+// Dry run by default: logs in, reads the target, and prints the plan (what
+// would be created vs. reused) without writing. APPLY=1 builds.
+//
+// Usage: [API_BASE=https://host] [APPLY=1] ADMIN_PASSWORD=... node scripts/agent-workshop-setup.mjs
 // ---------------------------------------------------------------------------
 const B = (process.env.API_BASE ?? "http://localhost:80").replace(/\/$/, "") + "/api";
 let cookie = "";
@@ -493,9 +496,36 @@ const sectionTypeOf = (blocks) => (blocks.some((b) => b.type === "form" || b.typ
 
 // ----- run -----------------------------------------------------------------------
 const CODE = "AGENT";
+const APPLY = process.env.APPLY === "1";
 if (!process.env.ADMIN_PASSWORD) throw new Error("ADMIN_PASSWORD is not set");
-console.log("target", B);
+console.log(`${APPLY ? "APPLY" : "DRY RUN"} against ${B}`);
 await api("POST", "/admin/login", { password: process.env.ADMIN_PASSWORD });
+
+if (!APPLY) {
+  const topics = (await api("GET", "/admin/topics")).topics;
+  const t = topics.find((x) => x.name === "AI Agents");
+  console.log(`topic "AI Agents": ${t ? `exists (id ${t.id})` : "CREATE"}`);
+  const c = (await api("GET", "/admin/cohorts")).cohorts.find((x) => x.cohortCode.toUpperCase() === CODE);
+  console.log(`cohort "Agent Workshop" / ${CODE}: ${c ? `exists (id ${c.id})` : "CREATE (start empty)"}`);
+  const existingG = c ? ((await api("GET", `/admin/cohorts/${c.id}/groups`)).groups ?? []) : [];
+  const attached = c ? new Set((await api("GET", `/admin/cohorts/${c.id}/sections`)).sections.map((s) => s.sectionId)) : new Set();
+  const lib = (await api("GET", "/admin/generic-sections")).sections;
+  let nCreate = 0;
+  for (const [name, list] of GROUPS) {
+    const eg = existingG.find((g) => g.name === name);
+    console.log(`\n${name} — group ${eg ? `exists (id ${eg.id}, ${eg.isOpen ? "open" : "locked"})` : "CREATE (locked)"}`);
+    for (const s of list) {
+      const matches = lib.filter((g) => g.title === s.title && !g.slug && !g.archived);
+      const m = matches.find((g) => attached.has(`generic_${g.id}`)) ?? (matches.length === 1 ? matches[0] : null);
+      const links = s.blocks.filter((b) => b.type === "prompt").flatMap((b) => [...b.content.matchAll(LINK_RE)].map((x) => x[1]));
+      const tag = matches.length > 1 && !m ? "AMBIGUOUS TITLE" : m ? `reuse generic_${m.id}` : "CREATE";
+      if (!m) nCreate++;
+      console.log(`  ${tag.padEnd(18)} ${s.title}  [${sectionTypeOf(s.blocks)}${links.length ? `, links → ${[...new Set(links)].join(", ")}` : ""}]`);
+    }
+  }
+  console.log(`\n${ALL.length} sections in ${GROUPS.length} groups; ${nCreate} library sections to create. Re-run with APPLY=1 to build.`);
+  process.exit(0);
+}
 
 // Topic "AI Agents"
 let topic = (await api("GET", "/admin/topics")).topics.find((t) => t.name === "AI Agents");
