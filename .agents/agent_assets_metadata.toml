@@ -42,3 +42,17 @@ mtime_ms = 1789612605580
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:a625c045-4fc0-479d-a902-0bc0fcd0500f/92d0cb05-caf2-4963-92bb-769a063d86a3/c82f6656-23ad-46d8-93fc-cd5495a33d53"
 storage_version_token = "1789612796672550"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "QdjOM9MU7Ff3onYikPnuf"
+uri = "file://generated-artifacts/agent-workshop-session-readback.html"
+type = "html"
+title = "Agent Workshop — full production readback"
+description = "Every changed setting and block exactly as stored, including retained blocks and the complete group order."
+logical_id = "50d11561-af4e-4889-8f27-014499d66abc"
+content_hash = "sha256:7b75218847c2ca845de2e23137b2f6c077703659e7f4572ae86f39f98e2fc18c"
+size = 14557
+mtime_ms = 1795020702886
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:a625c045-4fc0-479d-a902-0bc0fcd0500f/50d11561-af4e-4889-8f27-014499d66abc/7a85abcb-c1c2-4de1-96f2-e5db51629e06"
+storage_version_token = "1795020726276908"
+content_type = "text/html"
