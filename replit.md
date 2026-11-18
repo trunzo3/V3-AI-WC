@@ -177,21 +177,21 @@ Required env vars (managed via Replit Secrets):
   variants, safari tab assignments, facilitator message, a
   `workbook_enabled` boolean (default `true`) that controls whether the
   sidebar "Download Workbook" button appears for participants (the home
-  page no longer has a workbook link), and a `show_coaching_links` boolean
-  (default `true`, admin switch `switch-show-coaching-links` "Show
-  self-assessment and "Talk with Anthony" links", copied on duplicate,
-  exposed on `/api/auth/me` as `cohort.showCoachingLinks`). When false the
-  home page hides the Self-Assessment and Talk with Anthony cards (whole
-  grid), the top bar hides `topnav-talk-anthony`, and `/levels` redirects
-  home. Participant-facing wording uses "Program"/"Workshop code" (workbook
+  page no longer has a workbook link), plus independent `show_self_assessment`
+  (new cohorts default false) and `show_contact_cards` (default true) booleans.
+  Both are copied on duplication and exposed on `/api/auth/me` as
+  `showSelfAssessment` and `showContactCards`. The former controls the Home
+  self-assessment card and `/levels` access; the latter controls Home contact
+  cards and their top-bar links. The old `show_coaching_links` value is frozen
+  for audit. Participant-facing wording uses "Program"/"Workshop code" (workbook
   cover label, login and workbook/sections error messages).
 - Workbook cover/footer text lives in `cohorts.settings` (no columns):
   Participant branding also lives in `settings`: `logos` (up to three ordered
   built-in or uploaded-image entries), `talkCards` (two cards), and
   `facilitatorMessageHeading`. Missing logos use the existing IQmeetEQ logo;
   blank wording and headings show nothing; defaults are stored when created. Card 2 requires
-  both title and link. The coaching-links switch hides both cards, both nav
-  links and self-assessment. Logos affect signed-in home/workshop/self-assessment headers only,
+  both title and link. Show contact cards hides both cards and both nav
+  links independently of self-assessment. Logos affect signed-in home/workshop/self-assessment headers only,
   not login or PDF. Cohort creation accepts settings; updates merge them;
   duplication copies all branding settings and references immutable logo assets.
   Logo uploads use existing database-backed `section_files` storage with the
@@ -676,12 +676,13 @@ Participant pages: Home is `/home`, the workshop and its sidebar are `/workshop`
 - Cohorts / Facilitator message heading: supplies the heading above that message; empty shows no heading.
 - Cohorts / Logos: selects up to three built-in or uploaded logos for Home, workshop and self-assessment headers.
 - Cohorts / Logo order and remove: changes the header logo sequence without deleting shared image files.
-- Cohorts / Talk card small label: sets the small heading above a Home contact-card title; empty hides the label.
-- Cohorts / Talk card title: labels the Home contact card and top-bar link; empty hides both.
-- Cohorts / Talk card description: supplies the text inside the Home contact card; empty hides the description.
-- Cohorts / Talk card link: sets the destination of the Home contact card and top-bar link.
-- Cohorts / Talk card defaults: new workshops start with card 1 wording filled in; only its link falls back to Settings, and card 2 needs a title and link.
-- Cohorts / Show coaching links: shows or hides both contact cards, their top-bar links and self-assessment access.
+- Cohorts / Contact card small label: sets the small heading above a Home contact-card title; empty hides the label.
+- Cohorts / Contact card title: labels the Home contact card and top-bar link; empty hides both.
+- Cohorts / Contact card description: supplies the text inside the Home contact card; empty hides the description.
+- Cohorts / Contact card link: sets the destination of the Home contact card and top-bar link.
+- Cohorts / Contact card defaults: new workshops start with card 1 wording filled in; only its link falls back to Settings, and card 2 needs a title and link.
+- Cohorts / Show self-assessment: shows or hides the Home self-assessment card and access to /levels; new workshops start off.
+- Cohorts / Show contact cards: above Contact cards, shows or hides both Home contact cards and their top-bar links; new workshops start on.
 - Cohorts / Workbook title: overrides the PDF cover title; blank uses the workshop name.
 - Cohorts / Workbook subtitle: overrides the PDF subtitle; blank uses the open group names.
 - Cohorts / Workbook brand text: sets the PDF cover and footer brand; empty prints no brand.
@@ -797,5 +798,7 @@ Participant pages: Home is `/home`, the workshop and its sidebar are `/workshop`
 - Responses / Non-responders and Copy list: lists and copies active joined participants who have not submitted; response rates also exclude inactive participants.
 
 Startup wording update: before serving requests, `admin-cleanup-stored-wording` runs atomically once, fills only empty legacy wording with its old display defaults, preserves card 2, and removes Applied Mastery only if unused. `app_data_migrations` records per-cohort before/after values, hashes and changed fields; startup never recreates the retired topic. Migration failure prevents serving. New cohorts store defaults at creation; cleared wording stays cleared on later restarts.
+
+Startup visibility update: `split-cohort-visibility` runs once in a transaction before serving, copying each existing cohort's frozen `show_coaching_links` value to both new switches. Its `app_data_migrations` report records each cohort's ID, name, old value and both copied values for post-publish verification. Later restarts preserve independently edited switches. Publish applies the two new columns; this data update contains no schema changes.
 
 Audit caveat: recap blocks render but have no dedicated editor in Sections.

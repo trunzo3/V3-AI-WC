@@ -49,7 +49,7 @@ export function TopNav({ onLogoClick }: TopNavProps) {
 
   const { data: settings } = useGetAppSettings();
   const { data: meResp } = useGetCurrentParticipant();
-  const showCoachingLinks = meResp?.cohort?.showCoachingLinks ?? true;
+  const showContactCards = meResp?.cohort?.showContactCards ?? false;
   const settingsMap = settings as Record<string, string> | undefined;
   const talkUrl =
     settingsMap?.["talk_with_anthony_url"] || "https://talkwithanthony.com";
@@ -188,7 +188,7 @@ export function TopNav({ onLogoClick }: TopNavProps) {
             </DialogContent>
           </Dialog>
 
-          {showCoachingLinks && cards.map((card, index) => (
+          {showContactCards && cards.map((card, index) => (
             <a
               key={index}
               href={card.link}

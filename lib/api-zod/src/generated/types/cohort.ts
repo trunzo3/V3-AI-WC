@@ -28,8 +28,15 @@ export interface Cohort {
   /** Map of tier level to default-unlocked boolean, e.g. {"1": true, "2": false} */
   tierAccess: CohortTierAccess;
   audienceType: string;
-  /** When false, the self-assessment and "Talk with Anthony" links are hidden for this cohort's participants. Default true. */
+  /**
+   * Frozen legacy value, retained for migration verification.
+   * @deprecated
+   */
   showCoachingLinks?: boolean;
+  /** Shows the Home self-assessment card and allows access to /levels. New cohorts default false. */
+  showSelfAssessment?: boolean;
+  /** Shows contact cards on Home and their top-bar links. New cohorts default true. */
+  showContactCards?: boolean;
   /**
    * Legacy (frozen). Use groups.
    * @deprecated

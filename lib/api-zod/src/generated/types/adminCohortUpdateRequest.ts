@@ -18,6 +18,8 @@ import type { AdminCohortUpdateRequestTierAccess } from "./adminCohortUpdateRequ
 import type { CohortSettings } from "./cohortSettings";
 
 export interface AdminCohortUpdateRequest {
+  showSelfAssessment?: boolean;
+  showContactCards?: boolean;
   settings?: CohortSettings;
   /** @minLength 1 */
   name?: string;

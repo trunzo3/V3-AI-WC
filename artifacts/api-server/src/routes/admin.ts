@@ -120,7 +120,8 @@ const createCohortSchema = z.object({
     .transform((v) => sanitizeRichHtmlNullable(v ?? null)),
   tierAccess: tierAccessSchema.optional(),
   workbookEnabled: z.boolean().optional(),
-  showCoachingLinks: z.boolean().optional(),
+  showSelfAssessment: z.boolean().optional(),
+  showContactCards: z.boolean().optional(),
   levelNames: levelNamesSchema.optional(),
   // "starting" = starting groups (all locked) + starting sections;
   // "empty" = no groups and no sections.
@@ -163,7 +164,8 @@ router.post("/admin/cohorts", requireAdmin, async (req, res) => {
         // Legacy column (frozen): new cohorts start with nothing open.
         tierAccess: data.tierAccess ?? LEGACY_TIER_ACCESS_ALL_LOCKED,
         workbookEnabled: data.workbookEnabled ?? true,
-        showCoachingLinks: data.showCoachingLinks ?? true,
+        showSelfAssessment: data.showSelfAssessment ?? false,
+        showContactCards: data.showContactCards ?? true,
         settings: { ...newCohortSettings(data.settings), ...(data.levelNames ? { levelNames: data.levelNames } : {}) },
       })
       .returning();
@@ -218,7 +220,8 @@ const updateCohortSchema = z.object({
     .transform((v) => sanitizeRichHtmlNullable(v ?? null)),
   tierAccess: tierAccessSchema.optional(),
   workbookEnabled: z.boolean().optional(),
-  showCoachingLinks: z.boolean().optional(),
+  showSelfAssessment: z.boolean().optional(),
+  showContactCards: z.boolean().optional(),
   settings: cohortSettingsSchema.optional(),
   levelNames: levelNamesSchema.optional(),
 });
@@ -556,6 +559,8 @@ router.post("/admin/cohorts/:id/duplicate", requireAdmin, async (req, res) => {
           tierAccess: source.tierAccess,
           workbookEnabled: source.workbookEnabled,
           showCoachingLinks: source.showCoachingLinks,
+          showSelfAssessment: source.showSelfAssessment,
+          showContactCards: source.showContactCards,
           settings: source.settings,
         })
         .returning();

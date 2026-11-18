@@ -21,8 +21,8 @@ export default function Home() {
   const cohortName = meResp?.cohort?.name?.trim() || "";
   const homeMessage = (meResp?.cohort?.homeMessage ?? "").trim();
   const facilitatorMessage = (meResp?.cohort?.facilitatorMessage ?? "").trim();
-  // Per-cohort: hide the self-assessment + "Talk with Anthony" cards.
-  const showCoachingLinks = meResp?.cohort?.showCoachingLinks ?? true;
+  const showSelfAssessment = meResp?.cohort?.showSelfAssessment ?? false;
+  const showContactCards = meResp?.cohort?.showContactCards ?? false;
   const logoutMutation = useParticipantLogout();
 
   useEffect(() => {
@@ -114,9 +114,9 @@ export default function Home() {
           </div>
         )}
 
-        {showCoachingLinks && (
-        <div className={`grid grid-cols-1 ${cards.length === 2 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
-          <button
+        {(showSelfAssessment || (showContactCards && cards.length > 0)) && (
+        <div className={`grid grid-cols-1 ${(Number(showSelfAssessment) + (showContactCards ? cards.length : 0)) === 3 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
+          {showSelfAssessment && <button
             onClick={() => setLocation("/levels")}
             className="bg-card border border-border rounded-xl p-6 text-left hover:border-accent hover:shadow-md transition-all group"
             data-testid="button-levels"
@@ -124,9 +124,9 @@ export default function Home() {
             <div className="text-xs font-bold tracking-widest uppercase text-accent mb-2">Self-Assessment</div>
             <h3 className="font-serif font-bold text-primary text-xl mb-1">Where Are You on the Path?</h3>
             <p className="text-sm text-muted-foreground">Find your level on the journey from Question Asker to Architect.</p>
-          </button>
+          </button>}
 
-          {cards.map((card, index) => <a
+          {showContactCards && cards.map((card, index) => <a
             key={index}
             href={card.link}
             target="_blank"

@@ -19,6 +19,10 @@ import type { AdminCohortCreateRequestTierAccess } from "./adminCohortCreateRequ
 import type { CohortSettings } from "./cohortSettings";
 
 export interface AdminCohortCreateRequest {
+  /** Defaults to false when omitted. */
+  showSelfAssessment?: boolean;
+  /** Defaults to true when omitted. */
+  showContactCards?: boolean;
   settings?: CohortSettings;
   /** @minLength 1 */
   name: string;

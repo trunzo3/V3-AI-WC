@@ -41,7 +41,8 @@ interface FormState {
   facilitatorMessage: string;
   homeMessage: string;
   workbookEnabled: boolean;
-  showCoachingLinks: boolean;
+  showSelfAssessment: boolean;
+  showContactCards: boolean;
   /** Create only: starting groups + sections, or nothing at all. */
   startWith: "starting" | "empty";
   workbookTitle: string;
@@ -65,7 +66,8 @@ const EMPTY_FORM: FormState = {
   facilitatorMessage: "",
   homeMessage: "<p>This is your home base between sessions. Begin by getting your bearings, then enter the workshop when you're ready.</p>",
   workbookEnabled: true,
-  showCoachingLinks: true,
+  showSelfAssessment: false,
+  showContactCards: true,
   startWith: "starting",
   workbookTitle: "",
   workbookSubtitle: "",
@@ -92,7 +94,8 @@ function fromCohort(c: AdminCohort): FormState {
     facilitatorMessage: c.facilitatorMessage ?? "",
     homeMessage: c.homeMessage ?? "",
     workbookEnabled: (c as any).workbookEnabled ?? true,
-    showCoachingLinks: (c as any).showCoachingLinks ?? true,
+    showSelfAssessment: c.showSelfAssessment ?? false,
+    showContactCards: c.showContactCards ?? true,
     startWith: "starting",
     workbookTitle: settingString((c as any).settings, "workbookTitle"),
     workbookSubtitle: settingString((c as any).settings, "workbookSubtitle"),
@@ -219,7 +222,8 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
       facilitatorMessage: form.facilitatorMessage,
       homeMessage: form.homeMessage,
       workbookEnabled: form.workbookEnabled,
-      showCoachingLinks: form.showCoachingLinks,
+      showSelfAssessment: form.showSelfAssessment,
+      showContactCards: form.showContactCards,
       // Always send all three (an empty string clears a previously saved
       // value) — the server merges `settings`, so omitting a key would keep
       // the old value.
@@ -337,11 +341,15 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                   testId="input-cohort-message"
                 />
               </div>
-              <CohortBrandingEditor part="cards" value={form.branding} onChange={(branding) => setForm({ ...form, branding })} />
               <label className="flex items-center gap-2 text-sm">
-                <Switch checked={form.showCoachingLinks} onCheckedChange={(v) => setForm({ ...form, showCoachingLinks: v })} data-testid="switch-show-coaching-links" />
-                Show coaching links (self-assessment and Talk cards)
+                <Switch checked={form.showSelfAssessment} onCheckedChange={(v) => setForm({ ...form, showSelfAssessment: v })} data-testid="switch-show-self-assessment" />
+                Show self-assessment
               </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={form.showContactCards} onCheckedChange={(v) => setForm({ ...form, showContactCards: v })} data-testid="switch-show-contact-cards" />
+                Show contact cards
+              </label>
+              <CohortBrandingEditor part="cards" value={form.branding} onChange={(branding) => setForm({ ...form, branding })} />
               <h3 className="font-semibold border-t pt-4">Branding</h3>
               <CohortBrandingEditor part="logos" value={form.branding} onChange={(branding) => setForm({ ...form, branding })} />
               {!editing && (

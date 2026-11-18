@@ -98,18 +98,18 @@ export default function LevelsPage() {
     (settings as Record<string, string> | undefined)?.["feedback_intro"]?.trim() ||
     "Tell us what you're working on, what you're stuck on, or what you'd like to go deeper on.";
   const { toast } = useToast();
-  // Cohorts with coaching links hidden don't get the self-assessment either.
+  // Self-assessment access is independent of contact-card visibility.
   const { data: meResp } = useGetCurrentParticipant();
-  const coachingHidden = meResp?.cohort?.showCoachingLinks === false;
+  const assessmentHidden = meResp?.cohort?.showSelfAssessment === false;
 
   useEffect(() => {
     if (!session) setLocation("/");
   }, [session, setLocation]);
   useEffect(() => {
-    if (coachingHidden) setLocation("/");
-  }, [coachingHidden, setLocation]);
+    if (assessmentHidden) setLocation("/");
+  }, [assessmentHidden, setLocation]);
 
-  if (!session || coachingHidden) return null;
+  if (!session || !meResp || assessmentHidden) return null;
 
   const submitFeedback = () => {
     if (!feedbackText.trim()) return;

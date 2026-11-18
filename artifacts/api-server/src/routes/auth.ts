@@ -201,6 +201,8 @@ router.get("/auth/me", async (req, res) => {
     | "audienceType"
     | "workbookEnabled"
     | "showCoachingLinks"
+    | "showSelfAssessment"
+    | "showContactCards"
     | "settings"
   > & {
     levelNames: Record<string, string>;
@@ -215,6 +217,8 @@ router.get("/auth/me", async (req, res) => {
         audienceType: row.cohort.audienceType,
         workbookEnabled: row.cohort.workbookEnabled,
         showCoachingLinks: row.cohort.showCoachingLinks,
+        showSelfAssessment: row.cohort.showSelfAssessment,
+        showContactCards: row.cohort.showContactCards,
         settings: row.cohort.settings,
         levelNames: getCohortLevelNames(row.cohort.settings),
         groups: (await getCohortGroups(row.cohort)).map((g) => ({

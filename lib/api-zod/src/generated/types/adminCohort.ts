@@ -19,6 +19,8 @@ import type { AdminCohortTierAccess } from "./adminCohortTierAccess";
 import type { CohortSettings } from "./cohortSettings";
 
 export interface AdminCohort {
+  showSelfAssessment?: boolean;
+  showContactCards?: boolean;
   settings?: CohortSettings;
   id: number;
   name: string;

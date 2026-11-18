@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { runSeed } from "./seed";
 import { runAdminCleanupMigration } from "./lib/admin-cleanup-migration";
+import { runCohortVisibilityMigration } from "./lib/cohort-visibility-migration";
 
 const rawPort = process.env["PORT"];
 
@@ -28,6 +29,7 @@ async function start(): Promise<void> {
   }
 
   await runAdminCleanupMigration();
+  await runCohortVisibilityMigration();
 
   app.listen(port, (err) => {
     if (err) {

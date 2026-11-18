@@ -50,7 +50,7 @@ export function CohortBrandingEditor({ value, onChange, part }: { value: CohortS
       {upload.isPending && <p className="text-sm">Uploading logo…</p>}
     </section>}
     {part === "cards" && <section className="space-y-3">
-      <h3 className="font-medium">Talk cards</h3>
+      <h3 className="font-medium">Contact cards</h3>
       {[0, 1].map((index) => <fieldset key={index} className="border rounded-md p-3 space-y-2">
         <legend className="px-1 text-sm">Card {index + 1}{index === 1 ? " (optional)" : ""}</legend>
         {(["label", "title", "description", "link"] as const).map((field) => <div key={field}>

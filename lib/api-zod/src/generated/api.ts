@@ -140,8 +140,18 @@ export const GetCurrentParticipantResponse = zod.object({
     showCoachingLinks: zod
       .boolean()
       .optional()
+      .describe("Frozen legacy value, retained for migration verification."),
+    showSelfAssessment: zod
+      .boolean()
+      .optional()
       .describe(
-        'When false, the self-assessment and \"Talk with Anthony\" links are hidden for this cohort\'s participants. Default true.',
+        "Shows the Home self-assessment card and allows access to \/levels. New cohorts default false.",
+      ),
+    showContactCards: zod
+      .boolean()
+      .optional()
+      .describe(
+        "Shows contact cards on Home and their top-bar links. New cohorts default true.",
       ),
     levelNames: zod
       .record(zod.string(), zod.string())
@@ -841,6 +851,8 @@ export const adminListCohortsResponseCohortsItemSettingsTalkCardsMax = 2;
 export const AdminListCohortsResponse = zod.object({
   cohorts: zod.array(
     zod.object({
+      showSelfAssessment: zod.boolean().optional(),
+      showContactCards: zod.boolean().optional(),
       settings: zod
         .object({
           logos: zod
@@ -912,6 +924,14 @@ export const adminCreateCohortBodySettingsLogosMax = 3;
 export const adminCreateCohortBodySettingsTalkCardsMax = 2;
 
 export const AdminCreateCohortBody = zod.object({
+  showSelfAssessment: zod
+    .boolean()
+    .optional()
+    .describe("Defaults to false when omitted."),
+  showContactCards: zod
+    .boolean()
+    .optional()
+    .describe("Defaults to true when omitted."),
   settings: zod
     .object({
       logos: zod
@@ -972,6 +992,8 @@ export const adminGetCohortResponseCohortSettingsTalkCardsMax = 2;
 
 export const AdminGetCohortResponse = zod.object({
   cohort: zod.object({
+    showSelfAssessment: zod.boolean().optional(),
+    showContactCards: zod.boolean().optional(),
     settings: zod
       .object({
         logos: zod
@@ -1046,6 +1068,8 @@ export const adminUpdateCohortBodySettingsLogosMax = 3;
 export const adminUpdateCohortBodySettingsTalkCardsMax = 2;
 
 export const AdminUpdateCohortBody = zod.object({
+  showSelfAssessment: zod.boolean().optional(),
+  showContactCards: zod.boolean().optional(),
   settings: zod
     .object({
       logos: zod
@@ -1095,6 +1119,8 @@ export const adminUpdateCohortResponseCohortSettingsTalkCardsMax = 2;
 
 export const AdminUpdateCohortResponse = zod.object({
   cohort: zod.object({
+    showSelfAssessment: zod.boolean().optional(),
+    showContactCards: zod.boolean().optional(),
     settings: zod
       .object({
         logos: zod
