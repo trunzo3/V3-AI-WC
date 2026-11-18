@@ -7,7 +7,7 @@ import {
 } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { handleAdminAuthError } from "@/lib/auth";
+import { handleAdminAuthError, handleParticipantAuthError } from "@/lib/auth";
 import NotFound from "@/pages/not-found";
 
 import Login from "@/pages/login";
@@ -22,11 +22,13 @@ const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error) => {
       handleAdminAuthError(error);
+      handleParticipantAuthError(error);
     },
   }),
   mutationCache: new MutationCache({
     onError: (error) => {
       handleAdminAuthError(error);
+      handleParticipantAuthError(error);
     },
   }),
   defaultOptions: {

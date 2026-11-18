@@ -127,6 +127,9 @@ export async function ensureLibraryTopics(): Promise<Map<number, number>> {
       byLevel.set(level, existing.id);
       continue;
     }
+    // Applied Mastery is now an optional library topic, not a startup default.
+    // Its participant group remains part of the starting workshop.
+    if (level === 2) continue;
     const [created] = await db
       .insert(libraryTopicsTable)
       .values({ name: LEGACY_TOPIC_NAMES[level]!, sortOrder: level, legacyLevel: level })

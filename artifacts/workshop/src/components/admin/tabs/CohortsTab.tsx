@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Copy } from "lucide-react";
-import { CohortGroupsEditor } from "@/components/admin/CohortGroupsEditor";
 import { CohortBrandingEditor } from "@/components/admin/CohortBrandingEditor";
 
 const COHORT_KEY = "workshop-admin-cohort-id";
@@ -56,18 +55,21 @@ const DEFAULT_WORKBOOK_BRAND = "IQmeetEQ Workshop Companion";
 const STARTING_GROUP_NAMES = ["Core Workshop", "Applied Mastery", "AI Builder"];
 
 const EMPTY_FORM: FormState = {
-  branding: {},
+  branding: {
+    facilitatorMessageHeading: "From Your Facilitator",
+    talkCards: [{ label: "One-on-One", title: "Talk with Anthony", description: "Book a conversation about how to apply this in your work.", link: "" }, { label: "", title: "", description: "", link: "" }],
+  },
   name: "",
   cohortCode: "",
   audienceType: "general",
   facilitatorMessage: "",
-  homeMessage: "",
+  homeMessage: "<p>This is your home base between sessions. Begin by getting your bearings, then enter the workshop when you're ready.</p>",
   workbookEnabled: true,
   showCoachingLinks: true,
   startWith: "starting",
   workbookTitle: "",
   workbookSubtitle: "",
-  workbookBrand: "",
+  workbookBrand: DEFAULT_WORKBOOK_BRAND,
 };
 
 function settingString(settings: unknown, key: string): string {
@@ -214,7 +216,6 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
     const payload = {
       name: form.name.trim(),
       cohortCode: form.cohortCode.trim(),
-      audienceType: form.audienceType.trim() || "general",
       facilitatorMessage: form.facilitatorMessage,
       homeMessage: form.homeMessage,
       workbookEnabled: form.workbookEnabled,
@@ -292,6 +293,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
               <DialogTitle>{editing ? "Edit cohort" : "New cohort"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 overflow-y-auto px-6 py-2 flex-1 min-h-0">
+              <h3 className="font-semibold">Basics</h3>
               <div>
                 <Label htmlFor="cohort-name">Name</Label>
                 <Input
@@ -311,20 +313,20 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                     data-testid="input-cohort-code"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="cohort-audience">Audience type</Label>
-                  <Input
-                    id="cohort-audience"
-                    value={form.audienceType}
-                    onChange={(e) => setForm({ ...form, audienceType: e.target.value })}
-                    placeholder="general"
-                    data-testid="input-cohort-audience"
-                  />
-                </div>
+              </div>
+              <h3 className="font-semibold border-t pt-4">Home page</h3>
+              <div>
+                <Label htmlFor="cohort-home-msg">Home screen message</Label>
+                <RichTextEditor
+                  value={form.homeMessage}
+                  onChange={(html) => setForm({ ...form, homeMessage: html })}
+                  placeholder="Empty shows no intro."
+                  testId="input-cohort-home-message"
+                />
               </div>
               <div>
                 <Label htmlFor="cohort-heading">Facilitator message heading</Label>
-                <Input id="cohort-heading" placeholder="From Your Facilitator" value={form.branding.facilitatorMessageHeading ?? ""} onChange={(e) => setForm({ ...form, branding: { ...form.branding, facilitatorMessageHeading: e.target.value } })} />
+                <Input id="cohort-heading" value={form.branding.facilitatorMessageHeading ?? ""} onChange={(e) => setForm({ ...form, branding: { ...form.branding, facilitatorMessageHeading: e.target.value } })} />
                 <Label htmlFor="cohort-msg">Facilitator message</Label>
                 <RichTextEditor
                   value={form.facilitatorMessage}
@@ -335,28 +337,14 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                   testId="input-cohort-message"
                 />
               </div>
-              <div>
-                <Label htmlFor="cohort-home-msg">Home screen message</Label>
-                <RichTextEditor
-                  value={form.homeMessage}
-                  onChange={(html) =>
-                    setForm({ ...form, homeMessage: html })
-                  }
-                  placeholder="Optional message rendered on the participant home page (under the greeting)…"
-                  testId="input-cohort-home-message"
-                />
-              </div>
-              <CohortBrandingEditor value={form.branding} onChange={(branding) => setForm({ ...form, branding })} />
-              {editing ? (
-                <div>
-                  <Label className="block mb-1">Groups</Label>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Section groups shown as headings in the participant sidebar and
-                    workbook, in this order. Changes here save immediately.
-                  </p>
-                  <CohortGroupsEditor cohortId={editing.id} />
-                </div>
-              ) : (
+              <CohortBrandingEditor part="cards" value={form.branding} onChange={(branding) => setForm({ ...form, branding })} />
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={form.showCoachingLinks} onCheckedChange={(v) => setForm({ ...form, showCoachingLinks: v })} data-testid="switch-show-coaching-links" />
+                Show coaching links (self-assessment and Talk cards)
+              </label>
+              <h3 className="font-semibold border-t pt-4">Branding</h3>
+              <CohortBrandingEditor part="logos" value={form.branding} onChange={(branding) => setForm({ ...form, branding })} />
+              {!editing && (
                 <div>
                   <Label className="block mb-1">Start with</Label>
                   <div className="grid gap-2 sm:grid-cols-2">
@@ -395,7 +383,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                     <Label className="text-xs text-muted-foreground">Workbook title</Label>
                     <Input
                       value={form.workbookTitle}
-                      placeholder={form.name.trim() || "Cohort name"}
+                      placeholder={`Automatic: ${form.name.trim() || "workshop name"}`}
                       onChange={(e) => setForm({ ...form, workbookTitle: e.target.value })}
                       data-testid="input-workbook-title"
                     />
@@ -404,7 +392,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                     <Label className="text-xs text-muted-foreground">Workbook subtitle</Label>
                     <Input
                       value={form.workbookSubtitle}
-                      placeholder={defaultWorkbookSubtitle(editing)}
+                      placeholder={`Automatic: ${defaultWorkbookSubtitle(editing)} (open groups)`}
                       onChange={(e) => setForm({ ...form, workbookSubtitle: e.target.value })}
                       data-testid="input-workbook-subtitle"
                     />
@@ -413,14 +401,13 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                     <Label className="text-xs text-muted-foreground">Workbook brand text</Label>
                     <Input
                       value={form.workbookBrand}
-                      placeholder={DEFAULT_WORKBOOK_BRAND}
                       onChange={(e) => setForm({ ...form, workbookBrand: e.target.value })}
                       data-testid="input-workbook-brand"
                     />
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2" data-testid="text-workbook-help">
-                  Leave a box blank to use the gray default. Type a single dash (-) to show nothing.
+                  Empty title uses the workshop name; empty subtitle uses open group names. Empty brand shows nothing. A single dash (-) still hides a title or subtitle.
                 </p>
               </div>
               <div>
@@ -431,16 +418,6 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                     data-testid="switch-workbook-enabled"
                   />
                   Download Workbook enabled
-                </label>
-              </div>
-              <div>
-                <label className="flex items-center gap-2 text-sm">
-                  <Switch
-                    checked={form.showCoachingLinks}
-                    onCheckedChange={(v) => setForm({ ...form, showCoachingLinks: v })}
-                    data-testid="switch-show-coaching-links"
-                  />
-                  Show self-assessment and "Talk with Anthony" links
                 </label>
               </div>
             </div>

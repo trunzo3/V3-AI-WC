@@ -1559,7 +1559,7 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
     cohortSettings.workbookSubtitle,
     defaultWorkbookSubtitle(groups),
   );
-  const workbookBrand = resolveWorkbookText(cohortSettings.workbookBrand, DEFAULT_WORKBOOK_BRAND);
+  const workbookBrand = resolveWorkbookText(cohortSettings.workbookBrand, null);
 
   const coverDoc = buildCoverHtml({
     title: workbookTitle,

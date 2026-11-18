@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { runSeed } from "./seed";
+import { runAdminCleanupMigration } from "./lib/admin-cleanup-migration";
 
 const rawPort = process.env["PORT"];
 
@@ -25,6 +26,8 @@ async function start(): Promise<void> {
   } catch (err) {
     logger.error({ err }, "Startup seed failed; starting server anyway.");
   }
+
+  await runAdminCleanupMigration();
 
   app.listen(port, (err) => {
     if (err) {

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { FeedbackIntroEditor } from "@/components/admin/FeedbackIntroEditor";
 import { isAdminAuthError } from "@/lib/auth";
 import {
   useAdminListFeedback,
@@ -129,6 +130,7 @@ export function FeedbackTab() {
 
   return (
     <div className="space-y-4">
+      <FeedbackIntroEditor />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Feedback categories</CardTitle>

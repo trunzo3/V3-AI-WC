@@ -1,5 +1,6 @@
 import { getCohortLevelNames } from "../lib/cohort-level-names";
 import { getCohortGroups } from "../lib/cohort-groups";
+import { INACTIVE_MESSAGE } from "../middlewares/auth";
 import { Router, type IRouter } from "express";
 import { z } from "zod/v4";
 import { eq, sql, and, desc } from "drizzle-orm";
@@ -120,6 +121,15 @@ router.post("/auth/login", async (req, res) => {
 
   let participant: Participant;
   let isNew = false;
+
+  if (existing && !existing.isActive) {
+    if (req.session) {
+      delete req.session.participantId;
+      delete req.session.cohortId;
+    }
+    res.status(403).json({ error: INACTIVE_MESSAGE });
+    return;
+  }
 
   if (existing) {
     const [updated] = await db

@@ -58,7 +58,7 @@ Two surface areas:
   - LLM tools have per-tool `showInSidebar` and `showInVerification` flags
     (default `true`). The participant Sidebar and the Day1 verification-test
     section both filter by their respective flag.
-  - **Per-cohort tabs**: Sections, Content variants, Participants.
+  - **Per-cohort tabs**: Sections, Participants, Responses.
   - Tab headers are grouped under visible **GLOBAL** / **COHORT** labels.
   - The header has a cohort switcher (selection persisted in
     `localStorage["workshop-admin-cohort-id"]`) plus stats cards scoped to the
@@ -75,10 +75,10 @@ Two surface areas:
     happens in the dedicated create/edit dialog, which has a Topic select and,
     on create, an optional "Also add to group").
   - **Groups replace the fixed levels 1–4** (see "Groups and topics" below).
-    Cohorts → edit shows a Groups editor (rename, reorder, open/locked,
+    Sections → Manage groups is the only Groups editor (rename, reorder, open/locked,
     add — new groups start locked —, delete only when empty); the Sections
-    tab lists sections under group headings with a per-row Group select and
-    a "Manage groups" area. The New cohort dialog has "Start with: Starting
+    tab lists sections under group headings with a per-row Group select.
+    The New cohort dialog has "Start with: Starting
     sections / Empty".
   - Cohorts have a `home_message` HTML field rendered above the action cards
     on the participant home page (`data-testid="home-message"`).
@@ -189,9 +189,9 @@ Required env vars (managed via Replit Secrets):
   Participant branding also lives in `settings`: `logos` (up to three ordered
   built-in or uploaded-image entries), `talkCards` (two cards), and
   `facilitatorMessageHeading`. Missing logos use the existing IQmeetEQ logo;
-  blank card 1 fields and heading retain the original defaults. Card 2 requires
+  blank wording and headings show nothing; defaults are stored when created. Card 2 requires
   both title and link. The coaching-links switch hides both cards, both nav
-  links and self-assessment. Logos affect signed-in home/workshop headers only,
+  links and self-assessment. Logos affect signed-in home/workshop/self-assessment headers only,
   not login or PDF. Cohort creation accepts settings; updates merge them;
   duplication copies all branding settings and references immutable logo assets.
   Logo uploads use existing database-backed `section_files` storage with the
@@ -202,8 +202,8 @@ Required env vars (managed via Replit Secrets):
   Workbook-specific keys:
   `workbookTitle` (default: cohort name), `workbookSubtitle`
   (default: open groups' names joined with " · "; none → no subtitle),
-  `workbookBrand` (default: "IQmeetEQ Workshop Companion"). Values are
-  trimmed; blank = default; exactly `-` = show nothing. The admin form always
+  `workbookBrand` (new-cohort value: "IQmeetEQ Workshop Companion"). Values are
+  trimmed; blank title/subtitle = automatic, blank brand = no brand; exactly `-` = show nothing. The admin form always
   sends all three (empty string clears) because the update endpoint merges
   `settings` rather than replacing it. The PDF is two Puppeteer renders
   merged with pdf-lib: a zero-margin, footer-less full-bleed cover, then the
@@ -669,27 +669,27 @@ Participant pages: Home is `/home`, the workshop and its sidebar are `/workshop`
 - Cohorts: create, select, edit, duplicate or delete a workshop and its setup.
 - Cohorts / Name: names the workshop in the home header and the default workbook title.
 - Cohorts / Cohort code: lets a participant join that workshop on the login page.
-- Cohorts / Audience type: stores an admin label; it does not currently change participant content.
+- Cohorts / Form layout: Basics, Home page, Branding and Workbook; the stored audience value is retained but has no editor.
 - Cohorts / Start with: creates an empty workshop or the starting groups and sections.
-- Cohorts / Home screen message: supplies the introduction under the greeting on Home.
+- Cohorts / Home screen message: supplies the introduction under the greeting on Home; empty shows nothing.
 - Cohorts / Facilitator message: supplies the message card on Home; a blank message hides the card.
-- Cohorts / Facilitator message heading: replaces “From Your Facilitator” above that message.
-- Cohorts / Logos: selects up to three built-in or uploaded logos for the Home and workshop headers.
+- Cohorts / Facilitator message heading: supplies the heading above that message; empty shows no heading.
+- Cohorts / Logos: selects up to three built-in or uploaded logos for Home, workshop and self-assessment headers.
 - Cohorts / Logo order and remove: changes the header logo sequence without deleting shared image files.
-- Cohorts / Talk card small label: sets the small heading above a Home contact-card title.
-- Cohorts / Talk card title: labels the Home contact card and its workshop top-bar link.
-- Cohorts / Talk card description: supplies the explanatory text inside the Home contact card.
+- Cohorts / Talk card small label: sets the small heading above a Home contact-card title; empty hides the label.
+- Cohorts / Talk card title: labels the Home contact card and top-bar link; empty hides both.
+- Cohorts / Talk card description: supplies the text inside the Home contact card; empty hides the description.
 - Cohorts / Talk card link: sets the destination of the Home contact card and top-bar link.
-- Cohorts / Talk card defaults: blank card 1 fields use the original Anthony text and Settings link; card 2 needs a title and link.
+- Cohorts / Talk card defaults: new workshops start with card 1 wording filled in; only its link falls back to Settings, and card 2 needs a title and link.
 - Cohorts / Show coaching links: shows or hides both contact cards, their top-bar links and self-assessment access.
 - Cohorts / Workbook title: overrides the PDF cover title; blank uses the workshop name.
 - Cohorts / Workbook subtitle: overrides the PDF subtitle; blank uses the open group names.
-- Cohorts / Workbook brand text: sets the PDF cover brand and page-footer brand.
+- Cohorts / Workbook brand text: sets the PDF cover and footer brand; empty prints no brand.
 - Cohorts / Workbook enabled: controls the sidebar download button and permission to download the PDF.
-- Cohorts or Sections / Group name: labels a workshop sidebar group.
-- Cohorts or Sections / Group order: orders sidebar groups and workbook sections.
-- Cohorts or Sections / Group open: opens every section in that group; closing it does not revoke individual unlocks.
-- Cohorts or Sections / Add or delete group: manages workshop groups; deletion requires an empty group.
+- Sections / Manage groups / Group name: labels a workshop sidebar group.
+- Sections / Manage groups / Group order: orders sidebar groups and workbook sections.
+- Sections / Manage groups / Group open: opens every section in that group; closing it does not revoke individual unlocks.
+- Sections / Manage groups / Add or delete group: manages workshop groups; deletion requires an empty group.
 - Tool Safari: combines an app-wide tool library with the selected workshop’s lineup.
 - Tool Safari / Library name: labels a tab inside the built-in Tool Safari section.
 - Tool Safari / Library sort order: orders the admin library, not a workshop’s saved lineup.
@@ -703,23 +703,23 @@ Participant pages: Home is `/home`, the workshop and its sidebar are `/workshop`
 - Links to LLMs / Sort order: orders the participant tool links.
 - Links to LLMs / Active: excludes inactive tools from participant link lists.
 - Links to LLMs / Show in sidebar: puts the tool in the workshop sidebar.
-- Links to LLMs / Show in verification test: puts the tool above the built-in Verification Test prompt.
+- Links to LLMs / Verification Test: uses the retained stored selection; there is no admin switch for changing it.
 - Feedback: manages global feedback categories and reviews participant feedback across workshops.
+- Feedback / Feedback dialog intro text: edits the shared introduction for the feedback dialog and self-assessment page, above the category editor.
 - Feedback / Category name: labels an option in workshop-header and self-assessment feedback forms.
 - Feedback / Category sort order: orders those dropdown options.
 - Feedback / Category active: hides an option without removing historical feedback.
 - Feedback / Cohort, category and sort filters: change the admin review list only.
-- Settings: holds app-wide contact-link and feedback-introduction defaults.
-- Settings / Talk with Anthony URL: supplies the fallback destination for cohort Talk card 1.
-- Settings / Feedback intro: supplies the workshop feedback-dialog introduction and self-assessment feedback introduction.
-- Settings / Export All Data: downloads the implemented JSON export, not a complete restorable backup.
+- Settings: holds the default Talk card 1 link and the complete data download.
+- Settings / Default link for Talk card 1: supplies the destination when a workshop leaves card 1's link empty.
+- Settings / Export all tables and uploaded files: downloads one JSON with all public tables, row counts, branding, responses and complete base64 file contents; no restore is provided.
 - Sections: arranges one workshop’s sections and also exposes the shared section library.
 - Sections / Display name: overrides a section title for this workshop only.
 - Sections / Row order: orders sections within a workshop group.
 - Sections / Group: moves a section to another workshop group.
 - Sections / Unlock code: sets the code a participant enters to unlock that section.
 - Sections / Requires code: turning it off opens the section even when its group is closed.
-- Sections / Unlock all sections: creates individual unlocks for current participants, not future joiners.
+- Sections / Unlock all sections: creates individual unlocks for current active participants, not inactive participants or future joiners.
 - Sections / Remove: detaches the section from this workshop, rather than deleting its library content.
 - Sections / Duplicate: makes a separate section copy for this workshop.
 - Sections / Make editable: converts a supported built-in section to a workshop-owned library copy.
@@ -785,23 +785,17 @@ Participant pages: Home is `/home`, the workshop and its sidebar are `/workshop`
 - Sections / Image file: selects the attached image to display.
 - Sections / Image max width and alignment: sizes and positions the image.
 - Sections / Image caption and alt text: supplies visible caption and accessible description.
-- Variants: overrides fixed text in three built-in sections for one workshop, not generic section blocks.
-- Variants / Verification prompt: replaces the built-in Verification Test copy box.
-- Variants / Verification answer key: replaces the text below that section’s stop banner.
-- Variants / Worksheet instruction: replaces the introduction above the built-in six-use-case inputs.
-- Variants / Closing quote: replaces the built-in Closing banner headline.
-- Variants / Closing subtext: replaces the line beneath that headline.
-- Variants / Closing survey URL: changes the built-in Closing survey destination.
-- Variants / Closing survey label: changes that survey button’s text.
-- Variants / Clear override: restores the built-in default.
+- Variants: the tab and admin editing routes were removed; the table and participant read path remain, with built-in text when no override exists.
 - Participants: lists people in the selected workshop and their login, note and unlock counts.
-- Participants / Active: stores a status flag; current sign-in and response-rate code do not enforce it.
+- Participants / Active: blocks inactive sign-ins and ends existing sessions on the next request, without hiding stored data from admins.
 - Participants / Delete: removes the participant and their saved notes, unlocks, feedback and submissions.
 - Responses: reviews submitted forms and polls for the selected workshop, not all autosaved personal notes.
 - Responses / Form or poll filter: selects which submissions and response rate to show.
 - Responses / Board: opens a read-only projector view of the selected form or poll.
 - Responses / Download CSV: exports the displayed submissions.
 - Responses / Copy all or individual response: copies submitted answer text.
-- Responses / Non-responders and Copy list: lists and copies joined participants who have not submitted.
+- Responses / Non-responders and Copy list: lists and copies active joined participants who have not submitted; response rates also exclude inactive participants.
 
-Audit caveats: the JSON export omits form/poll responses, cohort groups, library topics, seeded-section removals and file bytes; participant Active is not an access-control switch; the self-assessment header still uses the fixed logo; recap blocks render but have no dedicated editor in Sections.
+Startup wording update: before serving requests, `admin-cleanup-stored-wording` runs atomically once, fills only empty legacy wording with its old display defaults, preserves card 2, and removes Applied Mastery only if unused. `app_data_migrations` records per-cohort before/after values, hashes and changed fields; startup never recreates the retired topic. Migration failure prevents serving. New cohorts store defaults at creation; cleared wording stays cleared on later restarts.
+
+Audit caveat: recap blocks render but have no dedicated editor in Sections.

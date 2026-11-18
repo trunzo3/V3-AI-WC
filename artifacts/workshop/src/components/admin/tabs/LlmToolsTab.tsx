@@ -239,16 +239,6 @@ export function LlmToolsTab() {
                 />
                 Show in sidebar
               </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Switch
-                  checked={form.showInVerification}
-                  onCheckedChange={(v) =>
-                    setForm({ ...form, showInVerification: v })
-                  }
-                  data-testid="switch-llm-show-verification"
-                />
-                Show in verification test
-              </label>
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setOpen(false)}>
@@ -309,19 +299,6 @@ export function LlmToolsTab() {
                         data-testid={`row-llm-${t.id}-sidebar`}
                       />
                       Show in sidebar
-                    </label>
-                    <label className="flex items-center gap-2 text-xs">
-                      <Switch
-                        checked={t.showInVerification}
-                        onCheckedChange={(v) =>
-                          updateMut.mutate(
-                            { id: t.id, data: { showInVerification: v } },
-                            { onSuccess: () => refresh() },
-                          )
-                        }
-                        data-testid={`row-llm-${t.id}-verification`}
-                      />
-                      Show in verification test
                     </label>
                   </div>
                 </div>

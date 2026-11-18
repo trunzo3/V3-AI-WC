@@ -1,4 +1,28 @@
 import type { Request, Response, NextFunction, RequestHandler } from "express";
+import { db, participantsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+
+export const INACTIVE_MESSAGE = "Your access to this workshop has ended. Contact your facilitator.";
+
+/** Check every request, including public APIs and image downloads. */
+export const checkParticipantActive: RequestHandler = async (req, res, next) => {
+  const id = req.session?.participantId;
+  if (!id) { next(); return; }
+  const [participant] = await db.select({ isActive: participantsTable.isActive })
+    .from(participantsTable).where(eq(participantsTable.id, id));
+  if (!participant || !participant.isActive) {
+    if (req.session) {
+      delete req.session.participantId;
+      delete req.session.cohortId;
+    }
+    // The independent admin identity must retain access to all stored data.
+    if (!req.path.startsWith("/api/admin") && req.path !== "/api/auth/login") {
+      res.status(401).json({ error: INACTIVE_MESSAGE });
+      return;
+    }
+  }
+  next();
+};
 
 /**
  * Require an authenticated participant. Responds 401 if no participant is

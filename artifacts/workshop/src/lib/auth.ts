@@ -39,6 +39,14 @@ export function setAdminAuth(authenticated: boolean) {
 
 export const ADMIN_SESSION_EXPIRED_EVENT = "admin-session-expired";
 
+export function handleParticipantAuthError(err: unknown): void {
+  const error = err as { status?: number; url?: string; data?: { error?: string } };
+  if (error?.status !== 401 || !error.url || error.url.includes("/api/admin") || !getSession()) return;
+  clearSession();
+  sessionStorage.setItem("participant-access-message", error.data?.error || "Please sign in again.");
+  window.location.replace(import.meta.env.BASE_URL || "/");
+}
+
 /**
  * True when the error is a 401 from an admin API endpoint (excluding the
  * admin login endpoint itself, where 401 means "wrong password").

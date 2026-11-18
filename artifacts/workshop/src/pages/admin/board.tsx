@@ -249,7 +249,7 @@ export default function AdminBoard() {
     },
   });
   const answered = rateQ.data?.answered ?? 0;
-  const totalParticipants = rateQ.data?.total ?? participantsQ.data?.participants.length ?? 0;
+  const totalParticipants = rateQ.data?.total ?? participantsQ.data?.participants.filter(p => p.isActive).length ?? 0;
   const percent = totalParticipants > 0 ? Math.round((answered / totalParticipants) * 100) : 0;
   const countText = `${answered} of ${totalParticipants} answered · ${percent}%`;
 

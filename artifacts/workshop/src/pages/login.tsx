@@ -38,6 +38,13 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  useEffect(() => {
+    const message = sessionStorage.getItem("participant-access-message");
+    if (message) {
+      sessionStorage.removeItem("participant-access-message");
+      toast({ title: message, variant: "destructive" });
+    }
+  }, [toast]);
   const queryClient = useQueryClient();
   const loginMutation = useParticipantLogin();
   const checkEmail = useParticipantCheckEmail();

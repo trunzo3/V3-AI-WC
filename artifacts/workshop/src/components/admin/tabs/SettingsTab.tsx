@@ -16,12 +16,8 @@ import { Save, Download } from "lucide-react";
 const KNOWN_SETTINGS: { key: string; label: string; placeholder?: string }[] = [
   {
     key: "talk_with_anthony_url",
-    label: "Talk with Anthony — Calendly link",
+    label: "Default link for Talk card 1 (used when a workshop leaves it empty)",
     placeholder: "https://calendly.com/...",
-  },
-  {
-    key: "feedback_intro",
-    label: "Feedback dialog intro text",
   },
 ];
 
@@ -74,7 +70,7 @@ export function SettingsTab() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `iqmeeteq-backup-${today}.json`;
+      a.download = `iqmeeteq-all-data-and-files-${today}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -131,9 +127,9 @@ export function SettingsTab() {
                 Data Management
               </h3>
               <p className="text-sm text-muted-foreground mb-3">
-                Download a JSON backup of every cohort, participant, note, and
-                configuration row in the system. File metadata is included
-                without raw file contents.
+                Download every database table with row counts, all responses,
+                cohort branding, and the complete contents of every uploaded file
+                (base64), in one JSON file. Keep this private: it contains participant data.
               </p>
               <Button
                 onClick={downloadExport}
@@ -141,7 +137,7 @@ export function SettingsTab() {
                 data-testid="button-export-data"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Export All Data (JSON)
+                Export all tables and uploaded files (JSON)
               </Button>
             </div>
           </>

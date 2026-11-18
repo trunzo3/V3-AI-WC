@@ -692,40 +692,6 @@ paths:
               schema: { $ref: "#/components/schemas/AdminUnlockAllResponse" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
-  /admin/cohorts/{cohortId}/variants:
-    parameters:
-      - $ref: "#/components/parameters/CohortId"
-    get:
-      operationId: adminListCohortVariants
-      tags: [admin-variants]
-      summary: List content variants for a cohort
-      responses:
-        "200":
-          description: Variants
-          content:
-            application/json:
-              schema:
-                { $ref: "#/components/schemas/AdminCohortVariantsResponse" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-    put:
-      operationId: adminUpsertCohortVariant
-      tags: [admin-variants]
-      summary: Upsert (or clear with empty content) a content variant
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/AdminVariantUpsertRequest" }
-      responses:
-        "200":
-          description: Saved or deleted
-          content:
-            application/json:
-              schema:
-                { $ref: "#/components/schemas/AdminVariantUpsertResponse" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-
   /admin/cohorts/{cohortId}/groups:
     parameters:
       - $ref: "#/components/parameters/CohortId"

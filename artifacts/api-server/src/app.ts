@@ -4,6 +4,7 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { buildSessionMiddleware } from "./middlewares/session";
+import { checkParticipantActive } from "./middlewares/auth";
 
 const app: Express = express();
 
@@ -32,6 +33,7 @@ app.use(cors({ credentials: true }));
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 app.use(buildSessionMiddleware());
+app.use(checkParticipantActive);
 
 app.use("/api", router);
 

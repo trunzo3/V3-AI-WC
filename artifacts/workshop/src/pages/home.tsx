@@ -68,7 +68,11 @@ export default function Home() {
       <main className="max-w-3xl mx-auto px-4 py-12 space-y-10">
         <div className="text-center pb-2">
           <h1 className="text-4xl font-serif font-bold text-primary mb-2">{greeting}</h1>
-          {homeMessage ? (
+          {homeMessage === "<p>This is your home base between sessions. Begin by getting your bearings, then enter the workshop when you're ready.</p>" ? (
+            <p className="text-muted-foreground text-base max-w-xl mx-auto" data-testid="home-message">
+              This is your home base between sessions. Begin by getting your bearings, then enter the workshop when you're ready.
+            </p>
+          ) : homeMessage ? (
             <div
               className="prose prose-slate max-w-xl mx-auto text-muted-foreground text-base"
               data-testid="home-message"
@@ -77,11 +81,7 @@ export default function Home() {
               // vectors).
               dangerouslySetInnerHTML={{ __html: homeMessage }}
             />
-          ) : (
-            <p className="text-muted-foreground text-base max-w-xl mx-auto">
-              This is your home base between sessions. Begin by getting your bearings, then enter the workshop when you're ready.
-            </p>
-          )}
+          ) : null}
         </div>
 
         {facilitatorMessage && (
@@ -94,7 +94,7 @@ export default function Home() {
             }}
             data-testid="facilitator-message-card"
           >
-            <div
+            {meResp?.cohort?.settings?.facilitatorMessageHeading?.trim() && <div
               className="text-accent uppercase mb-3"
               style={{
                 fontSize: "11px",
@@ -102,8 +102,8 @@ export default function Home() {
                 letterSpacing: "1.5px",
               }}
             >
-              {meResp?.cohort?.settings?.facilitatorMessageHeading?.trim() || "From Your Facilitator"}
-            </div>
+              {meResp.cohort.settings.facilitatorMessageHeading.trim()}
+            </div>}
             <div
               className="prose prose-slate max-w-none text-foreground"
               data-testid="facilitator-message-content"
@@ -134,9 +134,9 @@ export default function Home() {
             className="bg-card border border-border rounded-xl p-6 text-left hover:border-accent hover:shadow-md transition-all"
             data-testid={index === 0 ? "link-talk-anthony" : "link-talk-second"}
           >
-            <div className="text-xs font-bold tracking-widest uppercase text-accent mb-2">{card.label}</div>
+            {card.label && <div className="text-xs font-bold tracking-widest uppercase text-accent mb-2">{card.label}</div>}
             <h3 className="font-serif font-bold text-primary text-xl mb-1">{card.title}</h3>
-            <p className="text-sm text-muted-foreground">{card.description}</p>
+            {card.description && <p className="text-sm text-muted-foreground">{card.description}</p>}
           </a>)}
         </div>
         )}

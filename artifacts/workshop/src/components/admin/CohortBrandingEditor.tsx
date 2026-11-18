@@ -3,23 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { talkCards } from "@/lib/cohort-branding";
 import { ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 
-export function CohortBrandingEditor({ value, onChange }: { value: CohortSettings; onChange: (value: CohortSettings) => void }) {
+export function CohortBrandingEditor({ value, onChange, part }: { value: CohortSettings; onChange: (value: CohortSettings) => void; part: "logos" | "cards" }) {
   const { data: appSettings } = useGetAppSettings();
   const upload = useUploadCohortLogo();
   const { toast } = useToast();
   const logos = value.logos ?? [{ type: "builtin" } as CohortLogo];
   const setLogos = (next: CohortLogo[]) => onChange({ ...value, logos: next });
-  const defaults = talkCards(undefined, (appSettings as Record<string, string>)?.talk_with_anthony_url)[0];
   const move = (index: number, direction: number) => {
     const next = [...logos];
     [next[index], next[index + direction]] = [next[index + direction], next[index]];
     setLogos(next);
   };
   return <div className="space-y-5 border-t pt-4">
-    <section className="space-y-2">
+    {part === "logos" && <section className="space-y-2">
       <h3 className="font-medium">Logos</h3>
       <p className="text-xs text-muted-foreground">Up to 3, shown in this order. PNG, JPG or SVG, up to 2 MB each.</p>
       {logos.map((logo, index) => <div className="flex items-center gap-2" key={index}>
@@ -50,21 +48,21 @@ export function CohortBrandingEditor({ value, onChange }: { value: CohortSetting
         }} />
       </div>
       {upload.isPending && <p className="text-sm">Uploading logo…</p>}
-    </section>
-    <section className="space-y-3">
+    </section>}
+    {part === "cards" && <section className="space-y-3">
       <h3 className="font-medium">Talk cards</h3>
       {[0, 1].map((index) => <fieldset key={index} className="border rounded-md p-3 space-y-2">
         <legend className="px-1 text-sm">Card {index + 1}{index === 1 ? " (optional)" : ""}</legend>
         {(["label", "title", "description", "link"] as const).map((field) => <div key={field}>
           <Label htmlFor={`talk-${index}-${field}`}>{field === "label" ? "Small label" : field.charAt(0).toUpperCase() + field.slice(1)}</Label>
-          <Input id={`talk-${index}-${field}`} value={value.talkCards?.[index]?.[field] ?? ""} placeholder={index === 0 ? defaults[field] : ""} onChange={(e) => {
+          <Input id={`talk-${index}-${field}`} value={value.talkCards?.[index]?.[field] ?? ""} placeholder={index === 0 && field === "link" ? `Automatic: ${(appSettings as Record<string, string>)?.talk_with_anthony_url || "default link in Settings"}` : ""} onChange={(e) => {
             const cards = [value.talkCards?.[0] ?? {}, value.talkCards?.[1] ?? {}];
             cards[index] = { ...cards[index], [field]: e.target.value };
             onChange({ ...value, talkCards: cards });
           }} />
         </div>)}
       </fieldset>)}
-      <p className="text-xs text-muted-foreground">Card 2 appears only when its title and link are filled in.</p>
-    </section>
+      <p className="text-xs text-muted-foreground">Empty wording shows nothing. An empty title hides the card and top-bar link. Card 1's empty link uses Settings; Card 2 needs its own link.</p>
+    </section>}
   </div>;
 }

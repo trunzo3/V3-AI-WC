@@ -56,3 +56,17 @@ mtime_ms = 1795020702886
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:a625c045-4fc0-479d-a902-0bc0fcd0500f/50d11561-af4e-4889-8f27-014499d66abc/7a85abcb-c1c2-4de1-96f2-e5db51629e06"
 storage_version_token = "1795020726276908"
 content_type = "text/html"
+
+[[outputs]]
+id = "VVMMxwVoxj3smgK_76Uvy"
+uri = "file://generated-artifacts/admin-cleanup-verification/summary.html"
+type = "html"
+title = "Admin cleanup — verification and export inventory"
+description = "Dev test results, one-time update checks, all 21 table counts, and all 6 uploaded files."
+logical_id = "3e45eadb-ea16-4de6-bd33-cc5f0005fa47"
+content_hash = "sha256:38aba35de797a414ed173259129af35ee04129fb4a4ddacdf1a6c21fe75fd600"
+size = 4990
+mtime_ms = 1795033146817
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:a625c045-4fc0-479d-a902-0bc0fcd0500f/3e45eadb-ea16-4de6-bd33-cc5f0005fa47/85e286c0-e32d-40fe-8d93-d6a7874e893f"
+storage_version_token = "1795033169782211"
+content_type = "text/html"

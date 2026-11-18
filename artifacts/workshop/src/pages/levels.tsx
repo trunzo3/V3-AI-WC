@@ -9,7 +9,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/logo";
+import { CohortLogos } from "@/components/workshop/CohortLogos";
 import {
   Select,
   SelectContent,
@@ -140,8 +140,8 @@ export default function LevelsPage() {
   return (
     <div className="min-h-[100dvh] bg-background">
       <header className="bg-primary text-white px-6 py-3 flex items-center justify-between border-b border-primary/20">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setLocation("/home")}>
-          <Logo variant="white" className="scale-75 origin-left" />
+        <div className="min-w-0 flex-1 max-w-lg mr-3 cursor-pointer" onClick={() => setLocation("/home")}>
+          <CohortLogos settings={meResp?.cohort?.settings} dark />
         </div>
         <button
           onClick={() => setLocation("/home")}

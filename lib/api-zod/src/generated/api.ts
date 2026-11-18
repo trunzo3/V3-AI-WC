@@ -1279,59 +1279,6 @@ export const AdminUnlockAllForCohortResponse = zod.object({
 });
 
 /**
- * @summary List content variants for a cohort
- */
-export const AdminListCohortVariantsParams = zod.object({
-  cohortId: zod.coerce.number().describe("Numeric cohort id"),
-});
-
-export const AdminListCohortVariantsResponse = zod.object({
-  variants: zod.array(
-    zod.object({
-      id: zod.number(),
-      cohortId: zod.number(),
-      sectionId: zod.string(),
-      blockKey: zod.string(),
-      content: zod.string(),
-      createdAt: zod.coerce.date().nullish(),
-      updatedAt: zod.coerce.date().nullish(),
-    }),
-  ),
-});
-
-/**
- * @summary Upsert (or clear with empty content) a content variant
- */
-export const AdminUpsertCohortVariantParams = zod.object({
-  cohortId: zod.coerce.number().describe("Numeric cohort id"),
-});
-
-export const AdminUpsertCohortVariantBody = zod.object({
-  sectionId: zod.string().min(1),
-  blockKey: zod.string().min(1),
-  content: zod.string(),
-});
-
-export const AdminUpsertCohortVariantResponse = zod.object({
-  success: zod.boolean().optional(),
-  deleted: zod.boolean().optional(),
-  variant: zod
-    .union([
-      zod.object({
-        id: zod.number(),
-        cohortId: zod.number(),
-        sectionId: zod.string(),
-        blockKey: zod.string(),
-        content: zod.string(),
-        createdAt: zod.coerce.date().nullish(),
-        updatedAt: zod.coerce.date().nullish(),
-      }),
-      zod.null(),
-    ])
-    .optional(),
-});
-
-/**
  * @summary List a cohort's section groups with section counts
  */
 export const AdminListCohortGroupsParams = zod.object({

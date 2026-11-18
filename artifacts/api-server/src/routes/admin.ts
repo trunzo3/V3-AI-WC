@@ -87,6 +87,8 @@ router.get("/admin/me", (req, res) => {
   res.json({ isAdmin: Boolean(req.session?.isAdmin) });
 });
 
+import { DEFAULT_HOME_MESSAGE, newCohortSettings } from "../lib/cohort-wording";
+
 // ----- Cohort management --------------------------------------------------
 
 const tierAccessSchema = z.record(z.string(), z.boolean());
@@ -157,12 +159,12 @@ router.post("/admin/cohorts", requireAdmin, async (req, res) => {
         cohortCode: data.cohortCode,
         facilitatorMessage:
           data.facilitatorMessage ?? DEFAULT_FACILITATOR_MESSAGE,
-        homeMessage: data.homeMessage ?? null,
+        homeMessage: data.homeMessage ?? DEFAULT_HOME_MESSAGE,
         // Legacy column (frozen): new cohorts start with nothing open.
         tierAccess: data.tierAccess ?? LEGACY_TIER_ACCESS_ALL_LOCKED,
         workbookEnabled: data.workbookEnabled ?? true,
         showCoachingLinks: data.showCoachingLinks ?? true,
-        settings: { ...data.settings, ...(data.levelNames ? { levelNames: data.levelNames } : {}) },
+        settings: { ...newCohortSettings(data.settings), ...(data.levelNames ? { levelNames: data.levelNames } : {}) },
       })
       .returning();
     if (!created) throw new Error("Failed to create cohort.");
@@ -995,7 +997,7 @@ router.post(
     const participants = await db
       .select({ id: participantsTable.id })
       .from(participantsTable)
-      .where(eq(participantsTable.cohortId, cohortId));
+      .where(and(eq(participantsTable.cohortId, cohortId), eq(participantsTable.isActive, true)));
     const sections = await db
       .select({ sectionId: cohortSectionsTable.sectionId })
       .from(cohortSectionsTable)
@@ -1334,92 +1336,6 @@ router.delete("/admin/topics/:id", requireAdmin, async (req, res) => {
   res.set("Cache-Control", "no-store");
   res.json({ success: true });
 });
-
-// ----- Content variants ---------------------------------------------------
-
-router.get(
-  "/admin/cohorts/:cohortId/variants",
-  requireAdmin,
-  async (req, res) => {
-    const cohortId = Number(req.params.cohortId);
-    if (!Number.isInteger(cohortId)) {
-      res.status(400).json({ error: "Invalid cohort id." });
-      return;
-    }
-    const rows = await db
-      .select()
-      .from(contentVariantsTable)
-      .where(eq(contentVariantsTable.cohortId, cohortId));
-    res.set("Cache-Control", "no-store");
-    res.json({ variants: rows });
-  },
-);
-
-const variantUpsertSchema = z.object({
-  sectionId: z.string().trim().min(1),
-  blockKey: z.string().trim().min(1),
-  content: z.string(),
-});
-
-router.put(
-  "/admin/cohorts/:cohortId/variants",
-  requireAdmin,
-  async (req, res) => {
-    const cohortId = Number(req.params.cohortId);
-    if (!Number.isInteger(cohortId)) {
-      res.status(400).json({ error: "Invalid cohort id." });
-      return;
-    }
-    const parsed = variantUpsertSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: "Invalid variant payload." });
-      return;
-    }
-    const { sectionId, blockKey, content } = parsed.data;
-
-    if (content === "") {
-      await db
-        .delete(contentVariantsTable)
-        .where(
-          and(
-            eq(contentVariantsTable.cohortId, cohortId),
-            eq(contentVariantsTable.sectionId, sectionId),
-            eq(contentVariantsTable.blockKey, blockKey),
-          ),
-        );
-      res.json({ success: true, deleted: true });
-      return;
-    }
-
-    const [existing] = await db
-      .select()
-      .from(contentVariantsTable)
-      .where(
-        and(
-          eq(contentVariantsTable.cohortId, cohortId),
-          eq(contentVariantsTable.sectionId, sectionId),
-          eq(contentVariantsTable.blockKey, blockKey),
-        ),
-      )
-      .limit(1);
-    let saved;
-    if (existing) {
-      const [updated] = await db
-        .update(contentVariantsTable)
-        .set({ content, updatedAt: new Date() })
-        .where(eq(contentVariantsTable.id, existing.id))
-        .returning();
-      saved = updated!;
-    } else {
-      const [created] = await db
-        .insert(contentVariantsTable)
-        .values({ cohortId, sectionId, blockKey, content })
-        .returning();
-      saved = created!;
-    }
-    res.json({ variant: saved });
-  },
-);
 
 // ----- Generic sections ---------------------------------------------------
 
@@ -2350,7 +2266,7 @@ router.get(
     const participants = await db
       .select({ id: participantsTable.id, name: participantsTable.name, email: participantsTable.email })
       .from(participantsTable)
-      .where(eq(participantsTable.cohortId, cohortId));
+      .where(and(eq(participantsTable.cohortId, cohortId), eq(participantsTable.isActive, true)));
     const missing = participants
       .filter((p) => !answeredIds.has(p.id))
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }) || a.id - b.id);

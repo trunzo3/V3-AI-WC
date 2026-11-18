@@ -23,7 +23,6 @@ import { CohortSwitcher } from "@/components/admin/CohortSwitcher";
 import { StatsCards } from "@/components/admin/StatsCards";
 import { CohortsTab } from "@/components/admin/tabs/CohortsTab";
 import { SectionsTab } from "@/components/admin/tabs/SectionsTab";
-import { VariantsTab } from "@/components/admin/tabs/VariantsTab";
 import { ToolSafariTab } from "@/components/admin/tabs/ToolSafariTab";
 import { ParticipantsTab } from "@/components/admin/tabs/ParticipantsTab";
 import { ResponsesTab } from "@/components/admin/tabs/ResponsesTab";
@@ -242,13 +241,6 @@ export default function AdminDashboard() {
                   Sections
                 </TabsTrigger>
                 <TabsTrigger
-                  value="variants"
-                  disabled={perCohortDisabled}
-                  data-testid="tab-variants"
-                >
-                  Content variants
-                </TabsTrigger>
-                <TabsTrigger
                   value="participants"
                   disabled={perCohortDisabled}
                   data-testid="tab-participants"
@@ -298,14 +290,6 @@ export default function AdminDashboard() {
               <>
                 <CohortBanner name={activeCohort?.name ?? null} />
                 <SectionsTab cohortId={selectedCohortId} />
-              </>
-            ) : null}
-          </TabsContent>
-          <TabsContent value="variants">
-            {selectedCohortId != null ? (
-              <>
-                <CohortBanner name={activeCohort?.name ?? null} />
-                <VariantsTab cohortId={selectedCohortId} />
               </>
             ) : null}
           </TabsContent>
