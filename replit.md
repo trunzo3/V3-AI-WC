@@ -661,3 +661,147 @@ Cohort duplication preserves details as part of the poll content.
   forced to `target="_blank" rel="noopener noreferrer"` and only `http`,
   `https`, `mailto` schemes are allowed. Prompt-block content is left raw
   (rendered inside a `<pre>` mono block, not as HTML).
+
+## Where things live
+
+Participant pages: Home is `/home`, the workshop and its sidebar are `/workshop`, and self-assessment is `/levels`.
+
+- Cohorts: create, select, edit, duplicate or delete a workshop and its setup.
+- Cohorts / Name: names the workshop in the home header and the default workbook title.
+- Cohorts / Cohort code: lets a participant join that workshop on the login page.
+- Cohorts / Audience type: stores an admin label; it does not currently change participant content.
+- Cohorts / Start with: creates an empty workshop or the starting groups and sections.
+- Cohorts / Home screen message: supplies the introduction under the greeting on Home.
+- Cohorts / Facilitator message: supplies the message card on Home; a blank message hides the card.
+- Cohorts / Facilitator message heading: replaces “From Your Facilitator” above that message.
+- Cohorts / Logos: selects up to three built-in or uploaded logos for the Home and workshop headers.
+- Cohorts / Logo order and remove: changes the header logo sequence without deleting shared image files.
+- Cohorts / Talk card small label: sets the small heading above a Home contact-card title.
+- Cohorts / Talk card title: labels the Home contact card and its workshop top-bar link.
+- Cohorts / Talk card description: supplies the explanatory text inside the Home contact card.
+- Cohorts / Talk card link: sets the destination of the Home contact card and top-bar link.
+- Cohorts / Talk card defaults: blank card 1 fields use the original Anthony text and Settings link; card 2 needs a title and link.
+- Cohorts / Show coaching links: shows or hides both contact cards, their top-bar links and self-assessment access.
+- Cohorts / Workbook title: overrides the PDF cover title; blank uses the workshop name.
+- Cohorts / Workbook subtitle: overrides the PDF subtitle; blank uses the open group names.
+- Cohorts / Workbook brand text: sets the PDF cover brand and page-footer brand.
+- Cohorts / Workbook enabled: controls the sidebar download button and permission to download the PDF.
+- Cohorts or Sections / Group name: labels a workshop sidebar group.
+- Cohorts or Sections / Group order: orders sidebar groups and workbook sections.
+- Cohorts or Sections / Group open: opens every section in that group; closing it does not revoke individual unlocks.
+- Cohorts or Sections / Add or delete group: manages workshop groups; deletion requires an empty group.
+- Tool Safari: combines an app-wide tool library with the selected workshop’s lineup.
+- Tool Safari / Library name: labels a tab inside the built-in Tool Safari section.
+- Tool Safari / Library sort order: orders the admin library, not a workshop’s saved lineup.
+- Tool Safari / Library active: includes or excludes that tool from participant Safari tabs.
+- Tool Safari / Guide files: uploads or deletes shared guides; the participant tab offers its first file for download.
+- Tool Safari / Lineup add, remove and order: selects and orders Safari tabs for one workshop.
+- Links to LLMs: maintains app-wide external AI-tool links, separately from Tool Safari.
+- Links to LLMs / Internal name: identifies a tool in administration and rendered test identifiers.
+- Links to LLMs / Display label: supplies the participant link text.
+- Links to LLMs / URL: supplies the external destination.
+- Links to LLMs / Sort order: orders the participant tool links.
+- Links to LLMs / Active: excludes inactive tools from participant link lists.
+- Links to LLMs / Show in sidebar: puts the tool in the workshop sidebar.
+- Links to LLMs / Show in verification test: puts the tool above the built-in Verification Test prompt.
+- Feedback: manages global feedback categories and reviews participant feedback across workshops.
+- Feedback / Category name: labels an option in workshop-header and self-assessment feedback forms.
+- Feedback / Category sort order: orders those dropdown options.
+- Feedback / Category active: hides an option without removing historical feedback.
+- Feedback / Cohort, category and sort filters: change the admin review list only.
+- Settings: holds app-wide contact-link and feedback-introduction defaults.
+- Settings / Talk with Anthony URL: supplies the fallback destination for cohort Talk card 1.
+- Settings / Feedback intro: supplies the workshop feedback-dialog introduction and self-assessment feedback introduction.
+- Settings / Export All Data: downloads the implemented JSON export, not a complete restorable backup.
+- Sections: arranges one workshop’s sections and also exposes the shared section library.
+- Sections / Display name: overrides a section title for this workshop only.
+- Sections / Row order: orders sections within a workshop group.
+- Sections / Group: moves a section to another workshop group.
+- Sections / Unlock code: sets the code a participant enters to unlock that section.
+- Sections / Requires code: turning it off opens the section even when its group is closed.
+- Sections / Unlock all sections: creates individual unlocks for current participants, not future joiners.
+- Sections / Remove: detaches the section from this workshop, rather than deleting its library content.
+- Sections / Duplicate: makes a separate section copy for this workshop.
+- Sections / Make editable: converts a supported built-in section to a workshop-owned library copy.
+- Sections / Files: uploads shared section attachments used by image and download blocks.
+- Sections / Library preview and Add to group: previews reusable content and attaches it to the selected workshop.
+- Sections / Library archive: hides a reusable item from the library while leaving existing workshop attachments intact.
+- Sections / Library restore, Where used and permanent delete: restores availability, lists attachments or deletes the shared section.
+- Sections / Topic name and order: organizes the admin library, not participant sidebar groups.
+- Sections / Section title: supplies the shared section’s default sidebar and page heading.
+- Sections / Section type: chooses exercise or reference presentation.
+- Sections / Section topic: places the shared section in an admin library topic.
+- Sections / Also add to group: attaches a newly created section to the selected workshop.
+- Sections / Goal text: supplies the goal box beneath the section heading.
+- Sections / Badge label: overrides the exercise/reference badge.
+- Sections / Show notes: adds the saved personal-notes field at the end of the section.
+- Sections / Content block type, order, add and remove: builds the participant section body in reading order.
+- Sections / Text content: supplies formatted body text.
+- Sections / Prompt content: supplies copyable text and may include references to saved participant answers.
+- Sections / Prompt pill label: labels the copy box.
+- Sections / Prompt copy-button label: labels the copy action.
+- Sections / Callout variant: chooses stop, insight, rule or quote styling.
+- Sections / Callout title and body: supplies the highlighted message.
+- Sections / Card-grid columns: chooses the grid layout.
+- Sections / Card title, body and order: supplies and arranges the grid’s items.
+- Sections / Numbered steps: switches between numbered steps and the unnumbered presentation.
+- Sections / Step title, body and order: supplies and arranges the instructions.
+- Sections / Link URL: sets a block’s external destination.
+- Sections / Link label and style: chooses its text and button-or-text appearance.
+- Sections / Field key: identifies a saved answer and any template references to it.
+- Sections / Field label: labels a standalone input or form input.
+- Sections / Field placeholder: supplies the hint inside an empty input.
+- Sections / Field help text: explains the input above its entry area.
+- Sections / Field multiline: chooses a single-line or multiline input.
+- Sections / Standalone field prefill: supplies initial text, optionally from other saved answers.
+- Sections / Form field heading: adds a bold heading in card-layout forms.
+- Sections / Form field identifier: separates identifying information from copied/submitted answer text.
+- Sections / Form fields and order: defines and arranges the form’s inputs.
+- Sections / Form copy-button label: labels Copy, not the separately generated Submit button.
+- Sections / Form copy style: assembles answers as labeled lines or joined text.
+- Sections / Form template: overrides assembly using single-brace field references.
+- Sections / Form card layout: puts each input in a bordered card.
+- Sections / Form name: labels the form in admin Responses and the Board.
+- Sections / Form show prompt box: shows or hides the assembled-text preview.
+- Sections / Form box label: labels that preview, with blank meaning no label.
+- Sections / Form show Copy button: shows or hides the copy action.
+- Sections / Form collect responses: adds Submit and sends an answer to admin Responses.
+- Sections / Form submissions open: permits or closes submissions without removing the form.
+- Sections / Form one submission only: prevents changing a submitted answer.
+- Sections / Poll name: identifies the poll in Responses and on the Board.
+- Sections / Poll question text: asks the question above its choices.
+- Sections / Poll question details: adds formatted guidance between the question and choices.
+- Sections / Poll question key: identifies the question in stored answers.
+- Sections / Poll answers mode: chooses pick-one or pick-many.
+- Sections / Poll choices and order: defines and orders the available answers.
+- Sections / Poll comment box: adds optional free-text feedback to a question.
+- Sections / Poll comment label: explains that comment input.
+- Sections / Poll question order, add and remove: arranges the poll’s questions.
+- Sections / Poll button label: labels its submit action.
+- Sections / Poll submissions open: permits or closes poll submissions.
+- Sections / Poll show results: shows anonymous choice counts after a participant submits.
+- Sections / Poll one submission only: prevents editing a submitted poll.
+- Sections / Download file and label: selects an attachment and labels its download button.
+- Sections / Image file: selects the attached image to display.
+- Sections / Image max width and alignment: sizes and positions the image.
+- Sections / Image caption and alt text: supplies visible caption and accessible description.
+- Variants: overrides fixed text in three built-in sections for one workshop, not generic section blocks.
+- Variants / Verification prompt: replaces the built-in Verification Test copy box.
+- Variants / Verification answer key: replaces the text below that section’s stop banner.
+- Variants / Worksheet instruction: replaces the introduction above the built-in six-use-case inputs.
+- Variants / Closing quote: replaces the built-in Closing banner headline.
+- Variants / Closing subtext: replaces the line beneath that headline.
+- Variants / Closing survey URL: changes the built-in Closing survey destination.
+- Variants / Closing survey label: changes that survey button’s text.
+- Variants / Clear override: restores the built-in default.
+- Participants: lists people in the selected workshop and their login, note and unlock counts.
+- Participants / Active: stores a status flag; current sign-in and response-rate code do not enforce it.
+- Participants / Delete: removes the participant and their saved notes, unlocks, feedback and submissions.
+- Responses: reviews submitted forms and polls for the selected workshop, not all autosaved personal notes.
+- Responses / Form or poll filter: selects which submissions and response rate to show.
+- Responses / Board: opens a read-only projector view of the selected form or poll.
+- Responses / Download CSV: exports the displayed submissions.
+- Responses / Copy all or individual response: copies submitted answer text.
+- Responses / Non-responders and Copy list: lists and copies joined participants who have not submitted.
+
+Audit caveats: the JSON export omits form/poll responses, cohort groups, library topics, seeded-section removals and file bytes; participant Active is not an access-control switch; the self-assessment header still uses the fixed logo; recap blocks render but have no dedicated editor in Sections.
