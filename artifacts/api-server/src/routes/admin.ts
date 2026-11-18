@@ -1,4 +1,5 @@
 import { getCohortLevelNames } from "../lib/cohort-level-names";
+import { cohortSettingsSchema } from "../lib/cohort-branding";
 import { Router, type IRouter } from "express";
 import { z } from "zod/v4";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
@@ -103,6 +104,7 @@ function withLevelNames<T extends { settings: Record<string, unknown> | null }>(
 }
 
 const createCohortSchema = z.object({
+  settings: cohortSettingsSchema.optional(),
   name: z.string().trim().min(1),
   audienceType: z.string().trim().default("general"),
   cohortCode: z.string().trim().min(1),
@@ -160,7 +162,7 @@ router.post("/admin/cohorts", requireAdmin, async (req, res) => {
         tierAccess: data.tierAccess ?? LEGACY_TIER_ACCESS_ALL_LOCKED,
         workbookEnabled: data.workbookEnabled ?? true,
         showCoachingLinks: data.showCoachingLinks ?? true,
-        settings: data.levelNames ? { levelNames: data.levelNames } : {},
+        settings: { ...data.settings, ...(data.levelNames ? { levelNames: data.levelNames } : {}) },
       })
       .returning();
     if (!created) throw new Error("Failed to create cohort.");
@@ -215,7 +217,7 @@ const updateCohortSchema = z.object({
   tierAccess: tierAccessSchema.optional(),
   workbookEnabled: z.boolean().optional(),
   showCoachingLinks: z.boolean().optional(),
-  settings: z.record(z.string(), z.unknown()).optional(),
+  settings: cohortSettingsSchema.optional(),
   levelNames: levelNamesSchema.optional(),
 });
 

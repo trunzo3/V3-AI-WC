@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import express from "express";
 import { z } from "zod/v4";
 import { and, asc, eq } from "drizzle-orm";
-import { db, sectionFilesTable } from "@workspace/db";
+import { db, sectionFilesTable, cohortsTable } from "@workspace/db";
 import {
   requireAdmin,
   requireParticipant,
@@ -14,6 +14,54 @@ const router: IRouter = Router();
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const adminJson = express.json({ limit: "30mb" });
+
+// Logos use the same database-backed bytes as existing image attachments.
+// Immutable assets can be shared safely when a cohort is duplicated.
+router.post("/admin/cohort-logos", requireAdmin, async (req, res) => {
+  const parsed = z.object({
+    filename: z.string().min(1).max(255),
+    mimeType: z.enum(["image/png", "image/jpeg", "image/svg+xml"]),
+    dataBase64: z.string().min(1).max(2800000).regex(/^[A-Za-z0-9+/]*={0,2}$/),
+  }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Upload a PNG, JPG or SVG up to 2 MB." }); return;
+  }
+  const { filename, mimeType, dataBase64 } = parsed.data;
+  const bytes = Buffer.from(dataBase64, "base64");
+  const valid = mimeType === "image/png"
+    ? bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))
+    : mimeType === "image/jpeg" ? bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255
+    : /<svg[\s>]/i.test(bytes.toString("utf8")) &&
+      !/<!DOCTYPE|<!ENTITY|<script|<foreignObject|\bon\w+\s*=|(?:href|src)\s*=\s*["']\s*(?:https?:|\/\/|javascript:|data:)/i.test(bytes.toString("utf8"));
+  if (!valid || !bytes.length || bytes.length > 2 * 1024 * 1024) {
+    res.status(400).json({ error: "Invalid image, unsafe SVG, or file larger than 2 MB." }); return;
+  }
+  const [file] = await db.insert(sectionFilesTable).values({
+    sectionId: "cohort-logo", filename, mimeType,
+    sizeBytes: bytes.length, storagePath: bytes.toString("base64"),
+  }).returning({ id: sectionFilesTable.id });
+  res.status(201).json({ type: "image", fileId: file.id, name: filename });
+});
+
+router.get("/cohort-logos/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) { res.sendStatus(404); return; }
+  if (!req.session?.isAdmin) {
+    if (!req.session?.participantId || !req.session?.cohortId) { res.sendStatus(401); return; }
+    const [cohort] = await db.select().from(cohortsTable).where(eq(cohortsTable.id, req.session.cohortId));
+    const logos = cohort?.settings?.logos as Array<{ fileId?: number }> | undefined;
+    if (!Array.isArray(logos) || !logos.some((logo) => logo.fileId === id)) { res.sendStatus(404); return; }
+  }
+  const [file] = await db.select().from(sectionFilesTable).where(and(eq(sectionFilesTable.id, id), eq(sectionFilesTable.sectionId, "cohort-logo")));
+  if (!file) { res.sendStatus(404); return; }
+  res.set({
+    "Content-Type": file.mimeType || "application/octet-stream",
+    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+    "X-Content-Type-Options": "nosniff",
+    "Cache-Control": "private, no-store",
+  });
+  res.send(Buffer.from(file.storagePath, "base64"));
+});
 
 const uploadSchema = z.object({
   sectionId: z.string().min(1).max(128),

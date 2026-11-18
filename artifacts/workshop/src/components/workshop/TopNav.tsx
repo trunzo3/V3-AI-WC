@@ -24,7 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Logo } from "@/components/logo";
+import { CohortLogos } from "./CohortLogos";
+import { talkCards } from "@/lib/cohort-branding";
 import { MessageSquarePlus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getListSectionsQueryKey } from "@workspace/api-client-react";
@@ -52,6 +53,7 @@ export function TopNav({ onLogoClick }: TopNavProps) {
   const settingsMap = settings as Record<string, string> | undefined;
   const talkUrl =
     settingsMap?.["talk_with_anthony_url"] || "https://talkwithanthony.com";
+  const cards = talkCards(meResp?.cohort?.settings, talkUrl);
   const feedbackIntro =
     settingsMap?.["feedback_intro"]?.trim() ||
     "Tell us what you're working on, what you're stuck on, or what you'd like to go deeper on.";
@@ -112,8 +114,8 @@ export function TopNav({ onLogoClick }: TopNavProps) {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
-        <div className={onLogoClick ? "cursor-pointer" : ""} onClick={onLogoClick}>
-          <Logo />
+        <div className={`min-w-0 flex-1 max-w-lg mr-3 ${onLogoClick ? "cursor-pointer" : ""}`} onClick={onLogoClick}>
+          <CohortLogos settings={meResp?.cohort?.settings} />
         </div>
 
         <div className="flex items-center gap-3 md:gap-4">
@@ -186,17 +188,18 @@ export function TopNav({ onLogoClick }: TopNavProps) {
             </DialogContent>
           </Dialog>
 
-          {showCoachingLinks && (
+          {showCoachingLinks && cards.map((card, index) => (
             <a
-              href={talkUrl}
+              key={index}
+              href={card.link}
               target="_blank"
               rel="noopener noreferrer"
               className="hidden lg:block text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-              data-testid="topnav-talk-anthony"
+              data-testid={index === 0 ? "topnav-talk-anthony" : "topnav-talk-second"}
             >
-              Talk with Anthony
+              {card.title}
             </a>
-          )}
+          ))}
         </div>
       </div>
     </header>

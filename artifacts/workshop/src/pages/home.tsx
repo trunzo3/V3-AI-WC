@@ -7,7 +7,8 @@ import {
   useGetCurrentParticipant,
 } from "@workspace/api-client-react";
 import { getSession, clearSession } from "@/lib/auth";
-import { Logo } from "@/components/logo";
+import { CohortLogos } from "@/components/workshop/CohortLogos";
+import { talkCards } from "@/lib/cohort-branding";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -31,6 +32,7 @@ export default function Home() {
   if (!session) return null;
 
   const talkUrl = (settings as Record<string, string> | undefined)?.["talk_with_anthony_url"] || "https://talkwithanthony.com";
+  const cards = talkCards(meResp?.cohort?.settings, talkUrl);
 
 
   const handleLogout = () => {
@@ -52,8 +54,8 @@ export default function Home() {
   return (
     <div className="min-h-[100dvh] bg-background">
       <header className="bg-primary text-white px-6 py-3 flex items-center justify-between border-b border-primary/20">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setLocation("/home")}>
-          <Logo variant="white" className="scale-75 origin-left" />
+        <div className="min-w-0 flex-1 max-w-lg mr-3 cursor-pointer" onClick={() => setLocation("/home")}>
+          <CohortLogos settings={meResp?.cohort?.settings} dark />
         </div>
         <div
           className="text-xs uppercase tracking-widest text-white/60"
@@ -100,7 +102,7 @@ export default function Home() {
                 letterSpacing: "1.5px",
               }}
             >
-              From Your Facilitator
+              {meResp?.cohort?.settings?.facilitatorMessageHeading?.trim() || "From Your Facilitator"}
             </div>
             <div
               className="prose prose-slate max-w-none text-foreground"
@@ -113,7 +115,7 @@ export default function Home() {
         )}
 
         {showCoachingLinks && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className={`grid grid-cols-1 ${cards.length === 2 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
           <button
             onClick={() => setLocation("/levels")}
             className="bg-card border border-border rounded-xl p-6 text-left hover:border-accent hover:shadow-md transition-all group"
@@ -124,17 +126,18 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">Find your level on the journey from Question Asker to Architect.</p>
           </button>
 
-          <a
-            href={talkUrl}
+          {cards.map((card, index) => <a
+            key={index}
+            href={card.link}
             target="_blank"
             rel="noopener noreferrer"
             className="bg-card border border-border rounded-xl p-6 text-left hover:border-accent hover:shadow-md transition-all"
-            data-testid="link-talk-anthony"
+            data-testid={index === 0 ? "link-talk-anthony" : "link-talk-second"}
           >
-            <div className="text-xs font-bold tracking-widest uppercase text-accent mb-2">One-on-One</div>
-            <h3 className="font-serif font-bold text-primary text-xl mb-1">Talk with Anthony</h3>
-            <p className="text-sm text-muted-foreground">Book a conversation about how to apply this in your work.</p>
-          </a>
+            <div className="text-xs font-bold tracking-widest uppercase text-accent mb-2">{card.label}</div>
+            <h3 className="font-serif font-bold text-primary text-xl mb-1">{card.title}</h3>
+            <p className="text-sm text-muted-foreground">{card.description}</p>
+          </a>)}
         </div>
         )}
 

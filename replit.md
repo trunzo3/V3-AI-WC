@@ -186,6 +186,20 @@ Required env vars (managed via Replit Secrets):
   home. Participant-facing wording uses "Program"/"Workshop code" (workbook
   cover label, login and workbook/sections error messages).
 - Workbook cover/footer text lives in `cohorts.settings` (no columns):
+  Participant branding also lives in `settings`: `logos` (up to three ordered
+  built-in or uploaded-image entries), `talkCards` (two cards), and
+  `facilitatorMessageHeading`. Missing logos use the existing IQmeetEQ logo;
+  blank card 1 fields and heading retain the original defaults. Card 2 requires
+  both title and link. The coaching-links switch hides both cards, both nav
+  links and self-assessment. Logos affect signed-in home/workshop headers only,
+  not login or PDF. Cohort creation accepts settings; updates merge them;
+  duplication copies all branding settings and references immutable logo assets.
+  Logo uploads use existing database-backed `section_files` storage with the
+  reserved `cohort-logo` section id (PNG/JPG/SVG, 2 MB maximum). Only admins
+  upload; image reads require admin access or a participant whose cohort uses
+  that asset. Removing a logo from a cohort does not delete a shared asset.
+
+  Workbook-specific keys:
   `workbookTitle` (default: cohort name), `workbookSubtitle`
   (default: open groups' names joined with " · "; none → no subtitle),
   `workbookBrand` (default: "IQmeetEQ Workshop Companion"). Values are

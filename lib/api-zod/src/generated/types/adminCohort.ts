@@ -16,8 +16,10 @@ All participant endpoints require an authenticated session cookie
 import type { AdminCohortGroup } from "./adminCohortGroup";
 import type { AdminCohortLevelNames } from "./adminCohortLevelNames";
 import type { AdminCohortTierAccess } from "./adminCohortTierAccess";
+import type { CohortSettings } from "./cohortSettings";
 
 export interface AdminCohort {
+  settings?: CohortSettings;
   id: number;
   name: string;
   audienceType: string;

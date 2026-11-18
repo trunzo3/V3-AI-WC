@@ -57,6 +57,34 @@ tags:
     description: Admin participant management
 
 paths:
+  /admin/cohort-logos:
+    post:
+      operationId: uploadCohortLogo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CohortLogoUpload" }
+      responses:
+        "201":
+          description: Uploaded logo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CohortLogo" }
+  /cohort-logos/{id}:
+    get:
+      operationId: getCohortLogo
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Image bytes for an authorized cohort participant or admin
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
   /healthz:
     get:
       operationId: healthCheck
@@ -1491,10 +1519,48 @@ components:
           format: date-time
           nullable: true
 
+    CohortLogoUpload:
+      type: object
+      required: [filename, mimeType, dataBase64]
+      properties:
+        filename: { type: string }
+        mimeType: { type: string, enum: [image/png, image/jpeg, image/svg+xml] }
+        dataBase64: { type: string }
+    CohortLogo:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [builtin, image] }
+        fileId: { type: integer }
+        name: { type: string }
+    CohortTalkCard:
+      type: object
+      properties:
+        label: { type: string }
+        title: { type: string }
+        description: { type: string }
+        link: { type: string }
+    CohortSettings:
+      type: object
+      additionalProperties: true
+      properties:
+        logos:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/CohortLogo" }
+        talkCards:
+          type: array
+          maxItems: 2
+          items: { $ref: "#/components/schemas/CohortTalkCard" }
+        facilitatorMessageHeading: { type: string }
+        workbookTitle: { type: string }
+        workbookSubtitle: { type: string }
+        workbookBrand: { type: string }
     Cohort:
       type: object
       required: [id, name, facilitatorMessage, tierAccess, audienceType]
       properties:
+        settings: { $ref: "#/components/schemas/CohortSettings" }
         id: { type: integer }
         name: { type: string }
         facilitatorMessage: { type: string }
@@ -2234,6 +2300,7 @@ components:
           tierAccess,
         ]
       properties:
+        settings: { $ref: "#/components/schemas/CohortSettings" }
         id: { type: integer }
         name: { type: string }
         audienceType: { type: string }
@@ -2314,6 +2381,7 @@ components:
       type: object
       required: [name, cohortCode]
       properties:
+        settings: { $ref: "#/components/schemas/CohortSettings" }
         name: { type: string, minLength: 1 }
         cohortCode: { type: string, minLength: 1 }
         audienceType: { type: string }
@@ -2337,6 +2405,7 @@ components:
     AdminCohortUpdateRequest:
       type: object
       properties:
+        settings: { $ref: "#/components/schemas/CohortSettings" }
         name: { type: string, minLength: 1 }
         cohortCode: { type: string, minLength: 1 }
         audienceType: { type: string }

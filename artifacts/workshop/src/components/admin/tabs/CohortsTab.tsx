@@ -8,6 +8,7 @@ import {
   useAdminDuplicateCohort,
   getAdminListCohortsQueryKey,
   type AdminCohort,
+  type CohortSettings,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -29,10 +30,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Copy } from "lucide-react";
 import { CohortGroupsEditor } from "@/components/admin/CohortGroupsEditor";
+import { CohortBrandingEditor } from "@/components/admin/CohortBrandingEditor";
 
 const COHORT_KEY = "workshop-admin-cohort-id";
 
 interface FormState {
+  branding: CohortSettings;
   name: string;
   cohortCode: string;
   audienceType: string;
@@ -53,6 +56,7 @@ const DEFAULT_WORKBOOK_BRAND = "IQmeetEQ Workshop Companion";
 const STARTING_GROUP_NAMES = ["Core Workshop", "Applied Mastery", "AI Builder"];
 
 const EMPTY_FORM: FormState = {
+  branding: {},
   name: "",
   cohortCode: "",
   audienceType: "general",
@@ -79,6 +83,7 @@ function defaultWorkbookSubtitle(cohort: AdminCohort | null): string {
 
 function fromCohort(c: AdminCohort): FormState {
   return {
+    branding: c.settings ?? {},
     name: c.name,
     cohortCode: c.cohortCode,
     audienceType: c.audienceType ?? "general",
@@ -218,6 +223,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
       // value) — the server merges `settings`, so omitting a key would keep
       // the old value.
       settings: {
+        ...form.branding,
         workbookTitle: form.workbookTitle,
         workbookSubtitle: form.workbookSubtitle,
         workbookBrand: form.workbookBrand,
@@ -317,6 +323,8 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                 </div>
               </div>
               <div>
+                <Label htmlFor="cohort-heading">Facilitator message heading</Label>
+                <Input id="cohort-heading" placeholder="From Your Facilitator" value={form.branding.facilitatorMessageHeading ?? ""} onChange={(e) => setForm({ ...form, branding: { ...form.branding, facilitatorMessageHeading: e.target.value } })} />
                 <Label htmlFor="cohort-msg">Facilitator message</Label>
                 <RichTextEditor
                   value={form.facilitatorMessage}
@@ -338,6 +346,7 @@ export function CohortsTab({ selectedCohortId, onSelectCohort }: Props) {
                   testId="input-cohort-home-message"
                 />
               </div>
+              <CohortBrandingEditor value={form.branding} onChange={(branding) => setForm({ ...form, branding })} />
               {editing ? (
                 <div>
                   <Label className="block mb-1">Groups</Label>

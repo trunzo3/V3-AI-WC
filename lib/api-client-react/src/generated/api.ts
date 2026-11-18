@@ -87,6 +87,8 @@ import type {
   BadRequestResponse,
   CheckEmailRequest,
   CheckEmailResponse,
+  CohortLogo,
+  CohortLogoUpload,
   ConflictResponse,
   ContentVariantsResponse,
   ErrorResponse,
@@ -130,6 +132,166 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+export const getUploadCohortLogoUrl = () => {
+  return `/api/admin/cohort-logos`;
+};
+
+export const uploadCohortLogo = async (
+  cohortLogoUpload: CohortLogoUpload,
+  options?: RequestInit,
+): Promise<CohortLogo> => {
+  return customFetch<CohortLogo>(getUploadCohortLogoUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(cohortLogoUpload),
+  });
+};
+
+export const getUploadCohortLogoMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadCohortLogo>>,
+    TError,
+    { data: BodyType<CohortLogoUpload> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof uploadCohortLogo>>,
+  TError,
+  { data: BodyType<CohortLogoUpload> },
+  TContext
+> => {
+  const mutationKey = ["uploadCohortLogo"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uploadCohortLogo>>,
+    { data: BodyType<CohortLogoUpload> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return uploadCohortLogo(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UploadCohortLogoMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uploadCohortLogo>>
+>;
+export type UploadCohortLogoMutationBody = BodyType<CohortLogoUpload>;
+export type UploadCohortLogoMutationError = ErrorType<unknown>;
+
+export const useUploadCohortLogo = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadCohortLogo>>,
+    TError,
+    { data: BodyType<CohortLogoUpload> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof uploadCohortLogo>>,
+  TError,
+  { data: BodyType<CohortLogoUpload> },
+  TContext
+> => {
+  return useMutation(getUploadCohortLogoMutationOptions(options));
+};
+
+export const getGetCohortLogoUrl = (id: number) => {
+  return `/api/cohort-logos/${id}`;
+};
+
+export const getCohortLogo = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getGetCohortLogoUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCohortLogoQueryKey = (id: number) => {
+  return [`/api/cohort-logos/${id}`] as const;
+};
+
+export const getGetCohortLogoQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCohortLogo>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCohortLogo>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCohortLogoQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCohortLogo>>> = ({
+    signal,
+  }) => getCohortLogo(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCohortLogo>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCohortLogoQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCohortLogo>>
+>;
+export type GetCohortLogoQueryError = ErrorType<unknown>;
+
+export function useGetCohortLogo<
+  TData = Awaited<ReturnType<typeof getCohortLogo>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCohortLogo>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCohortLogoQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Health check

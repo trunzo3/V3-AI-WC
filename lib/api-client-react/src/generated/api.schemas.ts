@@ -51,6 +51,54 @@ export interface Participant {
   lastLoginAt?: string | null;
 }
 
+export type CohortLogoUploadMimeType =
+  (typeof CohortLogoUploadMimeType)[keyof typeof CohortLogoUploadMimeType];
+
+export const CohortLogoUploadMimeType = {
+  "image/png": "image/png",
+  "image/jpeg": "image/jpeg",
+  "image/svg+xml": "image/svg+xml",
+} as const;
+
+export interface CohortLogoUpload {
+  filename: string;
+  mimeType: CohortLogoUploadMimeType;
+  dataBase64: string;
+}
+
+export type CohortLogoType =
+  (typeof CohortLogoType)[keyof typeof CohortLogoType];
+
+export const CohortLogoType = {
+  builtin: "builtin",
+  image: "image",
+} as const;
+
+export interface CohortLogo {
+  type: CohortLogoType;
+  fileId?: number;
+  name?: string;
+}
+
+export interface CohortTalkCard {
+  label?: string;
+  title?: string;
+  description?: string;
+  link?: string;
+}
+
+export interface CohortSettings {
+  /** @maxItems 3 */
+  logos?: CohortLogo[];
+  /** @maxItems 2 */
+  talkCards?: CohortTalkCard[];
+  facilitatorMessageHeading?: string;
+  workbookTitle?: string;
+  workbookSubtitle?: string;
+  workbookBrand?: string;
+  [key: string]: unknown;
+}
+
 /**
  * Map of tier level to default-unlocked boolean, e.g. {"1": true, "2": false}
  */
@@ -71,6 +119,7 @@ export interface SectionGroup {
 }
 
 export interface Cohort {
+  settings?: CohortSettings;
   id: number;
   name: string;
   facilitatorMessage: string;
@@ -657,6 +706,7 @@ export interface AdminCohortGroup {
 }
 
 export interface AdminCohort {
+  settings?: CohortSettings;
   id: number;
   name: string;
   audienceType: string;
@@ -732,6 +782,7 @@ export const AdminCohortCreateRequestStartWith = {
 } as const;
 
 export interface AdminCohortCreateRequest {
+  settings?: CohortSettings;
   /** @minLength 1 */
   name: string;
   /** @minLength 1 */
@@ -757,6 +808,7 @@ export type AdminCohortUpdateRequestTierAccess = { [key: string]: boolean };
 export type AdminCohortUpdateRequestLevelNames = { [key: string]: string };
 
 export interface AdminCohortUpdateRequest {
+  settings?: CohortSettings;
   /** @minLength 1 */
   name?: string;
   /** @minLength 1 */

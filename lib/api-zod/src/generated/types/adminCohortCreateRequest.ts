@@ -16,8 +16,10 @@ All participant endpoints require an authenticated session cookie
 import type { AdminCohortCreateRequestLevelNames } from "./adminCohortCreateRequestLevelNames";
 import type { AdminCohortCreateRequestStartWith } from "./adminCohortCreateRequestStartWith";
 import type { AdminCohortCreateRequestTierAccess } from "./adminCohortCreateRequestTierAccess";
+import type { CohortSettings } from "./cohortSettings";
 
 export interface AdminCohortCreateRequest {
+  settings?: CohortSettings;
   /** @minLength 1 */
   name: string;
   /** @minLength 1 */

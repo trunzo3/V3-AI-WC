@@ -15,6 +15,16 @@ All participant endpoints require an authenticated session cookie
  */
 import * as zod from "zod";
 
+export const UploadCohortLogoBody = zod.object({
+  filename: zod.string(),
+  mimeType: zod.enum(["image/png", "image/jpeg", "image/svg+xml"]),
+  dataBase64: zod.string(),
+});
+
+export const GetCohortLogoParams = zod.object({
+  id: zod.coerce.number(),
+});
+
 /**
  * @summary Health check
  */
@@ -68,6 +78,10 @@ export const ParticipantLogoutResponse = zod.object({
 /**
  * @summary Return the currently authenticated participant + cohort
  */
+export const getCurrentParticipantResponseCohortSettingsLogosMax = 3;
+
+export const getCurrentParticipantResponseCohortSettingsTalkCardsMax = 2;
+
 export const GetCurrentParticipantResponse = zod.object({
   participant: zod.object({
     id: zod.number(),
@@ -79,6 +93,35 @@ export const GetCurrentParticipantResponse = zod.object({
     lastLoginAt: zod.coerce.date().nullish(),
   }),
   cohort: zod.object({
+    settings: zod
+      .object({
+        logos: zod
+          .array(
+            zod.object({
+              type: zod.enum(["builtin", "image"]),
+              fileId: zod.number().optional(),
+              name: zod.string().optional(),
+            }),
+          )
+          .max(getCurrentParticipantResponseCohortSettingsLogosMax)
+          .optional(),
+        talkCards: zod
+          .array(
+            zod.object({
+              label: zod.string().optional(),
+              title: zod.string().optional(),
+              description: zod.string().optional(),
+              link: zod.string().optional(),
+            }),
+          )
+          .max(getCurrentParticipantResponseCohortSettingsTalkCardsMax)
+          .optional(),
+        facilitatorMessageHeading: zod.string().optional(),
+        workbookTitle: zod.string().optional(),
+        workbookSubtitle: zod.string().optional(),
+        workbookBrand: zod.string().optional(),
+      })
+      .optional(),
     id: zod.number(),
     name: zod.string(),
     facilitatorMessage: zod.string(),
@@ -791,9 +834,42 @@ export const GetAdminMeResponse = zod.object({
 /**
  * @summary List all cohorts (newest first)
  */
+export const adminListCohortsResponseCohortsItemSettingsLogosMax = 3;
+
+export const adminListCohortsResponseCohortsItemSettingsTalkCardsMax = 2;
+
 export const AdminListCohortsResponse = zod.object({
   cohorts: zod.array(
     zod.object({
+      settings: zod
+        .object({
+          logos: zod
+            .array(
+              zod.object({
+                type: zod.enum(["builtin", "image"]),
+                fileId: zod.number().optional(),
+                name: zod.string().optional(),
+              }),
+            )
+            .max(adminListCohortsResponseCohortsItemSettingsLogosMax)
+            .optional(),
+          talkCards: zod
+            .array(
+              zod.object({
+                label: zod.string().optional(),
+                title: zod.string().optional(),
+                description: zod.string().optional(),
+                link: zod.string().optional(),
+              }),
+            )
+            .max(adminListCohortsResponseCohortsItemSettingsTalkCardsMax)
+            .optional(),
+          facilitatorMessageHeading: zod.string().optional(),
+          workbookTitle: zod.string().optional(),
+          workbookSubtitle: zod.string().optional(),
+          workbookBrand: zod.string().optional(),
+        })
+        .optional(),
       id: zod.number(),
       name: zod.string(),
       audienceType: zod.string(),
@@ -831,8 +907,40 @@ export const AdminListCohortsResponse = zod.object({
 /**
  * @summary Create a new cohort and seed default sections
  */
+export const adminCreateCohortBodySettingsLogosMax = 3;
+
+export const adminCreateCohortBodySettingsTalkCardsMax = 2;
 
 export const AdminCreateCohortBody = zod.object({
+  settings: zod
+    .object({
+      logos: zod
+        .array(
+          zod.object({
+            type: zod.enum(["builtin", "image"]),
+            fileId: zod.number().optional(),
+            name: zod.string().optional(),
+          }),
+        )
+        .max(adminCreateCohortBodySettingsLogosMax)
+        .optional(),
+      talkCards: zod
+        .array(
+          zod.object({
+            label: zod.string().optional(),
+            title: zod.string().optional(),
+            description: zod.string().optional(),
+            link: zod.string().optional(),
+          }),
+        )
+        .max(adminCreateCohortBodySettingsTalkCardsMax)
+        .optional(),
+      facilitatorMessageHeading: zod.string().optional(),
+      workbookTitle: zod.string().optional(),
+      workbookSubtitle: zod.string().optional(),
+      workbookBrand: zod.string().optional(),
+    })
+    .optional(),
   name: zod.string().min(1),
   cohortCode: zod.string().min(1),
   audienceType: zod.string().optional(),
@@ -858,8 +966,41 @@ export const AdminGetCohortParams = zod.object({
   id: zod.coerce.number().describe("Numeric id"),
 });
 
+export const adminGetCohortResponseCohortSettingsLogosMax = 3;
+
+export const adminGetCohortResponseCohortSettingsTalkCardsMax = 2;
+
 export const AdminGetCohortResponse = zod.object({
   cohort: zod.object({
+    settings: zod
+      .object({
+        logos: zod
+          .array(
+            zod.object({
+              type: zod.enum(["builtin", "image"]),
+              fileId: zod.number().optional(),
+              name: zod.string().optional(),
+            }),
+          )
+          .max(adminGetCohortResponseCohortSettingsLogosMax)
+          .optional(),
+        talkCards: zod
+          .array(
+            zod.object({
+              label: zod.string().optional(),
+              title: zod.string().optional(),
+              description: zod.string().optional(),
+              link: zod.string().optional(),
+            }),
+          )
+          .max(adminGetCohortResponseCohortSettingsTalkCardsMax)
+          .optional(),
+        facilitatorMessageHeading: zod.string().optional(),
+        workbookTitle: zod.string().optional(),
+        workbookSubtitle: zod.string().optional(),
+        workbookBrand: zod.string().optional(),
+      })
+      .optional(),
     id: zod.number(),
     name: zod.string(),
     audienceType: zod.string(),
@@ -900,7 +1041,40 @@ export const AdminUpdateCohortParams = zod.object({
   id: zod.coerce.number().describe("Numeric id"),
 });
 
+export const adminUpdateCohortBodySettingsLogosMax = 3;
+
+export const adminUpdateCohortBodySettingsTalkCardsMax = 2;
+
 export const AdminUpdateCohortBody = zod.object({
+  settings: zod
+    .object({
+      logos: zod
+        .array(
+          zod.object({
+            type: zod.enum(["builtin", "image"]),
+            fileId: zod.number().optional(),
+            name: zod.string().optional(),
+          }),
+        )
+        .max(adminUpdateCohortBodySettingsLogosMax)
+        .optional(),
+      talkCards: zod
+        .array(
+          zod.object({
+            label: zod.string().optional(),
+            title: zod.string().optional(),
+            description: zod.string().optional(),
+            link: zod.string().optional(),
+          }),
+        )
+        .max(adminUpdateCohortBodySettingsTalkCardsMax)
+        .optional(),
+      facilitatorMessageHeading: zod.string().optional(),
+      workbookTitle: zod.string().optional(),
+      workbookSubtitle: zod.string().optional(),
+      workbookBrand: zod.string().optional(),
+    })
+    .optional(),
   name: zod.string().min(1).optional(),
   cohortCode: zod.string().min(1).optional(),
   audienceType: zod.string().optional(),
@@ -915,8 +1089,41 @@ export const AdminUpdateCohortBody = zod.object({
     ),
 });
 
+export const adminUpdateCohortResponseCohortSettingsLogosMax = 3;
+
+export const adminUpdateCohortResponseCohortSettingsTalkCardsMax = 2;
+
 export const AdminUpdateCohortResponse = zod.object({
   cohort: zod.object({
+    settings: zod
+      .object({
+        logos: zod
+          .array(
+            zod.object({
+              type: zod.enum(["builtin", "image"]),
+              fileId: zod.number().optional(),
+              name: zod.string().optional(),
+            }),
+          )
+          .max(adminUpdateCohortResponseCohortSettingsLogosMax)
+          .optional(),
+        talkCards: zod
+          .array(
+            zod.object({
+              label: zod.string().optional(),
+              title: zod.string().optional(),
+              description: zod.string().optional(),
+              link: zod.string().optional(),
+            }),
+          )
+          .max(adminUpdateCohortResponseCohortSettingsTalkCardsMax)
+          .optional(),
+        facilitatorMessageHeading: zod.string().optional(),
+        workbookTitle: zod.string().optional(),
+        workbookSubtitle: zod.string().optional(),
+        workbookBrand: zod.string().optional(),
+      })
+      .optional(),
     id: zod.number(),
     name: zod.string(),
     audienceType: zod.string(),

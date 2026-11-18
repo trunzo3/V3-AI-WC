@@ -14,10 +14,12 @@ All participant endpoints require an authenticated session cookie
  * OpenAPI spec version: 0.1.0
  */
 import type { CohortLevelNames } from "./cohortLevelNames";
+import type { CohortSettings } from "./cohortSettings";
 import type { CohortTierAccess } from "./cohortTierAccess";
 import type { SectionGroup } from "./sectionGroup";
 
 export interface Cohort {
+  settings?: CohortSettings;
   id: number;
   name: string;
   facilitatorMessage: string;
