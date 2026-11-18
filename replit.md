@@ -618,6 +618,13 @@ generated client (they're typically called from custom admin UIs).
 
 ## Conventions
 
+Poll questions support optional `details` (sanitized rich-text HTML, maximum
+10,000 characters). Empty markup is omitted on save. The poll editor exposes
+Add/Remove details using the step-body rich-text editor. Details appear only
+under the participant question, with links opening in a new tab; Responses,
+Board, CSV, Copy all and workbook output continue to use question text only.
+Cohort duplication preserves details as part of the poll content.
+
 - **Never use `console.log`** in server code. Use `req.log` in route handlers
   and the singleton `logger` for non-request code.
 - All routes use Zod (`zod/v4`) `.safeParse()` for input validation; failures

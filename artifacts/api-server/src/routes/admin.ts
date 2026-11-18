@@ -1517,6 +1517,7 @@ const contentBlockSchema = z
           z.object({
             questionKey: z.string().trim().min(1).max(200),
             text: z.string().max(2000),
+            details: z.string().max(10000).optional(),
             choiceType: z.enum(["single", "multiple"]),
             choices: z
               .array(z.string().trim().min(1, "Choices cannot be blank.").max(500))
@@ -1555,6 +1556,16 @@ const contentBlockSchema = z
     // Sanitize admin-authored rich HTML. Prompt content stays literal — it
     // renders inside <pre>.
     switch (b.type) {
+      case "poll":
+        return {
+          ...b,
+          questions: b.questions.map(({ details, ...q }) => {
+            const cleaned = sanitizeRichHtml(details);
+            const visible = cleaned.replace(/<[^>]*>/g, "")
+              .replace(/&(?:nbsp|#160|#x0*a0);/gi, " ").trim();
+            return visible ? { ...q, details: cleaned } : q;
+          }),
+        };
       case "text":
         return { ...b, content: sanitizeRichHtml(b.content) };
       case "callout":

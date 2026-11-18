@@ -13,6 +13,7 @@ import {
 import { Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { RichBody } from "./RichBody";
 
 // Participant view of a poll block: radios / checkboxes per question, an
 // optional comment box, one Submit for the whole block with the same states
@@ -210,6 +211,14 @@ export function PollBlock({
                 <span className="ml-2 text-xs font-normal text-muted-foreground">(pick all that apply)</span>
               )}
             </legend>
+            {q.details && (
+              <div
+                className="text-sm text-muted-foreground [&_a]:text-primary [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                data-testid={`poll-details-${sectionId}-${blockIndex}-${qi}`}
+              >
+                <RichBody html={q.details} />
+              </div>
+            )}
             {missing && (
               <p className="text-xs text-destructive" data-testid={`poll-missing-${sectionId}-${blockIndex}-${qi}`}>
                 Please answer this question.

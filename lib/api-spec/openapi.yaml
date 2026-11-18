@@ -1753,6 +1753,10 @@ components:
       properties:
         questionKey: { type: string }
         text: { type: string }
+        details:
+          type: string
+          maxLength: 10000
+          description: Optional rich-text HTML shown only beneath the participant question.
         choiceType:
           type: string
           enum: [single, multiple]

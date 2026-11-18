@@ -144,6 +144,8 @@ export const AdminLogoutResponse = zod.object({
 /**
  * @summary List visible sections for the current participant's cohort
  */
+export const listSectionsResponseSectionsItemGenericContentBlocksItemQuestionsItemDetailsMax = 10000;
+
 export const listSectionsResponseSectionsItemGenericContentBlocksItemQuestionsItemChoicesMin = 2;
 
 export const ListSectionsResponse = zod.object({
@@ -273,6 +275,15 @@ export const ListSectionsResponse = zod.object({
                     zod.object({
                       questionKey: zod.string(),
                       text: zod.string(),
+                      details: zod
+                        .string()
+                        .max(
+                          listSectionsResponseSectionsItemGenericContentBlocksItemQuestionsItemDetailsMax,
+                        )
+                        .optional()
+                        .describe(
+                          "Optional rich-text HTML shown only beneath the participant question.",
+                        ),
                       choiceType: zod.enum(["single", "multiple"]),
                       choices: zod
                         .array(zod.string())
@@ -1290,6 +1301,8 @@ export const AdminDeleteTopicResponse = zod.object({
 /**
  * @summary List all generic (admin-authored) section bodies
  */
+export const adminListGenericSectionsResponseSectionsItemContentBlocksItemQuestionsItemDetailsMax = 10000;
+
 export const adminListGenericSectionsResponseSectionsItemContentBlocksItemQuestionsItemChoicesMin = 2;
 
 export const AdminListGenericSectionsResponse = zod.object({
@@ -1403,6 +1416,15 @@ export const AdminListGenericSectionsResponse = zod.object({
                 zod.object({
                   questionKey: zod.string(),
                   text: zod.string(),
+                  details: zod
+                    .string()
+                    .max(
+                      adminListGenericSectionsResponseSectionsItemContentBlocksItemQuestionsItemDetailsMax,
+                    )
+                    .optional()
+                    .describe(
+                      "Optional rich-text HTML shown only beneath the participant question.",
+                    ),
                   choiceType: zod.enum(["single", "multiple"]),
                   choices: zod
                     .array(zod.string())
@@ -1555,6 +1577,8 @@ export const AdminListGenericSectionsResponse = zod.object({
  * @summary Create a generic section body
  */
 
+export const adminCreateGenericSectionBodyContentBlocksItemQuestionsItemDetailsMax = 10000;
+
 export const adminCreateGenericSectionBodyContentBlocksItemQuestionsItemChoicesMin = 2;
 
 export const AdminCreateGenericSectionBody = zod.object({
@@ -1665,6 +1689,15 @@ export const AdminCreateGenericSectionBody = zod.object({
               zod.object({
                 questionKey: zod.string(),
                 text: zod.string(),
+                details: zod
+                  .string()
+                  .max(
+                    adminCreateGenericSectionBodyContentBlocksItemQuestionsItemDetailsMax,
+                  )
+                  .optional()
+                  .describe(
+                    "Optional rich-text HTML shown only beneath the participant question.",
+                  ),
                 choiceType: zod.enum(["single", "multiple"]),
                 choices: zod
                   .array(zod.string())
@@ -1859,6 +1892,8 @@ export const AdminUpdateGenericSectionParams = zod.object({
   id: zod.coerce.number().describe("Numeric id"),
 });
 
+export const adminUpdateGenericSectionBodyContentBlocksItemQuestionsItemDetailsMax = 10000;
+
 export const adminUpdateGenericSectionBodyContentBlocksItemQuestionsItemChoicesMin = 2;
 
 export const AdminUpdateGenericSectionBody = zod.object({
@@ -1969,6 +2004,15 @@ export const AdminUpdateGenericSectionBody = zod.object({
               zod.object({
                 questionKey: zod.string(),
                 text: zod.string(),
+                details: zod
+                  .string()
+                  .max(
+                    adminUpdateGenericSectionBodyContentBlocksItemQuestionsItemDetailsMax,
+                  )
+                  .optional()
+                  .describe(
+                    "Optional rich-text HTML shown only beneath the participant question.",
+                  ),
                 choiceType: zod.enum(["single", "multiple"]),
                 choices: zod
                   .array(zod.string())
@@ -2127,6 +2171,8 @@ export const AdminUpdateGenericSectionBody = zod.object({
   insertAfterSortOrder: zod.number().nullish(),
 });
 
+export const adminUpdateGenericSectionResponseSectionContentBlocksItemQuestionsItemDetailsMax = 10000;
+
 export const adminUpdateGenericSectionResponseSectionContentBlocksItemQuestionsItemChoicesMin = 2;
 
 export const AdminUpdateGenericSectionResponse = zod.object({
@@ -2239,6 +2285,15 @@ export const AdminUpdateGenericSectionResponse = zod.object({
               zod.object({
                 questionKey: zod.string(),
                 text: zod.string(),
+                details: zod
+                  .string()
+                  .max(
+                    adminUpdateGenericSectionResponseSectionContentBlocksItemQuestionsItemDetailsMax,
+                  )
+                  .optional()
+                  .describe(
+                    "Optional rich-text HTML shown only beneath the participant question.",
+                  ),
                 choiceType: zod.enum(["single", "multiple"]),
                 choices: zod
                   .array(zod.string())

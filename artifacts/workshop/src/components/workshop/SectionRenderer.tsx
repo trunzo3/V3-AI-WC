@@ -29,6 +29,7 @@ import { useResolveTemplate } from "@/hooks/use-resolve-template";
 import { LiveValuesProvider } from "@/hooks/use-live-values";
 import { CopyButton } from "./CopyButton";
 import { PollBlock } from "./PollBlock";
+import { RichBody } from "./RichBody";
 import {
   VerificationTest,
   ToolSafari,
@@ -191,15 +192,6 @@ function RecapBlock({
       </dl>
     </div>
   );
-}
-
-// Renders sanitized admin-authored HTML, or plaintext with preserved
-// line breaks for legacy bodies.
-function RichBody({ html }: { html: string }) {
-  if (looksLikeHtml(html)) {
-    return <div dangerouslySetInnerHTML={{ __html: html }} />;
-  }
-  return <div className="whitespace-pre-wrap">{html}</div>;
 }
 
 function CalloutBlock({

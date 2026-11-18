@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, ArrowUp, ArrowDown, X } from "lucide-react";
+import { RichTextEditor } from "./RichTextEditor";
 
 // Admin editor for one poll block inside the generic section dialog.
 // `hasResponses` is true when any participant (in any cohort) already
@@ -151,6 +152,30 @@ export function PollBlockEditor({
               </div>
             </div>
             <div>
+              {q.details !== undefined ? (
+                <div className="space-y-2 mb-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Details (optional)</Label>
+                    <Button type="button" variant="ghost" size="sm"
+                      onClick={() => updateQ(qi, { details: undefined })}
+                      data-testid={`button-poll-remove-details-${idx}-${qi}`}>
+                      Remove details
+                    </Button>
+                  </div>
+                  <RichTextEditor
+                    value={q.details}
+                    onChange={(details) => updateQ(qi, { details })}
+                    minHeight={80}
+                    testId={`input-poll-details-${idx}-${qi}`}
+                  />
+                </div>
+              ) : (
+                <Button type="button" variant="ghost" size="sm"
+                  onClick={() => updateQ(qi, { details: "" })}
+                  data-testid={`button-poll-add-details-${idx}-${qi}`}>
+                  + Add details
+                </Button>
+              )}
               <Label className="text-xs">Key (stable id for stored answers)</Label>
               <Input
                 value={q.questionKey}

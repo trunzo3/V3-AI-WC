@@ -18,6 +18,11 @@ import type { GenericPollQuestionChoiceType } from "./genericPollQuestionChoiceT
 export interface GenericPollQuestion {
   questionKey: string;
   text: string;
+  /**
+   * Optional rich-text HTML shown only beneath the participant question.
+   * @maxLength 10000
+   */
+  details?: string;
   choiceType: GenericPollQuestionChoiceType;
   /** @minItems 2 */
   choices: string[];

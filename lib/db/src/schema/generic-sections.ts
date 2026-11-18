@@ -107,6 +107,7 @@ export type GenericContentBlock =
         // Stable key, unique within the block; answers are stored under it.
         questionKey: string;
         text: string;
+        details?: string;
         choiceType: "single" | "multiple";
         // At least 2.
         choices: string[];
