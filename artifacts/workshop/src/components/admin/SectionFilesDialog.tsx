@@ -249,7 +249,7 @@ export function SectionFilesDialog({
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <Button asChild variant="ghost" size="icon">
-                      <a href={`/api/files/${f.id}/download`} title="Download">
+                      <a href={`/api/admin/files/${f.id}/download`} title="Download">
                         <Download className="w-4 h-4" />
                       </a>
                     </Button>

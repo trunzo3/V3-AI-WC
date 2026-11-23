@@ -155,6 +155,34 @@ router.post("/admin/files", requireAdmin, adminJson, async (req, res) => {
   res.status(201).json(row);
 });
 
+router.get("/admin/files/:id/download", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0 || id > 2147483647) {
+    res.status(404).json({ error: "File not found" });
+    return;
+  }
+  const [row] = await db
+    .select({
+      filename: sectionFilesTable.filename,
+      mimeType: sectionFilesTable.mimeType,
+      storagePath: sectionFilesTable.storagePath,
+    })
+    .from(sectionFilesTable)
+    .where(eq(sectionFilesTable.id, id))
+    .limit(1);
+  if (!row) {
+    res.status(404).json({ error: "File not found" });
+    return;
+  }
+  const safeName = row.filename.replace(/"/g, "");
+  res.set({
+    "Cache-Control": "no-store",
+    "Content-Type": row.mimeType ?? "application/octet-stream",
+    "Content-Disposition": `attachment; filename="${encodeURIComponent(safeName)}"`,
+  });
+  res.send(Buffer.from(row.storagePath, "base64"));
+});
+
 router.delete("/admin/files/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
