@@ -1738,6 +1738,12 @@ export const AdminListGenericSectionsResponse = zod.object({
       goalText: zod.string().nullish(),
       sectionType: zod.string(),
       showNotesField: zod.boolean().optional(),
+      includeInWorkbook: zod
+        .boolean()
+        .optional()
+        .describe(
+          "False leaves the section out of the participant workbook PDF (still shown in the workshop).",
+        ),
       badgeLabel: zod.string().nullish(),
       defaultLevel: zod.number().describe("Legacy (frozen); use topicId."),
       topicId: zod
@@ -2012,6 +2018,12 @@ export const AdminCreateGenericSectionBody = zod.object({
   goalText: zod.string().nullish(),
   sectionType: zod.string().optional(),
   showNotesField: zod.boolean().optional(),
+  includeInWorkbook: zod
+    .boolean()
+    .optional()
+    .describe(
+      "Defaults to true when omitted on create; omitted on update leaves it unchanged.",
+    ),
   badgeLabel: zod.string().nullish(),
   defaultLevel: zod
     .number()
@@ -2327,6 +2339,12 @@ export const AdminUpdateGenericSectionBody = zod.object({
   goalText: zod.string().nullish(),
   sectionType: zod.string().optional(),
   showNotesField: zod.boolean().optional(),
+  includeInWorkbook: zod
+    .boolean()
+    .optional()
+    .describe(
+      "Defaults to true when omitted on create; omitted on update leaves it unchanged.",
+    ),
   badgeLabel: zod.string().nullish(),
   defaultLevel: zod
     .number()
@@ -2607,6 +2625,12 @@ export const AdminUpdateGenericSectionResponse = zod.object({
     goalText: zod.string().nullish(),
     sectionType: zod.string(),
     showNotesField: zod.boolean().optional(),
+    includeInWorkbook: zod
+      .boolean()
+      .optional()
+      .describe(
+        "False leaves the section out of the participant workbook PDF (still shown in the workshop).",
+      ),
     badgeLabel: zod.string().nullish(),
     defaultLevel: zod.number().describe("Legacy (frozen); use topicId."),
     topicId: zod

@@ -29,6 +29,8 @@ export type BuiltinConversion =
   | {
       kind: "convertible";
       showNotesField: boolean;
+      /** Defaults to true (section appears in the workbook PDF). */
+      includeInWorkbook?: boolean;
       blocks: (ctx: ConversionContext) => GenericContentBlock[];
     }
   | { kind: "blocked"; blockedBy: string };

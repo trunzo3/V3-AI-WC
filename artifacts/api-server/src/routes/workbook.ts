@@ -1447,6 +1447,8 @@ router.get("/workbook/download", requireParticipant, async (req, res) => {
       const numericId = parseGenericSectionId(cs.sectionId);
       const g = numericId !== null ? genericById.get(numericId) : null;
       if (!g) continue;
+      // Admin opted this section out of the workbook (TOC and body).
+      if (!g.includeInWorkbook) continue;
       if (!title) title = g.title;
       type = g.sectionType;
       isGeneric = true;

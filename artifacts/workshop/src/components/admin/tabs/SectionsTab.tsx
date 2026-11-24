@@ -532,6 +532,7 @@ export function SectionsTab({ cohortId }: Props) {
     /** Create only: also add the new section to this cohort group (or none). */
     targetGroupId: number | null;
     showNotesField: boolean;
+    includeInWorkbook: boolean;
     badgeLabel: string;
   }
   const [genForm, setGenForm] = useState<GenForm>({
@@ -542,6 +543,7 @@ export function SectionsTab({ cohortId }: Props) {
     topicId: null,
     targetGroupId: null,
     showNotesField: true,
+    includeInWorkbook: true,
     badgeLabel: "",
   });
 
@@ -764,6 +766,7 @@ export function SectionsTab({ cohortId }: Props) {
       topicId: topics[0]?.id ?? null,
       targetGroupId: groups[0]?.id ?? null,
       showNotesField: true,
+      includeInWorkbook: true,
       badgeLabel: "",
     });
     setGenOpen(true);
@@ -780,6 +783,7 @@ export function SectionsTab({ cohortId }: Props) {
       topicId: g.topicId ?? null,
       targetGroupId: null,
       showNotesField: g.showNotesField ?? true,
+      includeInWorkbook: g.includeInWorkbook ?? true,
       badgeLabel: g.badgeLabel ?? "",
     });
     setGenOpen(true);
@@ -813,6 +817,7 @@ export function SectionsTab({ cohortId }: Props) {
             goalText: g.goalText ?? null,
             sectionType: g.sectionType,
             showNotesField: g.showNotesField,
+            includeInWorkbook: g.includeInWorkbook ?? true,
             badgeLabel: g.badgeLabel ?? null,
             topicId: g.topicId ?? null,
           },
@@ -879,6 +884,7 @@ export function SectionsTab({ cohortId }: Props) {
       goalText: genForm.goalText || null,
       sectionType: genForm.sectionType,
       showNotesField: genForm.showNotesField,
+      includeInWorkbook: genForm.includeInWorkbook,
       badgeLabel: genForm.badgeLabel.trim() || null,
       ...(genForm.topicId != null ? { topicId: genForm.topicId } : {}),
     };
@@ -1166,7 +1172,8 @@ export function SectionsTab({ cohortId }: Props) {
                         data-testid="input-generic-badge-label"
                       />
                     </div>
-                    <div className="flex items-center gap-2 pb-2">
+                    <div className="space-y-2 pb-2">
+                    <div className="flex items-center gap-2">
                       <Switch
                         checked={genForm.showNotesField}
                         onCheckedChange={(v) =>
@@ -1179,6 +1186,21 @@ export function SectionsTab({ cohortId }: Props) {
                       }>
                         Show "Your Notes" field
                       </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={genForm.includeInWorkbook}
+                        onCheckedChange={(v) =>
+                          setGenForm({ ...genForm, includeInWorkbook: v })
+                        }
+                        data-testid="switch-generic-include-in-workbook"
+                      />
+                      <Label className="cursor-pointer" onClick={() =>
+                        setGenForm({ ...genForm, includeInWorkbook: !genForm.includeInWorkbook })
+                      }>
+                        Include in workbook
+                      </Label>
+                    </div>
                     </div>
                   </div>
                   <div className="space-y-3">

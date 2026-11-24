@@ -22,6 +22,8 @@ export interface AdminGenericSectionRequest {
   goalText?: string | null;
   sectionType?: string;
   showNotesField?: boolean;
+  /** Defaults to true when omitted on create; omitted on update leaves it unchanged. */
+  includeInWorkbook?: boolean;
   badgeLabel?: string | null;
   /**
    * Legacy (frozen); use topicId.

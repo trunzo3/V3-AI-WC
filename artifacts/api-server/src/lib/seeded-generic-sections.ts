@@ -31,6 +31,8 @@ export type SeededGenericModule = {
   title: string;
   badgeLabel: string | null;
   showNotesField: boolean;
+  /** Defaults to true (module appears in the workbook PDF). */
+  includeInWorkbook?: boolean;
   /** Starting topic key (legacy level): the module attaches to the cohort's group carrying it. */
   level: number;
   sortOrder: number;
@@ -721,6 +723,7 @@ export async function ensureSeededGenericSections(): Promise<void> {
         title: m.title,
         badgeLabel: m.badgeLabel,
         showNotesField: m.showNotesField,
+        includeInWorkbook: m.includeInWorkbook ?? true,
         sectionType: m.sectionType ?? "exercise",
         goalText: m.goalText ?? null,
         contentBlocks: m.contentBlocks,

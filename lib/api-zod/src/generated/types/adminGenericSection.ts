@@ -23,6 +23,8 @@ export interface AdminGenericSection {
   goalText?: string | null;
   sectionType: string;
   showNotesField?: boolean;
+  /** False leaves the section out of the participant workbook PDF (still shown in the workshop). */
+  includeInWorkbook?: boolean;
   badgeLabel?: string | null;
   /**
    * Legacy (frozen); use topicId.

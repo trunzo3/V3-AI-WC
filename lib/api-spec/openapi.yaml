@@ -2627,6 +2627,9 @@ components:
           nullable: true
         sectionType: { type: string }
         showNotesField: { type: boolean }
+        includeInWorkbook:
+          type: boolean
+          description: False leaves the section out of the participant workbook PDF (still shown in the workshop).
         badgeLabel:
           type: string
           nullable: true
@@ -2698,6 +2701,9 @@ components:
           nullable: true
         sectionType: { type: string }
         showNotesField: { type: boolean }
+        includeInWorkbook:
+          type: boolean
+          description: Defaults to true when omitted on create; omitted on update leaves it unchanged.
         badgeLabel:
           type: string
           nullable: true

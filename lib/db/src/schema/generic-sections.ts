@@ -159,6 +159,9 @@ export const genericSectionsTable = pgTable("generic_sections", {
   goalText: text("goal_text"),
   sectionType: text("section_type").notNull().default("exercise"),
   showNotesField: boolean("show_notes_field").notNull().default(true),
+  // False = the section still shows in the workshop but is left out of the
+  // participant workbook PDF (table of contents and body).
+  includeInWorkbook: boolean("include_in_workbook").notNull().default(true),
   badgeLabel: text("badge_label"),
   // The level this section "belongs" to by default: seeded modules use the
   // level their seed assigns; hand-created sections use the level they were
