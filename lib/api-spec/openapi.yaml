@@ -1620,6 +1620,10 @@ components:
             goalText: { type: string, nullable: true }
             showNotesField: { type: boolean }
             badgeLabel: { type: string, nullable: true }
+            slug:
+              type: string
+              nullable: true
+              description: Stable seeded-module key (prefill links may reference a section by slug).
 
     GenericContentBlock:
       type: object

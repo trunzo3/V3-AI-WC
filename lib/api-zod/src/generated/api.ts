@@ -470,6 +470,12 @@ export const ListSectionsResponse = zod.object({
           goalText: zod.string().nullable(),
           showNotesField: zod.boolean(),
           badgeLabel: zod.string().nullable(),
+          slug: zod
+            .string()
+            .nullish()
+            .describe(
+              "Stable seeded-module key (prefill links may reference a section by slug).",
+            ),
         })
         .nullish(),
     }),

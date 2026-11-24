@@ -9,6 +9,7 @@ import {
   getNotes,
   getGetNotesQueryKey,
   useSubmitFormResponse,
+  useListSections,
   useListMyFormSubmissions,
   getListMyFormSubmissionsQueryKey,
   type MyFormSubmissionsResponse,
@@ -25,7 +26,10 @@ import {
 } from "./SectionHeader";
 import { NotesField } from "./NotesField";
 import { SectionAttachedFiles } from "./SectionAttachedFiles";
-import { useResolveTemplate } from "@/hooks/use-resolve-template";
+import {
+  useResolveTemplate,
+  useResolveTemplateParts,
+} from "@/hooks/use-resolve-template";
 import { LiveValuesProvider } from "@/hooks/use-live-values";
 import { CopyButton } from "./CopyButton";
 import { PollBlock } from "./PollBlock";
@@ -93,8 +97,29 @@ function PromptBlock({
   buttonLabel?: string;
 }) {
   // {{sectionId:fieldKey}} placeholders resolve to the participant's own
-  // saved answers before the prompt is shown or copied.
-  const resolved = useResolveTemplate(text);
+  // saved answers before the prompt is shown or copied. A link whose answer
+  // is still empty shows a visible placeholder naming the linked section, and
+  // Copy copies the box exactly as shown.
+  const parts = useResolveTemplateParts(text);
+  const { data: sectionsResp } = useListSections();
+  const titleByRef = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of sectionsResp?.sections ?? []) {
+      m.set(s.id, s.title);
+      if (s.generic?.slug) m.set(s.generic.slug, s.title);
+    }
+    return m;
+  }, [sectionsResp]);
+  const placeholderFor = (ref: string) => {
+    const title = titleByRef.get(ref);
+    return title
+      ? `[your answer from "${title}"]`
+      : "[your answer from an earlier section]";
+  };
+  const hasEmpty = parts.some((p) => p.kind === "empty");
+  const copyText = parts
+    .map((p) => (p.kind === "empty" ? placeholderFor(p.sectionRef) : p.text))
+    .join("");
   return (
     <div
       className="bg-primary rounded-lg p-6 text-white mb-6"
@@ -104,9 +129,29 @@ function PromptBlock({
         {pill}
       </span>
       <pre className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-mono">
-        {resolved}
+        {parts.map((p, i) =>
+          p.kind === "empty" ? (
+            <span
+              key={i}
+              className="text-accent italic border-b border-dashed border-accent/70"
+              data-testid="prompt-missing-answer"
+            >
+              {placeholderFor(p.sectionRef)}
+            </span>
+          ) : (
+            <span key={i}>{p.text}</span>
+          ),
+        )}
       </pre>
-      <CopyButton text={resolved} label={buttonLabel || "Copy Prompt"} />
+      <CopyButton text={copyText} label={buttonLabel || "Copy Prompt"} />
+      {hasEmpty && (
+        <p
+          className="text-xs text-accent mt-2"
+          data-testid="prompt-missing-answer-note"
+        >
+          Fill in that section first.
+        </p>
+      )}
     </div>
   );
 }

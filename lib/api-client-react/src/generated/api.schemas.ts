@@ -372,6 +372,8 @@ export type SectionGeneric = {
   goalText: string | null;
   showNotesField: boolean;
   badgeLabel: string | null;
+  /** Stable seeded-module key (prefill links may reference a section by slug). */
+  slug?: string | null;
 } | null;
 
 export interface Section {

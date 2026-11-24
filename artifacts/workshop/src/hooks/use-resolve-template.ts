@@ -13,14 +13,22 @@ function extractSectionIds(text: string): string[] {
   return [...ids];
 }
 
+/** A piece of resolved template text: literal text, a filled-in linked
+ * answer, or a linked answer that is still empty. */
+export type TemplatePart =
+  | { kind: "text"; text: string }
+  | { kind: "answer"; text: string }
+  // `raw` is the (blank) stored value, kept so prefill output is unchanged.
+  | { kind: "empty"; sectionRef: string; fieldKey: string; raw: string };
+
 /**
- * Resolves {{sectionId:fieldKey}} placeholders in admin-authored block text
- * to the current participant's own saved answers (notes) in the referenced
- * section/field. Unresolved or unsaved references become an empty string, so
- * raw {{...}} never reaches the screen. Uses the same GET /notes/:sectionId
- * read (and react-query cache) that fields already use for their own section.
+ * Splits admin-authored text into parts, resolving each
+ * {{sectionId:fieldKey}} placeholder to the current participant's own saved
+ * answer (notes) in the referenced section/field. Uses the same
+ * GET /notes/:sectionId read (and react-query cache) that fields already use
+ * for their own section.
  */
-export function useResolveTemplate(text: string): string {
+export function useResolveTemplateParts(text: string): TemplatePart[] {
   const live = useLiveValues();
   const sectionIds = useMemo(() => extractSectionIds(text), [text]);
 
@@ -32,7 +40,7 @@ export function useResolveTemplate(text: string): string {
     })),
   });
 
-  if (sectionIds.length === 0) return text;
+  if (sectionIds.length === 0) return text ? [{ kind: "text", text }] : [];
 
   // The substitution is cheap; recompute on every render rather than
   // memoizing over a variable-length dependency list.
@@ -44,15 +52,40 @@ export function useResolveTemplate(text: string): string {
       new Map(notes.map((n) => [n.fieldKey, n.content ?? ""])),
     );
   });
-  return text.replace(
-    PLACEHOLDER_RE,
-    (_all, sectionId: string, fieldKey: string) => {
-      // Prefer the participant's currently-typed value for a field in the
-      // active section so the preview updates on every keystroke; fall back to
-      // the saved answer (this section, or another referenced section).
-      const liveVal = live?.values[fieldKey];
-      if (liveVal !== undefined) return liveVal;
-      return valueBySection.get(sectionId)?.get(fieldKey) ?? "";
-    },
-  );
+
+  const parts: TemplatePart[] = [];
+  let last = 0;
+  for (const m of text.matchAll(PLACEHOLDER_RE)) {
+    const start = m.index ?? 0;
+    if (start > last) parts.push({ kind: "text", text: text.slice(last, start) });
+    last = start + m[0].length;
+    const sectionId = m[1];
+    const fieldKey = m[2];
+    // Prefer the participant's currently-typed value for a field in the
+    // active section so the preview updates on every keystroke; fall back to
+    // the saved answer (this section, or another referenced section).
+    const liveVal = live?.values[fieldKey];
+    const value =
+      liveVal !== undefined
+        ? liveVal
+        : (valueBySection.get(sectionId)?.get(fieldKey) ?? "");
+    if (value.trim() === "") {
+      parts.push({ kind: "empty", sectionRef: sectionId, fieldKey, raw: value });
+    } else {
+      parts.push({ kind: "answer", text: value });
+    }
+  }
+  if (last < text.length) parts.push({ kind: "text", text: text.slice(last) });
+  return parts;
+}
+
+/**
+ * String form used for pre-filling form fields: unsaved references become an
+ * empty string, so raw {{...}} never reaches the screen and no placeholder
+ * text can ever be saved as a participant's answer.
+ */
+export function useResolveTemplate(text: string): string {
+  const parts = useResolveTemplateParts(text);
+  if (!text) return text;
+  return parts.map((p) => (p.kind === "empty" ? p.raw : p.text)).join("");
 }

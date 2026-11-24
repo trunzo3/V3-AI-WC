@@ -48,6 +48,7 @@ interface SectionResponse {
     goalText: string | null;
     showNotesField: boolean;
     badgeLabel: string | null;
+    slug: string | null;
   } | null;
 }
 
@@ -130,6 +131,7 @@ router.get("/sections", requireParticipant, async (req, res) => {
         goalText: g.goalText,
         showNotesField: g.showNotesField,
         badgeLabel: g.badgeLabel,
+        slug: g.slug,
       };
     } else {
       const hard = getHardcodedSection(cs.sectionId);
